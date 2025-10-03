@@ -3,19 +3,21 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, RefreshCw, Trash2 } from 'lucide-react';
-import apexLogo from '@/assets/apex_emblem_logo.svg';
+import apexWordmark from '@/assets/apex_wordmark_hero.svg';
+import appTradeline247 from '@/assets/app_tradeline247.svg';
 import { Header } from '@/components/Header';
 const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const showAdminLink = searchParams.get('admin') === '1';
-  const [appSlots] = useState(Array.from({
-    length: 12
-  }, (_, i) => ({
-    id: i + 1,
-    name: `App ${i + 1}`,
-    icon: null
-  })));
+  const [appSlots] = useState([
+    { id: 1, name: 'TradeLine 24/7', icon: appTradeline247 },
+    ...Array.from({ length: 11 }, (_, i) => ({
+      id: i + 2,
+      name: `App ${i + 2}`,
+      icon: null
+    }))
+  ]);
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.altKey && e.shiftKey && e.key === 'L') {
@@ -36,9 +38,13 @@ const Index = () => {
       
       {/* Hero Section */}
       <section className="flex min-h-screen items-center justify-center px-4 py-20 pt-28">
-        <div className="text-center space-y-6 max-w-[920px] w-full">
-          <div className="flex justify-center mb-8">
-            <img src={apexLogo} alt="APEX Business Systems logo" className="h-24 md:h-32 w-auto" />
+        <div className="text-center space-y-4 max-w-[920px] w-full">
+          <div className="flex justify-center mb-3 md:mb-4">
+            <img 
+              src={apexWordmark} 
+              alt="APEX Business Systems wordmark" 
+              className="w-[280px] md:w-[480px] h-auto" 
+            />
           </div>
           <h1 className="text-6xl md:text-7xl font-bold leading-tight tracking-tight">
             APEX Business Systems, Apps for Life!
@@ -59,20 +65,30 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Our Apps</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {appSlots.map(slot => <Card key={slot.id} className="border-dashed border-2 hover:border-muted-foreground/50 transition-colors">
-                <CardContent className="p-6 flex flex-col items-center gap-4">
-                  <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center">
-                    {slot.icon ? <img src={slot.icon} alt={slot.name} className="w-full h-full object-contain" /> : <span className="text-4xl text-muted-foreground/30">+</span>}
+            {appSlots.map(slot => <Card 
+                key={slot.id} 
+                className={slot.icon ? "hover:shadow-lg transition-shadow" : "border-dashed border-2 hover:border-muted-foreground/50 transition-colors"}
+              >
+                <CardContent className="p-6 flex flex-col items-center gap-4" role="group" aria-label={`${slot.name} app tile`}>
+                  <div className={`rounded-lg flex items-center justify-center ${slot.icon ? "w-24 h-24 md:w-32 md:h-32" : "w-24 h-24 bg-muted"}`}>
+                    {slot.icon ? (
+                      <img 
+                        src={slot.icon} 
+                        alt={`${slot.name} icon`} 
+                        className="w-full h-full object-contain" 
+                      />
+                    ) : (
+                      <span className="text-4xl text-muted-foreground/30">+</span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground text-center">{slot.name}</p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" className="h-8 px-2">
-                      {slot.icon ? <RefreshCw className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                    </Button>
-                    {slot.icon && <Button size="sm" variant="ghost" className="h-8 px-2">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>}
-                  </div>
+                  {!slot.icon && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" className="h-8 px-2">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>)}
           </div>
