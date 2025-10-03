@@ -100,7 +100,7 @@ const Index = () => {
                         <img 
                           src={app.icon} 
                           alt={app.alt}
-                          className={app.name === 'RobuxMinerPro' ? "w-24 h-24 md:w-30 md:h-30 mb-2" : "w-16 h-16 md:w-20 md:h-20 mb-2"}
+                          className="w-16 h-16 md:w-20 md:h-20 mb-2"
                         />
                         <span className="text-xs md:text-sm font-medium text-[hsl(var(--navy))]">
                           {app.name}
