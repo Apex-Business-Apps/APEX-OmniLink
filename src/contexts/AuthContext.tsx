@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { CloudSetupMessage } from '@/components/CloudSetupMessage';
 
 interface AuthContextType {
   user: User | null;
@@ -23,9 +24,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cloudConfigured, setCloudConfigured] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if Supabase is properly configured
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setCloudConfigured(false);
+      setLoading(false);
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -47,6 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     navigate('/auth');
   };
+
+  // Show setup message if Cloud is not configured
+  if (!cloudConfigured) {
+    return <CloudSetupMessage />;
+  }
 
   return (
     <AuthContext.Provider value={{ user, session, signOut, loading }}>
