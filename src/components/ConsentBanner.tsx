@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Shield, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const CONSENT_KEY = 'omnilink-privacy-consent';
+const CONSENT_KEY = 'apex-privacy-consent';
 
 export const ConsentBanner = () => {
   const [showBanner, setShowBanner] = useState(false);
@@ -62,7 +62,7 @@ export const ConsentBanner = () => {
             </Button>
           </div>
           <CardDescription id="consent-description" className="pt-2">
-            Welcome to OmniLink! Here's how we protect your data:
+            Welcome to APEX Business Systems! Here's how we protect your data:
           </CardDescription>
         </CardHeader>
         
