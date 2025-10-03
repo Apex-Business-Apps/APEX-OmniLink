@@ -58,6 +58,12 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      spacing: {
+        'icon-sm': 'var(--icon-size-sm)',
+        'icon-md': 'var(--icon-size-md)',
+        'icon-lg': 'var(--icon-size-lg)',
+        'icon-xl': 'var(--icon-size-xl)',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

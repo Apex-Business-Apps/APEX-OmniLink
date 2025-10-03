@@ -44,6 +44,12 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Icon sizing tokens */
+    --icon-size-sm: 4rem;    /* 64px - Hero section mobile */
+    --icon-size-md: 5rem;    /* 80px - Hero section desktop */
+    --icon-size-lg: 6rem;    /* 96px - Apps grid mobile */
+    --icon-size-xl: 8rem;    /* 128px - Apps grid desktop */
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;

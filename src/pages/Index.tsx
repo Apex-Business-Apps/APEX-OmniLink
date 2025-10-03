@@ -100,7 +100,7 @@ const Index = () => {
                         <img 
                           src={app.icon} 
                           alt={app.alt}
-                          className="w-16 h-16 md:w-20 md:h-20 mb-2"
+                          className="w-icon-sm h-icon-sm md:w-icon-md md:h-icon-md mb-2 object-contain"
                         />
                         <span className="text-xs md:text-sm font-medium text-[hsl(var(--navy))]">
                           {app.name}
@@ -142,7 +142,7 @@ const Index = () => {
                     <img 
                       src={app.icon} 
                       alt={app.alt}
-                      className={app.name === 'RobuxMinerPro' ? "w-36 h-36 md:w-48 md:h-48 mb-3" : "w-24 h-24 md:w-32 md:h-32 mb-3"}
+                      className="w-icon-lg h-icon-lg md:w-icon-xl md:h-icon-xl mb-3 object-contain"
                     />
                     <span className="text-sm md:text-base font-semibold text-[hsl(var(--navy))]">
                       {app.name}
