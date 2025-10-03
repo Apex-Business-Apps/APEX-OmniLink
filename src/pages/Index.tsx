@@ -37,7 +37,7 @@ const Index = () => {
     { name: 'Gmail Bridge', icon: icon3, alt: 'Gmail Bridge app icon' },
     { name: 'IONOS Mail', icon: icon4, alt: 'IONOS Mail app icon' },
     { name: 'RBP', icon: icon5, alt: 'RBP app icon' },
-    { name: 'Apple Dev Connect', icon: icon6, alt: 'Apple Dev Connect app icon' },
+    { name: 'TL247', icon: icon6, alt: 'TL247 app icon' },
     { name: 'StrideGuide', icon: strideGuide, alt: 'StrideGuide app icon' },
     { name: 'RobuxMinerPro', icon: icon7, alt: 'RobuxMinerPro icon' },
     { name: 'App 9', icon: icon8, alt: 'App 9 icon' },
