@@ -100,7 +100,7 @@ const Index = () => {
                         <img 
                           src={app.icon} 
                           alt={app.alt}
-                          className="w-icon-sm h-icon-sm md:w-icon-md md:h-icon-md mb-2 object-contain"
+                          className="w-icon-sm h-icon-sm md:w-icon-md md:h-icon-md mb-2 object-cover rounded-lg"
                         />
                         <span className="text-xs md:text-sm font-medium text-[hsl(var(--navy))]">
                           {app.name}
@@ -142,7 +142,7 @@ const Index = () => {
                     <img 
                       src={app.icon} 
                       alt={app.alt}
-                      className="w-icon-lg h-icon-lg md:w-icon-xl md:h-icon-xl mb-3 object-contain"
+                      className="w-icon-lg h-icon-lg md:w-icon-xl md:h-icon-xl mb-3 object-cover rounded-lg"
                     />
                     <span className="text-sm md:text-base font-semibold text-[hsl(var(--navy))]">
                       {app.name}
