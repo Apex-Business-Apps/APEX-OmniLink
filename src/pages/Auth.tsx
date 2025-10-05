@@ -12,6 +12,8 @@ import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import apexLogo from '@/assets/apex_emblem_logo.svg';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { checkAccountLockout, recordLoginAttempt } from '@/lib/security';
+import { logSecurityEvent } from '@/lib/monitoring';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -96,6 +98,19 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check account lockout
+    const lockoutStatus = checkAccountLockout(email);
+    if (lockoutStatus.isLocked) {
+      const minutes = Math.ceil(lockoutStatus.remainingTime! / 60000);
+      toast({
+        title: 'Account temporarily locked',
+        description: `Too many failed attempts. Try again in ${minutes} minutes.`,
+        variant: 'destructive',
+      });
+      logSecurityEvent('auth_failed', { reason: 'account_locked', email });
+      return;
+    }
+    
     // Rate limiting check
     const rateCheck = checkRateLimit(`signin-${email}`, 5, 300000); // 5 attempts per 5 min
     if (!rateCheck.allowed) {
@@ -117,8 +132,12 @@ const Auth = () => {
         password: validated.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        recordLoginAttempt(email, false);
+        throw error;
+      }
 
+      recordLoginAttempt(email, true);
       navigate('/dashboard');
     } catch (error) {
       if (error instanceof z.ZodError) {

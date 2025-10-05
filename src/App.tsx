@@ -8,6 +8,10 @@ import { DashboardLayout } from "./components/DashboardLayout";
 import { ConsentBanner } from "./components/ConsentBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useOfflineSupport } from "./hooks/useOfflineSupport";
+import { useEffect } from 'react';
+import { initializeMonitoring } from './lib/monitoring';
+import { initializeSecurity } from './lib/security';
+import { logConfiguration } from './lib/config';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -41,6 +45,14 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   useOfflineSupport();
+  
+  useEffect(() => {
+    // Initialize production systems
+    initializeMonitoring();
+    initializeSecurity();
+    logConfiguration();
+  }, []);
+  
   return null;
 };
 
