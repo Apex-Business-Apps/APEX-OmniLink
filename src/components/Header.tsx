@@ -10,7 +10,7 @@ export const Header = () => {
         {/* Left group */}
         <div className="flex items-center gap-3">
           <SecretLogin>
-            <img src={builtCanadianBadge} alt="" aria-hidden="true" className="h-6 md:h-7 w-auto opacity-90 hover:opacity-100 transition-opacity scale-110" title="Built Canadian" />
+            <img src={builtCanadianBadge} alt="" aria-hidden="true" className="h-6 md:h-7 w-auto opacity-90 hover:opacity-100 transition-opacity scale-[1.2]" title="Built Canadian" />
           </SecretLogin>
         </div>
 
