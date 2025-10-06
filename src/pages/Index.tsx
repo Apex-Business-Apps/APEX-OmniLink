@@ -29,7 +29,7 @@ const Index = () => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.altKey && e.shiftKey && e.key === 'L') {
         e.preventDefault();
-        navigate('/login');
+        navigate('/auth');
       }
     };
     window.addEventListener('keydown', handleKeyPress);
