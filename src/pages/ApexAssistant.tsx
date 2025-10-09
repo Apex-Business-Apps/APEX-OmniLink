@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Send, Loader2, ExternalLink } from 'lucide-react';
+import VoiceInterface from '@/components/VoiceInterface';
 
 interface ApexResponse {
   summary: string[];
@@ -29,7 +30,19 @@ const ApexAssistant = () => {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const { toast } = useToast();
+
+  const handleVoiceTranscript = (text: string, isFinal: boolean) => {
+    if (isFinal) {
+      // Add user message when transcript is final
+      const userMessage: Message = {
+        role: 'user',
+        content: text,
+      };
+      setMessages(prev => [...prev, userMessage]);
+    }
+  };
 
   const sendQuery = async () => {
     if (!query.trim()) return;
@@ -154,9 +167,15 @@ const ApexAssistant = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">APEX Assistant</h1>
-        <p className="text-muted-foreground">Internal knowledge assistant for Omnilink</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">APEX Assistant</h1>
+          <p className="text-muted-foreground">Internal knowledge assistant for Omnilink</p>
+        </div>
+        <VoiceInterface 
+          onTranscript={handleVoiceTranscript}
+          onSpeakingChange={setIsSpeaking}
+        />
       </div>
 
       <div className="space-y-4">
