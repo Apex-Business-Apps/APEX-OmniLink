@@ -41,15 +41,15 @@ const Index = () => {
   };
 
   const apps = [
-    { name: 'TradeLine 24/7', icon: tradeline247, alt: 'TradeLine 24/7 app icon', path: '/apps/tradeline247' },
+    { name: 'TradeLine 24/7', icon: tradeline247, alt: 'TradeLine 24/7 app icon', url: 'https://tradeline247ai.com' },
     { name: 'Built Canadian', icon: icon2, alt: 'Built Canadian app icon', path: '/apps/built-canadian' },
-    { name: 'AutoRepAi', icon: icon3, alt: 'AutoRepAi app icon', path: '/apps/autorepai' },
-    { name: 'FLOWBills', icon: icon4, alt: 'FLOWBills app icon', path: '/apps/flowbills' },
-    { name: 'RobuxMinerPro', icon: icon5, alt: 'RobuxMinerPro app icon', path: '/apps/robuxminerpro' },
+    { name: 'AutoRepAi', icon: icon3, alt: 'AutoRepAi app icon', url: 'https://autorepai.ca' },
+    { name: 'FLOWBills', icon: icon4, alt: 'FLOWBills app icon', url: 'https://flowbills.ca' },
+    { name: 'RobuxMinerPro', icon: icon5, alt: 'RobuxMinerPro app icon', url: 'https://robuxminer.pro' },
     { name: 'APEX', icon: icon6, alt: 'APEX app icon', path: '/dashboard' },
-    { name: 'StrideGuide', icon: strideGuide, alt: 'StrideGuide app icon', path: '/apps/strideguide' },
-    { name: 'KeepSafe', icon: keepsafeIcon, alt: 'KeepSafe icon', path: '/apps/keepsafe' },
-    { name: 'JubeeLove', icon: icon8, alt: 'JubeeLove icon', path: '/apps/jubeelove' },
+    { name: 'StrideGuide', icon: strideGuide, alt: 'StrideGuide app icon', url: 'https://strideguide.cam' },
+    { name: 'KeepSafe', icon: keepsafeIcon, alt: 'KeepSafe icon', url: 'https://keepsafe.icu' },
+    { name: 'JubeeLove', icon: icon8, alt: 'JubeeLove icon', url: 'https://jubee.love' },
   ];
 
   return (
@@ -101,7 +101,9 @@ const Index = () => {
                     onClick={() => {
                       if (app.name === 'APEX' && isInstallable) {
                         handlePWAInstall();
-                      } else if (app.path) {
+                      } else if ('url' in app) {
+                        window.open(app.url, '_blank', 'noopener,noreferrer');
+                      } else if ('path' in app) {
                         navigate(app.path);
                       }
                     }}
@@ -157,7 +159,9 @@ const Index = () => {
                 onClick={() => {
                   if (app.name === 'APEX' && isInstallable) {
                     handlePWAInstall();
-                  } else if (app.path) {
+                  } else if ('url' in app) {
+                    window.open(app.url, '_blank', 'noopener,noreferrer');
+                  } else if ('path' in app) {
                     navigate(app.path);
                   }
                 }}
