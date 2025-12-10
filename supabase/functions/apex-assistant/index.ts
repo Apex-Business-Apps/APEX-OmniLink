@@ -1,15 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { RateLimiter, RATE_LIMITS } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Initialize rate limiter for expensive AI endpoints (5 req/min)
-const rateLimiter = new RateLimiter(RATE_LIMITS.AI_EXPENSIVE);
 
 const APEX_SYSTEM_PROMPT = `SYSTEM // APEX INTERNAL KNOWLEDGE ASSISTANT — OMNILINK
 ROLE:
@@ -88,50 +83,6 @@ serve(async (req) => {
       );
     }
 
-    // Get user ID for rate limiting
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const authHeader = req.headers.get('Authorization');
-
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id;
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Rate limiting check (5 requests per minute for expensive AI)
-    const rateCheck = rateLimiter.check(userId);
-    const rateLimitHeaders = rateLimiter.getHeaders(rateCheck, RATE_LIMITS.AI_EXPENSIVE);
-
-    if (!rateCheck.allowed) {
-      console.warn(`APEX Assistant: Rate limit exceeded for user ${userId}`);
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded for AI Assistant. Please wait before making another request.',
-          retryAfter: Math.ceil((rateCheck.resetAt - Date.now()) / 1000)
-        }),
-        {
-          status: 429,
-          headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     const messages = [
       { role: 'system', content: APEX_SYSTEM_PROMPT },
       ...history,
@@ -193,7 +144,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ response: structuredResponse, raw: assistantMessage }),
-      { headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('APEX assistant error:', error);
