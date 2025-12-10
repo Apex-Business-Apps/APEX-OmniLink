@@ -22,11 +22,24 @@ export interface PerformanceEvent {
  */
 export function logError(error: Error, context?: ErrorContext): void {
   console.error('🚨 Error:', error.message, context);
-  
-  // TODO: Integrate with your monitoring service
-  // Example: Sentry.captureException(error, { extra: context });
-  
-  // Store in local storage for debugging (production)
+
+  // Integrate with Sentry if available
+  if (typeof window !== 'undefined' && (window as any).Sentry) {
+    try {
+      (window as any).Sentry.captureException(error, {
+        extra: context,
+        tags: {
+          route: context?.route,
+          action: context?.action,
+        },
+        user: context?.userId ? { id: context.userId } : undefined,
+      });
+    } catch (sentryError) {
+      console.warn('Failed to send error to Sentry:', sentryError);
+    }
+  }
+
+  // Store in local storage for debugging (fallback)
   try {
     const errorLog = {
       message: error.message,
@@ -34,13 +47,13 @@ export function logError(error: Error, context?: ErrorContext): void {
       context,
       timestamp: new Date().toISOString(),
     };
-    
+
     const logs = JSON.parse(localStorage.getItem('error_logs') || '[]');
     logs.push(errorLog);
-    
+
     // Keep only last 50 errors
     if (logs.length > 50) logs.shift();
-    
+
     localStorage.setItem('error_logs', JSON.stringify(logs));
   } catch (e) {
     // Fail silently
@@ -52,9 +65,22 @@ export function logError(error: Error, context?: ErrorContext): void {
  */
 export function logPerformance(event: PerformanceEvent): void {
   console.log('📊 Performance:', event);
-  
-  // TODO: Integrate with your monitoring service
-  // Example: analytics.track('performance', event);
+
+  // Integrate with Sentry Performance Monitoring
+  if (typeof window !== 'undefined' && (window as any).Sentry) {
+    try {
+      const transaction = (window as any).Sentry.startTransaction({
+        name: event.name,
+        op: 'performance',
+      });
+
+      transaction.setMeasurement(event.name, event.duration, 'millisecond');
+      transaction.setData('metadata', event.metadata);
+      transaction.finish();
+    } catch (sentryError) {
+      console.warn('Failed to send performance data to Sentry:', sentryError);
+    }
+  }
 }
 
 /**
@@ -65,9 +91,21 @@ export function logAnalyticsEvent(
   properties?: Record<string, any>
 ): void {
   console.log('📈 Analytics:', eventName, properties);
-  
-  // TODO: Integrate with your analytics service
-  // Example: analytics.track(eventName, properties);
+
+  // Integrate with analytics service (PostHog, Mixpanel, etc.)
+  // For now, use Sentry breadcrumbs for tracking
+  if (typeof window !== 'undefined' && (window as any).Sentry) {
+    try {
+      (window as any).Sentry.addBreadcrumb({
+        category: 'analytics',
+        message: eventName,
+        level: 'info',
+        data: properties,
+      });
+    } catch (sentryError) {
+      console.warn('Failed to add Sentry breadcrumb:', sentryError);
+    }
+  }
 }
 
 /**
@@ -78,11 +116,24 @@ export function logSecurityEvent(
   details?: Record<string, any>
 ): void {
   console.warn('🔒 Security Event:', eventType, details);
-  
-  // TODO: Integrate with your security monitoring
-  // Example: securityMonitor.log(eventType, details);
-  
-  // Store critical security events
+
+  // Integrate with Sentry for security monitoring
+  if (typeof window !== 'undefined' && (window as any).Sentry) {
+    try {
+      (window as any).Sentry.captureMessage(`Security Event: ${eventType}`, {
+        level: 'warning',
+        tags: {
+          security_event: eventType,
+        },
+        extra: details,
+        fingerprint: ['security-event', eventType],
+      });
+    } catch (sentryError) {
+      console.warn('Failed to send security event to Sentry:', sentryError);
+    }
+  }
+
+  // Store critical security events (fallback)
   try {
     const securityLog = {
       type: eventType,
@@ -90,12 +141,12 @@ export function logSecurityEvent(
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
     };
-    
+
     const logs = JSON.parse(localStorage.getItem('security_logs') || '[]');
     logs.push(securityLog);
-    
+
     if (logs.length > 100) logs.shift();
-    
+
     localStorage.setItem('security_logs', JSON.stringify(logs));
   } catch (e) {
     // Fail silently
