@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Flag, Award, Users, MapPin, TrendingUp, Heart } from 'lucide-react';
-import icon2 from '@/assets/icons/icon-2.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const BuiltCanadian = () => {
   return (
@@ -13,7 +14,7 @@ const BuiltCanadian = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={icon2} 
+            src={placeholderIcon} 
             alt="Built Canadian"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

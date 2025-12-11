@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Camera, FileText, Bell, Lock, Wifi, Heart } from 'lucide-react';
-import keepsafeIcon from '@/assets/keepsafe_appicon.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const KeepSafe = () => {
   return (
@@ -13,7 +14,7 @@ const KeepSafe = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={keepsafeIcon} 
+            src={placeholderIcon} 
             alt="KeepSafe"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

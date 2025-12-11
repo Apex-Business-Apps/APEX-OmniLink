@@ -117,7 +117,7 @@ serve(async (req) => {
 
     // Enhanced filename sanitization
     const safe = filename
-      .replace(/[^\w.\-]+/g, "_")
+      .replace(/[^\w.-]+/g, "_")
       .replace(/\.{2,}/g, ".")  // Prevent directory traversal
       .replace(/^\.+/, "")       // Remove leading dots
       .slice(0, 180);

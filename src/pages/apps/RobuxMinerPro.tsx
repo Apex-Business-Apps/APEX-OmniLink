@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Coins, Zap, Shield, TrendingUp, Trophy, Users } from 'lucide-react';
-import icon5 from '@/assets/icons/icon-5.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const RobuxMinerPro = () => {
   return (
@@ -13,7 +14,7 @@ const RobuxMinerPro = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={icon5} 
+            src={placeholderIcon} 
             alt="RobuxMinerPro"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

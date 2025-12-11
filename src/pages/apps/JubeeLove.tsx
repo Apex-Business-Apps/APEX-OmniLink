@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Heart, Calendar, MessageCircle, Gift, Users, Star } from 'lucide-react';
-import icon8 from '@/assets/icons/icon-8.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const JubeeLove = () => {
   return (
@@ -13,7 +14,7 @@ const JubeeLove = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={icon8} 
+            src={placeholderIcon} 
             alt="JubeeLove"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

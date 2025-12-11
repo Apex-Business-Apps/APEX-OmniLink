@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { FileText, DollarSign, Clock, BarChart3, Zap, Shield } from 'lucide-react';
-import icon4 from '@/assets/icons/icon-4.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const FLOWBills = () => {
   return (
@@ -13,7 +14,7 @@ const FLOWBills = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={icon4} 
+            src={placeholderIcon} 
             alt="FLOWBills"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

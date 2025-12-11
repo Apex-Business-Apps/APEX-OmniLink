@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Car, FileText, CreditCard, Shield, Zap, TrendingUp } from 'lucide-react';
-import icon3 from '@/assets/icons/icon-3.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const AutoRepAi = () => {
   return (
@@ -13,7 +14,7 @@ const AutoRepAi = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={icon3} 
+            src={placeholderIcon} 
             alt="AutoRepAi"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

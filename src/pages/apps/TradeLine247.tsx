@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Phone, Clock, DollarSign, Shield, Zap, BarChart3 } from 'lucide-react';
-import tradeline247 from '@/assets/icons/icon-1.svg';
+
+const placeholderIcon = '/placeholder.svg';
 
 const TradeLine247 = () => {
   return (
@@ -13,7 +14,7 @@ const TradeLine247 = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={tradeline247} 
+            src={placeholderIcon} 
             alt="TradeLine 24/7"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />

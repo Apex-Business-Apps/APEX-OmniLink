@@ -5,16 +5,7 @@ import { Header } from '@/components/Header';
 import { Download } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
-import tradeline247 from '@/assets/icons/icon-1.svg';
-import icon2 from '@/assets/icons/icon-2.svg';
-import icon3 from '@/assets/icons/icon-3.svg';
-import icon4 from '@/assets/icons/icon-4.svg';
-import icon5 from '@/assets/icons/icon-5.svg';
-import icon6 from '@/assets/icons/icon-6.svg';
-import keepsafeIcon from '@/assets/keepsafe_appicon.svg';
-import icon8 from '@/assets/icons/icon-8.svg';
-import icon9 from '@/assets/icons/icon-9.svg';
-import strideGuide from '@/assets/icons/strideguide.png';
+const placeholderIcon = '/placeholder.svg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -41,15 +32,15 @@ const Index = () => {
   };
 
   const apps = [
-    { name: 'TradeLine 24/7', icon: tradeline247, alt: 'TradeLine 24/7 app icon', url: 'https://tradeline247ai.com' },
-    { name: 'Built Canadian', icon: icon2, alt: 'Built Canadian app icon', path: '/apps/built-canadian' },
-    { name: 'AutoRepAi', icon: icon3, alt: 'AutoRepAi app icon', url: 'https://autorepai.ca' },
-    { name: 'FLOWBills', icon: icon4, alt: 'FLOWBills app icon', url: 'https://flowbills.ca' },
-    { name: 'RobuxMinerPro', icon: icon5, alt: 'RobuxMinerPro app icon', url: 'https://robuxminer.pro' },
-    { name: 'APEX', icon: icon6, alt: 'APEX app icon', path: '/dashboard' },
-    { name: 'StrideGuide', icon: strideGuide, alt: 'StrideGuide app icon', url: 'https://strideguide.cam' },
-    { name: 'KeepSafe', icon: keepsafeIcon, alt: 'KeepSafe icon', url: 'https://keepsafe.icu' },
-    { name: 'JubeeLove', icon: icon8, alt: 'JubeeLove icon', url: 'https://jubee.love' },
+    { name: 'TradeLine 24/7', icon: placeholderIcon, alt: 'TradeLine 24/7 app icon', url: 'https://tradeline247ai.com' },
+    { name: 'Built Canadian', icon: placeholderIcon, alt: 'Built Canadian app icon', path: '/apps/built-canadian' },
+    { name: 'AutoRepAi', icon: placeholderIcon, alt: 'AutoRepAi app icon', url: 'https://autorepai.ca' },
+    { name: 'FLOWBills', icon: placeholderIcon, alt: 'FLOWBills app icon', url: 'https://flowbills.ca' },
+    { name: 'RobuxMinerPro', icon: placeholderIcon, alt: 'RobuxMinerPro app icon', url: 'https://robuxminer.pro' },
+    { name: 'APEX', icon: placeholderIcon, alt: 'APEX app icon', path: '/dashboard' },
+    { name: 'StrideGuide', icon: placeholderIcon, alt: 'StrideGuide app icon', url: 'https://strideguide.cam' },
+    { name: 'KeepSafe', icon: placeholderIcon, alt: 'KeepSafe icon', url: 'https://keepsafe.icu' },
+    { name: 'JubeeLove', icon: placeholderIcon, alt: 'JubeeLove icon', url: 'https://jubee.love' },
   ];
 
   return (

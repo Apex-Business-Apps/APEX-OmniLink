@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { MapPin, Navigation, Users, Target, TrendingUp, Heart } from 'lucide-react';
-import strideGuide from '@/assets/icons/strideguide.png';
+
+const placeholderIcon = '/placeholder.svg';
 
 const StrideGuide = () => {
   return (
@@ -13,7 +14,7 @@ const StrideGuide = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <img 
-            src={strideGuide} 
+            src={placeholderIcon} 
             alt="StrideGuide"
             className="w-32 h-32 mx-auto mb-6 rounded-2xl shadow-lg"
           />
