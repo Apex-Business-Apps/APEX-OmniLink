@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { AudioRecorder, encodeAudioForAPI, playAudioData, clearAudioQueue } from '@/utils/RealtimeAudio';
+import { calculateBackoffDelay } from '@/lib/backoff';
+import { logAnalyticsEvent } from '@/lib/monitoring';
 
 interface VoiceInterfaceProps {
   onTranscript?: (text: string, isFinal: boolean) => void;
@@ -13,32 +15,110 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [degradedMode, setDegradedMode] = useState(false);
+  const [degradedReason, setDegradedReason] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const recorderRef = useRef<AudioRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userEndedRef = useRef(false);
+
+  const MAX_RETRIES = Number(import.meta.env.VITE_VOICE_MAX_RETRIES ?? 3);
+  const BASE_RETRY_MS = Number(import.meta.env.VITE_VOICE_RETRY_BASE_MS ?? 500);
+  const MAX_RETRY_MS = Number(import.meta.env.VITE_VOICE_RETRY_MAX_MS ?? 10_000);
+  const JITTER_MS = Number(import.meta.env.VITE_VOICE_RETRY_JITTER_MS ?? 250);
+  const WS_URL =
+    import.meta.env.VITE_VOICE_WS_URL ??
+    `wss://wwajmaohwcbooljdureo.supabase.co/functions/v1/apex-voice`;
+
+  const cleanupTimers = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  };
+
+  const cleanupTransport = () => {
+    recorderRef.current?.stop();
+    wsRef.current?.close();
+    clearAudioQueue();
+  };
+
+  const handleDegraded = (message: string) => {
+    setDegradedMode(true);
+    setDegradedReason(message);
+    setIsConnecting(false);
+    setIsConnected(false);
+    toast({
+      title: 'Voice unavailable',
+      description: message,
+      variant: 'destructive',
+    });
+    void logAnalyticsEvent('voice.ws.degraded', { message });
+  };
 
   const startConversation = async () => {
+    userEndedRef.current = false;
+    setDegradedMode(false);
+    setDegradedReason(null);
+    setReconnectAttempts(0);
     setIsConnecting(true);
+    cleanupTimers();
+    await connectVoice(false);
+  };
+
+  const scheduleReconnect = (reason: string) => {
+    if (userEndedRef.current) return;
+    if (reconnectAttempts >= MAX_RETRIES) {
+      handleDegraded(reason);
+      return;
+    }
+    const nextAttempt = reconnectAttempts + 1;
+    const delay = calculateBackoffDelay(nextAttempt, {
+      baseMs: BASE_RETRY_MS,
+      maxMs: MAX_RETRY_MS,
+      jitterMs: JITTER_MS,
+    });
+    setReconnectAttempts(nextAttempt);
+    setIsConnecting(true);
+    reconnectTimeoutRef.current = setTimeout(() => {
+      void connectVoice(true);
+    }, delay);
+    toast({
+      title: 'Retrying voice connection',
+      description: `Attempt ${nextAttempt}/${MAX_RETRIES} in ${Math.round(delay)}ms`,
+    });
+    void logAnalyticsEvent('voice.ws.retry.attempt', {
+      attempt: nextAttempt,
+      delay,
+    });
+  };
+
+  const connectVoice = async (isReconnect: boolean) => {
     try {
-      // Request microphone access
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request microphone access only if we haven't already
+      if (!audioContextRef.current) {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      }
 
-      // Create audio context
-      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
-
-      // Connect to WebSocket
-      const wsUrl = `wss://wwajmaohwcbooljdureo.supabase.co/functions/v1/apex-voice`;
-      console.log('Connecting to:', wsUrl);
+      const wsUrl = WS_URL;
+      console.log(isReconnect ? 'Reconnecting to:' : 'Connecting to:', wsUrl);
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = async () => {
         console.log('WebSocket connected');
+        cleanupTimers();
         setIsConnected(true);
         setIsConnecting(false);
+        setReconnectAttempts(0);
+        setDegradedMode(false);
+        setDegradedReason(null);
+        void logAnalyticsEvent('voice.ws.retry.success', { reconnect: isReconnect });
 
-        // Start recording
         recorderRef.current = new AudioRecorder((audioData) => {
           if (ws.readyState === WebSocket.OPEN) {
             const encoded = encodeAudioForAPI(audioData);
@@ -54,7 +134,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
 
         toast({
           title: 'Voice Active',
-          description: 'APEX is listening...',
+          description: isReconnect ? 'Reconnected to voice service.' : 'APEX is listening...',
         });
       };
 
@@ -85,7 +165,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
           } else if (data.type === 'error') {
             console.error('Received error:', data.error);
             toast({
-              title: 'Error',
+              title: 'Voice error',
               description: data.error.message || 'An error occurred',
               variant: 'destructive',
             });
@@ -98,9 +178,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
         setIsConnecting(false);
+        cleanupTransport();
+        scheduleReconnect('Voice service unavailable. Retrying...');
         toast({
           title: 'Connection Error',
-          description: 'Failed to connect to voice service',
+          description: 'Attempting to reconnect to voice service…',
           variant: 'destructive',
         });
       };
@@ -109,11 +191,17 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
         console.log('WebSocket closed');
         setIsConnected(false);
         setIsConnecting(false);
-        endConversation();
+        recorderRef.current?.stop();
+        clearAudioQueue();
+        if (!userEndedRef.current) {
+          scheduleReconnect('Voice connection dropped. Retrying...');
+        }
       };
     } catch (error) {
       console.error('Error starting conversation:', error);
       setIsConnecting(false);
+      cleanupTransport();
+      scheduleReconnect('Voice start failed. Retrying...');
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to start voice conversation',
@@ -123,58 +211,87 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
   };
 
   const endConversation = () => {
-    recorderRef.current?.stop();
-    wsRef.current?.close();
+    userEndedRef.current = true;
+    cleanupTimers();
+    cleanupTransport();
     audioContextRef.current?.close();
-    clearAudioQueue();
-    
+    audioContextRef.current = null;
     recorderRef.current = null;
     wsRef.current = null;
-    audioContextRef.current = null;
-    
+    setReconnectAttempts(0);
     setIsConnected(false);
+    setIsConnecting(false);
     onSpeakingChange?.(false);
   };
 
   useEffect(() => {
     return () => {
+      userEndedRef.current = true;
+      cleanupTimers();
       endConversation();
     };
   }, []);
 
   return (
-    <div className="flex items-center gap-2">
-      {!isConnected ? (
-        <Button 
-          onClick={startConversation}
-          disabled={isConnecting}
-          variant="default"
-          size="lg"
-          className="gap-2"
-        >
-          {isConnecting ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <Mic className="h-5 w-5" />
-              Start Voice Chat
-            </>
-          )}
-        </Button>
-      ) : (
-        <Button 
-          onClick={endConversation}
-          variant="destructive"
-          size="lg"
-          className="gap-2"
-        >
-          <MicOff className="h-5 w-5" />
-          End Voice Chat
-        </Button>
+    <div className="flex flex-col gap-3">
+      {degradedMode && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="font-semibold">Voice connection degraded</div>
+          <div className="text-destructive/80">
+            {degradedReason ?? 'Voice service is currently unavailable.'}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" onClick={startConversation} variant="default">
+              Retry
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => toast({
+              title: 'Fallback',
+              description: 'Use manual call or offline mode.',
+            })}>
+              Use fallback (manual call)
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => toast({
+              title: 'Offline mode',
+              description: 'Continuing without live voice.',
+            })}>
+              Continue offline
+            </Button>
+          </div>
+        </div>
       )}
+      <div className="flex items-center gap-2">
+        {!isConnected ? (
+          <Button 
+            onClick={startConversation}
+            disabled={isConnecting}
+            variant="default"
+            size="lg"
+            className="gap-2"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Mic className="h-5 w-5" />
+                {degradedMode ? 'Retry Voice' : 'Start Voice Chat'}
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button 
+            onClick={endConversation}
+            variant="destructive"
+            size="lg"
+            className="gap-2"
+          >
+            <MicOff className="h-5 w-5" />
+            End Voice Chat
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
