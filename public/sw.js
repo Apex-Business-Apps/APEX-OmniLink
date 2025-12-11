@@ -1,12 +1,14 @@
-// @omnilink/sw:v1 - Progressive Web App service worker
+// @omnilink/sw:v2 - Progressive Web App service worker
 // Provides offline support and caching strategy
 
-const CACHE_NAME = 'omnilink-v1';
+const CACHE_NAME = 'omnilink-v2';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
+  '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/app_icon.svg',
 ];
 
 // Install event - cache static assets
