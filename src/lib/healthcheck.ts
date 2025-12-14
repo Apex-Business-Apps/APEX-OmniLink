@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from './monitoring';
 
 export interface HealthCheckResult {
   status: 'OK' | 'error';
@@ -22,7 +23,7 @@ export async function runHealthCheck(): Promise<HealthCheckResult> {
     const { data, error } = await supabase.functions.invoke('supabase_healthcheck');
 
     if (error) {
-      console.error('Health check failed:', error);
+      logError(error, { action: 'health_check_failed' });
       return {
         status: 'error',
         error: error.message,
@@ -31,7 +32,7 @@ export async function runHealthCheck(): Promise<HealthCheckResult> {
 
     return data as HealthCheckResult;
   } catch (error) {
-    console.error('Health check exception:', error);
+    logError(error as Error, { action: 'health_check_exception' });
     return {
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',

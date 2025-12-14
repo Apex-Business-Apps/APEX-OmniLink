@@ -212,6 +212,66 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action_type: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      device_registry: {
+        Row: {
+          device_fingerprint: string | null
+          device_id: string
+          first_seen_at: string
+          last_seen_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          device_fingerprint?: string | null
+          device_id: string
+          first_seen_at?: string
+          last_seen_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          device_fingerprint?: string | null
+          device_id?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

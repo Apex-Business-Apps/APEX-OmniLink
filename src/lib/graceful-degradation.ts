@@ -2,7 +2,7 @@
  * Graceful degradation utilities for production resilience
  */
 
-import { logError } from './monitoring';
+import { logError, logAnalyticsEvent } from './monitoring';
 
 /**
  * Retry with exponential backoff
@@ -165,12 +165,12 @@ export class ServiceHealthChecker {
   
   markServiceDown(service: string): void {
     this.services.set(service, false);
-    console.warn(`⚠️ Service degraded: ${service}`);
+    void logAnalyticsEvent('service.degraded', { service });
   }
   
   markServiceUp(service: string): void {
     this.services.set(service, true);
-    console.log(`✅ Service restored: ${service}`);
+    void logAnalyticsEvent('service.restored', { service });
   }
   
   isServiceHealthy(service: string): boolean {

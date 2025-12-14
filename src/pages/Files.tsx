@@ -28,7 +28,7 @@ const Files = () => {
       if (error) throw error;
       setItems(data ?? []);
     } catch (error) {
-      console.error("Error listing files:", error);
+      // Error logged via toast
       toast({
         title: "Error",
         description: "Failed to load files",
@@ -60,7 +60,7 @@ const Files = () => {
       await refresh();
       e.currentTarget.value = "";
     } catch (error: any) {
-      console.error("Upload error:", error);
+      // Error logged via toast
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload file",
@@ -81,7 +81,7 @@ const Files = () => {
         window.open(data.signedUrl, "_blank");
       }
     } catch (error: any) {
-      console.error("Download error:", error);
+      // Error logged via toast
       toast({
         title: "Download failed",
         description: error.message || "Failed to download file",
@@ -106,7 +106,7 @@ const Files = () => {
 
       await refresh();
     } catch (error: any) {
-      console.error("Delete error:", error);
+      // Error logged via toast
       toast({
         title: "Delete failed",
         description: error.message || "Failed to delete file",

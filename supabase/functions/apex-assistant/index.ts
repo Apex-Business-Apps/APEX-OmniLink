@@ -33,35 +33,93 @@ serve(async (req) => {
       { role: 'user', content: query },
     ];
 
+    // Get model from env or use fallback
+    const model = Deno.env.get('OPENAI_MODEL') || 'gpt-4o-2024-08-06';
+    const fallbackModel = 'gpt-4o-mini';
+    
     console.log('APEX: Processing query:', query);
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        messages,
-        max_completion_tokens: 2000,
-        response_format: { type: "json_object" }
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60_000); // 60 second timeout
+
+    let response: Response;
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          max_completion_tokens: 2000,
+          response_format: { type: "json_object" }
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+      if (error instanceof Error && error.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: 'Request timed out' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
     
     console.log('OpenAI response status:', response.status);
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      return new Response(
-        JSON.stringify({ 
-          error: 'AI request failed', 
-          details: error,
-          message: 'Please ensure OPENAI_API_KEY is configured correctly' 
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      
+      // Try fallback model if primary model fails with 404
+      if (response.status === 404 && model !== fallbackModel) {
+        console.log('APEX: Trying fallback model:', fallbackModel);
+        try {
+          const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: fallbackModel,
+              messages,
+              max_completion_tokens: 2000,
+              response_format: { type: "json_object" }
+            }),
+          });
+          
+          if (fallbackResponse.ok) {
+            response = fallbackResponse;
+          } else {
+            throw new Error('Fallback model also failed');
+          }
+        } catch {
+          return new Response(
+            JSON.stringify({ 
+              error: 'AI request failed', 
+              details: errorText,
+              message: 'Please ensure OPENAI_API_KEY is configured correctly' 
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            error: 'AI request failed', 
+            details: errorText,
+            message: 'Please ensure OPENAI_API_KEY is configured correctly' 
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const data = await response.json();

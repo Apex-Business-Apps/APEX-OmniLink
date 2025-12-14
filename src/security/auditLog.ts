@@ -51,6 +51,15 @@ function scheduleFlush(delay = 0) {
 }
 
 async function sendToProxy(entry: AuditEventPayload): Promise<void> {
+  // Graceful degradation: if proxy URL is not configured, skip server sync
+  if (!PROXY_URL || PROXY_URL === '/api/lovable/audit') {
+    // Check if we're in a browser environment without server proxy
+    if (typeof window !== 'undefined') {
+      // In browser, server proxy may not be available - this is OK, events stay in queue
+      throw new Error('Audit proxy not available - events will be queued locally');
+    }
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -67,6 +76,12 @@ async function sendToProxy(entry: AuditEventPayload): Promise<void> {
       const text = await response.text().catch(() => '');
       throw new Error(`Audit proxy failed: ${response.status} ${text}`);
     }
+  } catch (error) {
+    // Network errors are expected when backend is unavailable - events stay queued
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+      throw new Error('Network unavailable - events queued locally');
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }

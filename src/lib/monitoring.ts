@@ -1,7 +1,12 @@
 /**
  * Production monitoring and observability utilities
- * Integrate with your monitoring service (Sentry, DataDog, etc.)
+ * Integrates with Sentry dynamically (no hard dependency) when DSN is provided.
  */
+
+import { appConfig, getEnvironment } from './config';
+
+let sentry: any | null = null;
+let sentryInitialized = false;
 
 export interface ErrorContext {
   userId?: string;
@@ -17,33 +22,60 @@ export interface PerformanceEvent {
   metadata?: Record<string, any>;
 }
 
+async function ensureSentry() {
+  if (sentryInitialized || sentry) return sentry;
+
+  const dsn = import.meta.env.VITE_SENTRY_DSN;
+  if (!dsn) return null;
+
+  try {
+    sentry = await import('https://esm.sh/@sentry/browser@7.120.1');
+    const { BrowserTracing } = await import('https://esm.sh/@sentry/tracing@7.120.1');
+
+    sentry.init({
+      dsn,
+      environment: getEnvironment(),
+      release: `${appConfig.name}@${appConfig.version}`,
+      integrations: [new BrowserTracing()],
+      tracesSampleRate: 0.2,
+    });
+    sentryInitialized = true;
+    console.log('✅ Sentry monitoring initialized');
+  } catch (error) {
+    console.warn('Sentry initialization failed; continuing without Sentry', error);
+  }
+
+  return sentry;
+}
+
+function persistLog(key: string, entry: any, max: number) {
+  try {
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    logs.push(entry);
+    if (logs.length > max) logs.shift();
+    localStorage.setItem(key, JSON.stringify(logs));
+  } catch {
+    // non-fatal
+  }
+}
+
 /**
  * Log error to monitoring service
  */
-export function logError(error: Error, context?: ErrorContext): void {
+export async function logError(error: Error, context?: ErrorContext): Promise<void> {
   console.error('🚨 Error:', error.message, context);
-  
-  // TODO: Integrate with your monitoring service
-  // Example: Sentry.captureException(error, { extra: context });
-  
-  // Store in local storage for debugging (production)
-  try {
-    const errorLog = {
-      message: error.message,
-      stack: error.stack,
-      context,
-      timestamp: new Date().toISOString(),
-    };
-    
-    const logs = JSON.parse(localStorage.getItem('error_logs') || '[]');
-    logs.push(errorLog);
-    
-    // Keep only last 50 errors
-    if (logs.length > 50) logs.shift();
-    
-    localStorage.setItem('error_logs', JSON.stringify(logs));
-  } catch (e) {
-    // Fail silently
+
+  const entry = {
+    message: error.message,
+    stack: error.stack,
+    context,
+    timestamp: new Date().toISOString(),
+  };
+  persistLog('error_logs', entry, 50);
+
+  const s = await ensureSentry();
+  if (s?.captureException) {
+    s.captureException(error, { extra: context });
   }
 }
 
@@ -52,53 +84,54 @@ export function logError(error: Error, context?: ErrorContext): void {
  */
 export function logPerformance(event: PerformanceEvent): void {
   console.log('📊 Performance:', event);
-  
-  // TODO: Integrate with your monitoring service
-  // Example: analytics.track('performance', event);
+  persistLog('perf_logs', event, 100);
 }
 
 /**
  * Log analytics event
  */
-export function logAnalyticsEvent(
+export async function logAnalyticsEvent(
   eventName: string,
   properties?: Record<string, any>
-): void {
+): Promise<void> {
   console.log('📈 Analytics:', eventName, properties);
-  
-  // TODO: Integrate with your analytics service
-  // Example: analytics.track(eventName, properties);
+
+  const s = await ensureSentry();
+  if (s?.addBreadcrumb) {
+    s.addBreadcrumb({
+      category: 'analytics',
+      message: eventName,
+      data: properties,
+      level: 'info',
+    });
+  }
 }
 
 /**
  * Log security event
  */
-export function logSecurityEvent(
+export async function logSecurityEvent(
   eventType: 'auth_failed' | 'rate_limit' | 'suspicious_activity' | 'csrf_attempt',
   details?: Record<string, any>
-): void {
+): Promise<void> {
   console.warn('🔒 Security Event:', eventType, details);
-  
-  // TODO: Integrate with your security monitoring
-  // Example: securityMonitor.log(eventType, details);
-  
-  // Store critical security events
-  try {
-    const securityLog = {
-      type: eventType,
-      details,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-    };
-    
-    const logs = JSON.parse(localStorage.getItem('security_logs') || '[]');
-    logs.push(securityLog);
-    
-    if (logs.length > 100) logs.shift();
-    
-    localStorage.setItem('security_logs', JSON.stringify(logs));
-  } catch (e) {
-    // Fail silently
+
+  const entry = {
+    type: eventType,
+    details,
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+  };
+  persistLog('security_logs', entry, 100);
+
+  const s = await ensureSentry();
+  if (s?.addBreadcrumb) {
+    s.addBreadcrumb({
+      category: 'security',
+      message: eventType,
+      data: details,
+      level: 'warning',
+    });
   }
 }
 
@@ -109,13 +142,15 @@ export function trackUserAction(
   action: string,
   metadata?: Record<string, any>
 ): void {
-  logAnalyticsEvent('user_action', { action, ...metadata });
+  void logAnalyticsEvent('user_action', { action, ...metadata });
 }
 
 /**
  * Initialize monitoring on app start
  */
 export function initializeMonitoring(): void {
+  void ensureSentry();
+
   // Set up global error handler
   window.addEventListener('error', (event) => {
     logError(new Error(event.message), {
@@ -167,5 +202,6 @@ export function getSecurityLogs(): any[] {
 export function clearLogs(): void {
   localStorage.removeItem('error_logs');
   localStorage.removeItem('security_logs');
+  localStorage.removeItem('perf_logs');
   console.log('🗑️ Logs cleared');
 }

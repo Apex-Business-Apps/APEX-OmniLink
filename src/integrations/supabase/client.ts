@@ -2,16 +2,73 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ??
+  // Some Lovable setups expose a default URL
+  (import.meta as any).env?.VITE_SUPABASE_DEFAULT_URL;
+
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  // Some Lovable setups expose a default publishable key
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??
+  (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+const missingEnv = !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY;
+
+// When the Lovable Cloud env vars are missing (common in previews),
+// fall back to a safe stub so the app can render the setup screen
+// instead of crashing on import.
+function createUnavailableClient() {
+  const err = new Error(
+    'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.'
+  );
+
+  const reject = async () => {
+    throw err;
+  };
+
+  const noopSubscription = { unsubscribe: () => {} };
+
+  return {
+    auth: {
+      getSession: reject,
+      signOut: reject,
+      onAuthStateChange: () => ({ data: { subscription: noopSubscription } }),
+    },
+    functions: {
+      invoke: reject,
+    },
+    from: () => ({
+      select: reject,
+      insert: reject,
+      update: reject,
+      delete: reject,
+      eq: reject,
+    }),
+  } as unknown as ReturnType<typeof createClient<Database>>;
+}
+
+if (missingEnv) {
+  const missing: string[] = [];
+  if (!SUPABASE_URL) missing.push('VITE_SUPABASE_URL|VITE_SUPABASE_DEFAULT_URL');
+  if (!SUPABASE_PUBLISHABLE_KEY)
+    missing.push('VITE_SUPABASE_PUBLISHABLE_KEY|VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY');
+  console.warn(
+    `Supabase env vars missing (${missing.join(
+      ', '
+    )}). Rendering will degrade to setup screen until provided.`
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+export const supabase = missingEnv
+  ? createUnavailableClient()
+  : createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });

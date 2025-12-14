@@ -60,7 +60,6 @@ const ApexAssistant = () => {
       });
 
       if (error) {
-        console.error('APEX Assistant Error:', error);
         throw error;
       }
 
@@ -77,7 +76,7 @@ const ApexAssistant = () => {
         description: 'Successfully retrieved knowledge',
       });
     } catch (error: any) {
-      console.error('APEX error details:', error);
+      // Error logged via toast
       
       const errorMsg = error.message || 'Failed to get response from APEX';
       const isAuthError = errorMsg.includes('API key') || errorMsg.includes('configured');

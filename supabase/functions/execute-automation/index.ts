@@ -16,7 +16,16 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { automationId } = await req.json();
+    const body = await req.json();
+    const { automationId } = body;
+
+    // Validate automationId
+    if (!automationId || typeof automationId !== 'string' || automationId.trim().length === 0) {
+      return new Response(JSON.stringify({ error: 'Invalid automationId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Fetch automation
     const { data: automation, error: fetchError } = await supabase
@@ -108,20 +117,44 @@ async function executeCreateRecord(config: any, supabase: any) {
 }
 
 async function executeWebhook(config: any) {
-  const response = await fetch(config.url, {
-    method: config.method || 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...config.headers,
-    },
-    body: JSON.stringify(config.data),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Webhook failed: ${response.statusText}`);
+  if (!config.url || typeof config.url !== 'string') {
+    throw new Error('Webhook URL is required');
   }
 
-  return await response.json();
+  // Validate URL
+  try {
+    new URL(config.url);
+  } catch {
+    throw new Error('Invalid webhook URL');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000); // 30 second timeout
+
+  try {
+    const response = await fetch(config.url, {
+      method: config.method || 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...config.headers,
+      },
+      body: JSON.stringify(config.data),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Webhook request timed out after 30 seconds');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function executeNotification(config: any) {

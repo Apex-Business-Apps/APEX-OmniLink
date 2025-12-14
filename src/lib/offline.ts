@@ -39,9 +39,31 @@ interface QueuedRequest {
   retries: number;
 }
 
+const STORAGE_KEY = 'offline_request_queue';
 const requestQueue: QueuedRequest[] = [];
 const MAX_RETRIES = 3;
 const MAX_QUEUE_SIZE = 50;
+
+function persistQueue() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(requestQueue));
+  } catch {
+    // Non-fatal: continue in-memory
+  }
+}
+
+function loadQueue() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as QueuedRequest[];
+    requestQueue.push(...parsed);
+  } catch {
+    // ignore parse errors
+  }
+}
+
+loadQueue();
 
 export function queueOfflineRequest(request: () => Promise<any>): string {
   if (requestQueue.length >= MAX_QUEUE_SIZE) {
@@ -57,6 +79,7 @@ export function queueOfflineRequest(request: () => Promise<any>): string {
     retries: 0,
   });
 
+  persistQueue();
   return id;
 }
 
@@ -67,6 +90,7 @@ export async function processQueuedRequests(): Promise<void> {
 
   const requests = [...requestQueue];
   requestQueue.length = 0;
+  persistQueue();
 
   // Process requests with concurrency limit for better performance
   const CONCURRENCY_LIMIT = 3;
@@ -91,6 +115,7 @@ export async function processQueuedRequests(): Promise<void> {
       }
     });
   }
+  persistQueue();
 }
 
 /**

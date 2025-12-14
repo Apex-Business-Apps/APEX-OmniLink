@@ -33,7 +33,7 @@ export class AudioRecorder {
       this.source.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      // Error will be handled by caller
       throw error;
     }
   }
@@ -155,7 +155,7 @@ class AudioQueue {
       source.onended = () => this.playNext();
       source.start(0);
     } catch (error) {
-      console.error('Error playing audio:', error);
+      // Silently continue to next audio chunk on playback error
       this.playNext();
     }
   }

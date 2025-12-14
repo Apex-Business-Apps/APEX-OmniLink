@@ -22,6 +22,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
   const recorderRef = useRef<AudioRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const networkCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const userEndedRef = useRef(false);
 
   const MAX_RETRIES = Number(import.meta.env.VITE_VOICE_MAX_RETRIES ?? 3);
@@ -37,6 +38,24 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    if (networkCheckIntervalRef.current) {
+      clearInterval(networkCheckIntervalRef.current);
+      networkCheckIntervalRef.current = null;
+    }
+  };
+
+  const startNetworkRecoveryCheck = () => {
+    if (networkCheckIntervalRef.current) return;
+    
+    networkCheckIntervalRef.current = setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine && degradedMode && !userEndedRef.current) {
+        // Network recovered, attempt reconnection
+        void logAnalyticsEvent('voice.ws.network_recovered', {});
+        setDegradedMode(false);
+        setReconnectAttempts(0);
+        void startConversation();
+      }
+    }, 5_000); // Check every 5 seconds
   };
 
   const cleanupTransport = () => {
@@ -56,6 +75,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
       variant: 'destructive',
     });
     void logAnalyticsEvent('voice.ws.degraded', { message });
+    startNetworkRecoveryCheck(); // Start checking for network recovery
   };
 
   const startConversation = async () => {
@@ -104,14 +124,12 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
       }
 
       const wsUrl = WS_URL;
-      console.log(isReconnect ? 'Reconnecting to:' : 'Connecting to:', wsUrl);
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = async () => {
-        console.log('WebSocket connected');
-        cleanupTimers();
+        cleanupTimers(); // Clears network check interval too
         setIsConnected(true);
         setIsConnecting(false);
         setReconnectAttempts(0);
@@ -130,7 +148,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
         });
         
         await recorderRef.current.start();
-        console.log('Recording started');
 
         toast({
           title: 'Voice Active',
@@ -141,7 +158,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
       ws.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Received event:', data.type);
 
           if (data.type === 'response.audio.delta' && audioContextRef.current) {
             const binaryString = atob(data.delta);
@@ -155,15 +171,15 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
           } else if (data.type === 'response.audio_transcript.done') {
             onTranscript?.(data.transcript, true);
           } else if (data.type === 'input_audio_buffer.speech_started') {
-            console.log('User started speaking');
+            // User started speaking
           } else if (data.type === 'input_audio_buffer.speech_stopped') {
-            console.log('User stopped speaking');
+            // User stopped speaking
           } else if (data.type === 'response.audio.done') {
             onSpeakingChange?.(false);
           } else if (data.type === 'response.created') {
             onSpeakingChange?.(true);
           } else if (data.type === 'error') {
-            console.error('Received error:', data.error);
+            void logAnalyticsEvent('voice.ws.error', { error: data.error?.message || 'Unknown error' });
             toast({
               title: 'Voice error',
               description: data.error.message || 'An error occurred',
@@ -171,12 +187,14 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
             });
           }
         } catch (error) {
-          console.error('Error processing message:', error);
+          void logAnalyticsEvent('voice.ws.message_error', { 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          });
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        void logAnalyticsEvent('voice.ws.error', { error: 'WebSocket error' });
         setIsConnecting(false);
         cleanupTransport();
         scheduleReconnect('Voice service unavailable. Retrying...');
@@ -188,7 +206,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
       };
 
       ws.onclose = () => {
-        console.log('WebSocket closed');
         setIsConnected(false);
         setIsConnecting(false);
         recorderRef.current?.stop();
@@ -198,7 +215,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
         }
       };
     } catch (error) {
-      console.error('Error starting conversation:', error);
+      void logAnalyticsEvent('voice.ws.start_error', { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
       setIsConnecting(false);
       cleanupTransport();
       scheduleReconnect('Voice start failed. Retrying...');

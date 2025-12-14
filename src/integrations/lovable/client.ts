@@ -19,20 +19,25 @@ function getEnv(name: string): string | undefined {
   return (import.meta as any)?.env?.[name];
 }
 
-function getConfig(): LovableClientConfig {
+function getConfig(): LovableClientConfig | null {
   const baseUrl = getEnv('LOVABLE_API_BASE') ?? '';
   const apiKey = getEnv('LOVABLE_API_KEY') ?? '';
   const serviceRoleKey = getEnv('LOVABLE_SERVICE_ROLE_KEY');
 
   if (!baseUrl || !apiKey) {
-    throw new Error('Missing Lovable API configuration. Set LOVABLE_API_BASE and LOVABLE_API_KEY.');
+    // Graceful degradation: return null if not configured
+    return null;
   }
 
   return { baseUrl, apiKey, serviceRoleKey };
 }
 
 async function requestLovable<T>(options: LovableRequestOptions): Promise<T> {
-  const { baseUrl, apiKey, serviceRoleKey } = getConfig();
+  const config = getConfig();
+  if (!config) {
+    throw new Error('Lovable API not configured. Set LOVABLE_API_BASE and LOVABLE_API_KEY.');
+  }
+  const { baseUrl, apiKey, serviceRoleKey } = config;
   const {
     path,
     body,
