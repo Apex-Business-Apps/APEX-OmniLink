@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/monitoring', () => ({
   logAnalyticsEvent: vi.fn(),
@@ -8,18 +8,11 @@ vi.mock('@/lib/monitoring', () => ({
 const importAudit = async () => await import('../../src/security/auditLog');
 
 describe('audit log queue', () => {
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
-  });
   beforeEach(() => {
     vi.resetModules();
     localStorage.clear();
     vi.stubGlobal('fetch', vi.fn());
-    // Mock environment variables
+    // Mock environment variables for graceful degradation testing
     vi.stubEnv('VITE_LOVABLE_AUDIT_PROXY', '/api/lovable/audit');
   });
 

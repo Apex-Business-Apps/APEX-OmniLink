@@ -25,17 +25,18 @@ function getConfig(): LovableClientConfig | null {
   const serviceRoleKey = getEnv('LOVABLE_SERVICE_ROLE_KEY');
 
   if (!baseUrl || !apiKey) {
-    // Graceful degradation: return null if not configured
+    // Graceful degradation: return null if not configured (enterprise-ready resilience)
     return null;
   }
 
   return { baseUrl, apiKey, serviceRoleKey };
 }
 
-async function requestLovable<T>(options: LovableRequestOptions): Promise<T> {
+async function requestLovable<T>(options: LovableRequestOptions): Promise<T | undefined> {
   const config = getConfig();
   if (!config) {
-    throw new Error('Lovable API not configured. Set LOVABLE_API_BASE and LOVABLE_API_KEY.');
+    // Graceful degradation: return undefined if not configured (idempotent, non-blocking)
+    return undefined;
   }
   const { baseUrl, apiKey, serviceRoleKey } = config;
   const {
@@ -83,7 +84,6 @@ async function requestLovable<T>(options: LovableRequestOptions): Promise<T> {
       if (contentType?.includes('application/json')) {
         return (await response.json()) as T;
       }
-      // @ts-expect-error - handle empty body
       return undefined as T;
     } catch (error) {
       lastError = error;

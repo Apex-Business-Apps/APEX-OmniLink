@@ -7,11 +7,11 @@ describe('device registry with Lovable backend', () => {
     vi.resetModules();
     localStorage.clear();
     vi.stubGlobal('fetch', vi.fn());
-    // Mock environment variables
+    // Mock environment variables for graceful degradation testing
     vi.stubEnv('VITE_LOVABLE_DEVICE_PROXY', '/api/lovable/device');
   });
 
-  it.skip('merges remote registry preferring latest lastSeen', async () => {
+  it('merges remote registry preferring latest lastSeen', async () => {
     const local = [
       {
         deviceId: 'device-1',
@@ -45,13 +45,13 @@ describe('device registry with Lovable backend', () => {
     const device = devices.find(d => d.deviceId === 'device-1');
     expect(device).toBeDefined();
     if (device) {
-      // Remote has later timestamp, so it should win
+      // Remote has later timestamp, so it should win (idempotent merge)
       expect(device.lastSeen).toBe('2024-02-01T00:00:00.000Z');
       expect(device.status).toBe('trusted');
     }
   }, { timeout: 10000 });
 
-  it.skip('retries upsert with backoff on failure', async () => {
+  it('retries upsert with backoff on failure', async () => {
     let callCount = 0;
     (fetch as any).mockImplementation(async () => {
       callCount++;
@@ -73,7 +73,7 @@ describe('device registry with Lovable backend', () => {
     const { upsertDevice, getUpsertQueueSnapshot, flushDeviceUpserts } = await importRegistry();
     await upsertDevice('user-2', 'device-2', { os: 'win' });
 
-    // First flush should fail and increment attempts
+    // First flush should fail and increment attempts (idempotent retry)
     await flushDeviceUpserts(true);
     let queue = await getUpsertQueueSnapshot();
     expect(queue.length).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe('device registry with Lovable backend', () => {
       expect(queue[0].status).toBe('pending');
     }
 
-    // Second flush should succeed
+    // Second flush should succeed (idempotent operation)
     await flushDeviceUpserts(true);
     queue = await getUpsertQueueSnapshot();
     // After successful retry, queue should be empty

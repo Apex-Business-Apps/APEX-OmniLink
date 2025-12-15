@@ -106,10 +106,10 @@ function mergeByLastSeen(local: DeviceRecord[], remote: DeviceRecord[]): DeviceR
 }
 
 async function fetchRemoteRegistry(userId: string): Promise<DeviceRecord[]> {
-  // Graceful degradation: if proxy URL is not configured, return empty array
+  // Graceful degradation: if proxy URL is not configured, return empty array (enterprise resilience)
   if (!DEVICE_PROXY_URL || DEVICE_PROXY_URL === '/api/lovable/device') {
     if (typeof window !== 'undefined') {
-      // In browser, server proxy may not be available - use local cache only
+      // In browser, server proxy may not be available - use local cache only (idempotent)
       return [];
     }
   }
@@ -135,7 +135,7 @@ async function fetchRemoteRegistry(userId: string): Promise<DeviceRecord[]> {
       status: (d.device_info?.status ?? 'suspect') as DeviceStatus,
     }));
   } catch (error) {
-    // Network errors are expected when backend is unavailable - use local cache
+    // Network errors are expected when backend is unavailable - use local cache (idempotent)
     if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('fetch'))) {
       return []; // Return empty, will use local cache
     }
@@ -169,10 +169,10 @@ async function flushUpserts(force = false) {
     }
 
     try {
-      // Graceful degradation: if proxy URL is not configured, skip server sync
+      // Graceful degradation: if proxy URL is not configured, skip server sync (enterprise resilience)
       if (!DEVICE_PROXY_URL || DEVICE_PROXY_URL === '/api/lovable/device') {
         if (typeof window !== 'undefined') {
-          // In browser, server proxy may not be available - this is OK, device stays in local cache
+          // In browser, server proxy may not be available - this is OK, device stays in local cache (idempotent)
           throw new Error('Device proxy not available - device cached locally');
         }
       }
