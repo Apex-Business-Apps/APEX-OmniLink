@@ -2,6 +2,8 @@
  * Production configuration and environment management
  */
 
+import { createDebugLogger } from './debug-logger';
+
 export type Environment = 'development' | 'staging' | 'production';
 
 /**
@@ -27,6 +29,7 @@ export function getEnvironment(): Environment {
 export function isProduction(): boolean {
   return getEnvironment() === 'production';
 }
+
 
 /**
  * Check if running in development
@@ -125,14 +128,92 @@ export const appConfig = {
 } as const;
 
 /**
+ * Validate critical environment variables
+ */
+export function validateEnvironment(): { valid: boolean; missing: string[]; warnings: string[] } {
+  const log = createDebugLogger('config.ts', 'E');
+  const missing: string[] = [];
+  const warnings: string[] = [];
+  
+  // #region agent log
+  log('Environment validation entry');
+  // #endregion
+  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  // #region agent log
+  log('Environment variables check', {
+    hasSupabaseUrl: !!supabaseUrl,
+    hasSupabaseKey: !!supabaseKey,
+  });
+  // #endregion
+  
+  if (!supabaseUrl) {
+    missing.push('VITE_SUPABASE_URL');
+  }
+  if (!supabaseKey) {
+    missing.push('VITE_SUPABASE_ANON_KEY or VITE_SUPABASE_PUBLISHABLE_KEY');
+  }
+  
+  // #region agent log
+  log('Environment validation result', {
+    valid: missing.length === 0,
+    missingCount: missing.length,
+    warningsCount: warnings.length,
+  });
+  // #endregion
+  
+  return { valid: missing.length === 0, missing, warnings };
+}
+
+/**
  * Log current configuration (development only)
  */
 export function logConfiguration(): void {
+  const log = createDebugLogger('config.ts', 'A');
+  
+  // #region agent log
+  log('logConfiguration entry');
+  // #endregion
+  
+  const env = getEnvironment();
+  if (import.meta.env.DEV) {
+    console.log(`🌍 Environment: ${env}`);
+  }
+  
+  // Validate environment
+  const validation = validateEnvironment();
+  if (!validation.valid && import.meta.env.DEV) {
+    console.warn('⚠️ Missing environment variables:', validation.missing);
+  }
+  
   if (isDevelopment()) {
     console.log('📋 Configuration:', {
-      environment: getEnvironment(),
+      environment: env,
       features: getFeatureFlags(),
       app: appConfig,
+      validation,
     });
   }
+  
+  // Log Lovable config status
+  if (typeof window !== 'undefined') {
+    import('./lovableConfig').then(({ logLovableConfigStatus }) => {
+      logLovableConfigStatus();
+    }).catch((error) => {
+      // #region agent log
+      log('Failed to load lovableConfig', {
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      // #endregion
+      if (import.meta.env.DEV) {
+        console.warn('Failed to load Lovable config:', error);
+      }
+    });
+  }
+  
+  // #region agent log
+  log('logConfiguration complete');
+  // #endregion
 }

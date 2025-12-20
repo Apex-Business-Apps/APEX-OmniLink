@@ -14,16 +14,38 @@ class ConnectionPool {
   private connections: Map<string, PooledConnection> = new Map();
   private maxConnections: number;
   private idleTimeout: number;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(maxConnections = 10, idleTimeout = 60000) {
     this.maxConnections = maxConnections;
     this.idleTimeout = idleTimeout;
     
     // Clean up idle connections periodically
-    setInterval(() => {
-      this.cleanupIdleConnections();
-      recordLoopHeartbeat('connection-pool-cleanup');
+    this.cleanupInterval = setInterval(() => {
+      try {
+        this.cleanupIdleConnections();
+        recordLoopHeartbeat('connection-pool-cleanup');
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error in connection pool cleanup:', error);
+        }
+      }
     }, 30000);
+  }
+
+  /**
+   * Cleanup resources and stop interval
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    // Cleanup all connections
+    for (const [id, connection] of this.connections.entries()) {
+      connection.cleanup?.();
+    }
+    this.connections.clear();
   }
 
   acquire(id: string): boolean {

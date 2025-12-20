@@ -45,14 +45,15 @@ export async function measureAsync<T>(
 
 /**
  * Debounce function for performance optimization
+ * Returns a debounced function and a cancel function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
+): [(...args: Parameters<T>) => void, () => void] {
   let timeout: NodeJS.Timeout | null = null;
 
-  return function executedFunction(...args: Parameters<T>) {
+  const executedFunction = (...args: Parameters<T>) => {
     const later = () => {
       timeout = null;
       func(...args);
@@ -63,30 +64,54 @@ export function debounce<T extends (...args: any[]) => any>(
     }
     timeout = setTimeout(later, wait);
   };
+
+  const cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+
+  return [executedFunction, cancel];
 }
 
 /**
  * Throttle function for performance optimization
+ * Returns a throttled function and a cancel function
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
+): [(...args: Parameters<T>) => void, () => void] {
+  let inThrottle: boolean = false;
+  let timeout: NodeJS.Timeout | null = null;
 
-  return function executedFunction(...args: Parameters<T>) {
+  const executedFunction = (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
+      timeout = setTimeout(() => {
+        inThrottle = false;
+        timeout = null;
+      }, limit);
     }
   };
+
+  const cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+    inThrottle = false;
+  };
+
+  return [executedFunction, cancel];
 }
 
 /**
  * Memoize expensive computations
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T): T {
+export function memoize<T extends (...args: unknown[]) => unknown>(fn: T): T {
   const cache = new Map<string, ReturnType<T>>();
 
   return ((...args: Parameters<T>): ReturnType<T> => {
@@ -116,3 +141,4 @@ export function getMetricsSummary() {
 
   return Object.fromEntries(summary);
 }
+

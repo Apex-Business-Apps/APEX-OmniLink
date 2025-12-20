@@ -11,29 +11,49 @@ export const ConsentBanner = () => {
 
   useEffect(() => {
     // Check if user has already given consent
-    const hasConsented = localStorage.getItem(CONSENT_KEY);
-    if (!hasConsented) {
-      // Show banner after a brief delay for better UX
-      setTimeout(() => setShowBanner(true), 1000);
+    try {
+      const hasConsented = localStorage.getItem(CONSENT_KEY);
+      if (!hasConsented) {
+        // Show banner after a brief delay for better UX
+        const timer = setTimeout(() => setShowBanner(true), 1000);
+        return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      // localStorage might be unavailable (private browsing, quota exceeded)
+      console.error('Failed to check consent status:', error);
     }
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem(CONSENT_KEY, JSON.stringify({
-      accepted: true,
-      timestamp: new Date().toISOString(),
-      version: '1.0'
-    }));
-    setShowBanner(false);
+    try {
+      localStorage.setItem(CONSENT_KEY, JSON.stringify({
+        accepted: true,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+      }));
+      setShowBanner(false);
+    } catch (error) {
+      // localStorage might be unavailable (private browsing, quota exceeded)
+      console.error('Failed to save consent:', error);
+      // Still hide banner to prevent blocking user
+      setShowBanner(false);
+    }
   };
 
   const handleDecline = () => {
-    localStorage.setItem(CONSENT_KEY, JSON.stringify({
-      accepted: false,
-      timestamp: new Date().toISOString(),
-      version: '1.0'
-    }));
-    setShowBanner(false);
+    try {
+      localStorage.setItem(CONSENT_KEY, JSON.stringify({
+        accepted: false,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+      }));
+      setShowBanner(false);
+    } catch (error) {
+      // localStorage might be unavailable (private browsing, quota exceeded)
+      console.error('Failed to save consent:', error);
+      // Still hide banner to prevent blocking user
+      setShowBanner(false);
+    }
   };
 
   if (!showBanner) return null;

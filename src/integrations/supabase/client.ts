@@ -2,18 +2,32 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ??
-  // Some Lovable setups expose a default URL
-  (import.meta as any).env?.VITE_SUPABASE_DEFAULT_URL;
+// Prioritize user-provided Supabase credentials over Lovable defaults
+// User's own Supabase (highest priority)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-const SUPABASE_PUBLISHABLE_KEY =
+// Accept multiple key formats for user-provided keys
+// If user provided URL, also accept their DEFAULT_KEY as a valid user key
+const userProvidedKey = 
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  // Some Lovable setups expose a default publishable key
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??
-  (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+  import.meta.env.VITE_SUPABASE_ANON_KEY ??
+  (SUPABASE_URL ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY : undefined);
 
-const missingEnv = !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY;
+// Only use Lovable defaults if user hasn't provided their own
+// (This allows Lovable previews to work, but won't interfere with user's setup)
+const LOVABLE_DEFAULT_URL = (import.meta as any).env?.VITE_SUPABASE_DEFAULT_URL;
+const LOVABLE_DEFAULT_KEY = 
+  !SUPABASE_URL ? (
+    (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+  ) : undefined;
+
+// Use user's Supabase if provided, otherwise fall back to Lovable defaults
+const FINAL_SUPABASE_URL = SUPABASE_URL ?? LOVABLE_DEFAULT_URL;
+const FINAL_SUPABASE_KEY = userProvidedKey ?? LOVABLE_DEFAULT_KEY;
+
+const missingEnv = !FINAL_SUPABASE_URL || !FINAL_SUPABASE_KEY;
+const usingUserSupabase = !!(SUPABASE_URL && userProvidedKey);
 
 // When the Lovable Cloud env vars are missing (common in previews),
 // fall back to a safe stub so the app can render the setup screen
@@ -50,14 +64,30 @@ function createUnavailableClient() {
 
 if (missingEnv) {
   const missing: string[] = [];
-  if (!SUPABASE_URL) missing.push('VITE_SUPABASE_URL|VITE_SUPABASE_DEFAULT_URL');
-  if (!SUPABASE_PUBLISHABLE_KEY)
-    missing.push('VITE_SUPABASE_PUBLISHABLE_KEY|VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY');
-  console.warn(
-    `Supabase env vars missing (${missing.join(
-      ', '
-    )}). Rendering will degrade to setup screen until provided.`
-  );
+  if (!FINAL_SUPABASE_URL) {
+    if (usingUserSupabase) {
+      missing.push('VITE_SUPABASE_URL');
+    } else {
+      missing.push('VITE_SUPABASE_URL (or VITE_SUPABASE_DEFAULT_URL for Lovable)');
+    }
+  }
+  if (!FINAL_SUPABASE_KEY) {
+    if (usingUserSupabase) {
+      missing.push('VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY');
+    } else {
+      missing.push('VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY for Lovable)');
+    }
+  }
+  if (import.meta.env.DEV) {
+    console.warn(
+      `⚠️ Supabase env vars missing (${missing.join(
+        ', '
+      )}). Rendering will degrade to setup screen until provided.`
+    );
+    if (usingUserSupabase) {
+      console.warn('💡 You provided some Supabase vars but both URL and KEY are required.');
+    }
+  }
 }
 
 // Import the supabase client like this:
@@ -65,10 +95,20 @@ if (missingEnv) {
 
 export const supabase = missingEnv
   ? createUnavailableClient()
-  : createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  : createClient<Database>(FINAL_SUPABASE_URL, FINAL_SUPABASE_KEY, {
       auth: {
         storage: localStorage,
         persistSession: true,
         autoRefreshToken: true,
       },
     });
+
+// Log which Supabase instance is being used (dev only)
+if (import.meta.env.DEV && !missingEnv) {
+  if (usingUserSupabase) {
+    console.log('✅ Using YOUR Supabase instance:', FINAL_SUPABASE_URL);
+  } else {
+    console.log('⚠️ Using Lovable default Supabase instance:', FINAL_SUPABASE_URL);
+    console.log('💡 To use your own Supabase, set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY');
+  }
+}

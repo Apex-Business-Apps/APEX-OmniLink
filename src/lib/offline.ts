@@ -165,26 +165,40 @@ export function loadFromLocalStorage<T>(key: string, maxAge?: number): T | null 
 }
 
 function clearOldLocalStorageData(): void {
-  const keys = Object.keys(localStorage);
-  const items = keys.map(key => ({
-    key,
-    data: localStorage.getItem(key),
-  })).filter(item => item.data !== null);
-
-  // Sort by timestamp and remove oldest 25%
-  const itemsWithTimestamp = items
-    .map(item => {
+  try {
+    const keys = Object.keys(localStorage);
+    const items = keys.map(key => {
       try {
-        const { timestamp } = JSON.parse(item.data!);
-        return { key: item.key, timestamp };
+        return {
+          key,
+          data: localStorage.getItem(key),
+        };
       } catch {
-        return { key: item.key, timestamp: 0 };
+        return { key, data: null };
       }
-    })
-    .sort((a, b) => a.timestamp - b.timestamp);
+    }).filter(item => item.data !== null);
 
-  const removeCount = Math.ceil(itemsWithTimestamp.length * 0.25);
-  itemsWithTimestamp.slice(0, removeCount).forEach(item => {
-    localStorage.removeItem(item.key);
-  });
+    // Sort by timestamp and remove oldest 25%
+    const itemsWithTimestamp = items
+      .map(item => {
+        try {
+          const { timestamp } = JSON.parse(item.data!);
+          return { key: item.key, timestamp };
+        } catch {
+          return { key: item.key, timestamp: 0 };
+        }
+      })
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    const removeCount = Math.ceil(itemsWithTimestamp.length * 0.25);
+    itemsWithTimestamp.slice(0, removeCount).forEach(item => {
+      try {
+        localStorage.removeItem(item.key);
+      } catch {
+        // Ignore errors when removing items
+      }
+    });
+  } catch (error) {
+    console.error('Error clearing old localStorage data:', error);
+  }
 }

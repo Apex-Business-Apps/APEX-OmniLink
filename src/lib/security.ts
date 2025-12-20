@@ -4,6 +4,7 @@
 
 import { logSecurityEvent } from './monitoring';
 import { startGuardianLoops } from '@/guardian/loops';
+import { createDebugLogger } from './debug-logger';
 
 /**
  * Generate CSRF token
@@ -227,13 +228,47 @@ export async function verifyRequestSignature(
  * Initialize security features
  */
 export function initializeSecurity(): void {
-  initializeCsrfProtection();
+  const log = createDebugLogger('security.ts', 'A');
   
-  // Detect and log suspicious activity
-  if (detectSuspiciousActivity()) {
-    console.warn('⚠️ Suspicious activity detected');
+  // #region agent log
+  log('initializeSecurity entry');
+  // #endregion
+  
+  try {
+    // #region agent log
+    log('Before initializeCsrfProtection');
+    // #endregion
+    initializeCsrfProtection();
+    
+    // #region agent log
+    log('Before detectSuspiciousActivity');
+    // #endregion
+    // Detect and log suspicious activity
+    if (detectSuspiciousActivity()) {
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ Suspicious activity detected');
+      }
+    }
+    
+    // #region agent log
+    log('Before startGuardianLoops');
+    // #endregion
+    startGuardianLoops();
+    
+    // #region agent log
+    log('Security initialized successfully');
+    // #endregion
+    if (import.meta.env.DEV) {
+      console.log('✅ Security initialized');
+    }
+  } catch (error) {
+    // #region agent log
+    log('Security initialization error', {
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    // #endregion
+    if (import.meta.env.DEV) {
+      console.error('Failed to initialize security:', error);
+    }
   }
-  
-  startGuardianLoops();
-  console.log('✅ Security initialized');
 }

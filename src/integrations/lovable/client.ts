@@ -26,6 +26,14 @@ function getConfig(): LovableClientConfig | null {
 
   if (!baseUrl || !apiKey) {
     // Graceful degradation: return null if not configured (enterprise-ready resilience)
+    // Log warning in development to help with debugging
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
+      console.warn(
+        '⚠️ Lovable API not configured. Missing:',
+        !baseUrl ? 'LOVABLE_API_BASE' : '',
+        !apiKey ? 'LOVABLE_API_KEY' : ''
+      );
+    }
     return null;
   }
 
@@ -36,6 +44,9 @@ async function requestLovable<T>(options: LovableRequestOptions): Promise<T | un
   const config = getConfig();
   if (!config) {
     // Graceful degradation: return undefined if not configured (idempotent, non-blocking)
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
+      console.warn('⚠️ Lovable request skipped: API not configured');
+    }
     return undefined;
   }
   const { baseUrl, apiKey, serviceRoleKey } = config;

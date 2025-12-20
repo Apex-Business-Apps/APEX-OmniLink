@@ -22,7 +22,25 @@ type QueuedUpsert = {
 
 const REGISTRY_KEY = 'lovable_device_registry_v1';
 const UPSERT_QUEUE_KEY = 'lovable_device_upserts_v1';
-const DEVICE_PROXY_URL = import.meta.env.VITE_LOVABLE_DEVICE_PROXY ?? '/api/lovable/device';
+
+// Use Supabase Edge Function if available, otherwise fall back to local proxy
+function getDeviceProxyUrl(): string {
+  // Check if we should use Supabase function
+  const useSupabaseFunction = import.meta.env.VITE_USE_SUPABASE_LOVABLE !== 'false';
+  if (useSupabaseFunction && typeof window !== 'undefined') {
+    // Get Supabase URL from env
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (supabaseUrl) {
+      // Extract project ref from Supabase URL
+      const url = new URL(supabaseUrl);
+      return `${url.origin}/functions/v1/lovable-device`;
+    }
+  }
+  // Fallback to local proxy or custom URL
+  return import.meta.env.VITE_LOVABLE_DEVICE_PROXY ?? '/api/lovable/device';
+}
+
+const DEVICE_PROXY_URL = getDeviceProxyUrl();
 const MAX_ATTEMPTS = Number(import.meta.env.VITE_DEVICE_MAX_ATTEMPTS ?? 5);
 const BASE_DELAY_MS = Number(import.meta.env.VITE_DEVICE_RETRY_BASE_MS ?? 500);
 const MAX_DELAY_MS = Number(import.meta.env.VITE_DEVICE_RETRY_MAX_MS ?? 10_000);
@@ -115,11 +133,26 @@ async function fetchRemoteRegistry(userId: string): Promise<DeviceRecord[]> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeoutMs = Number(import.meta.env.VITE_DEVICE_TIMEOUT_MS ?? 10_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  
   try {
+    // Check if using Supabase function (needs auth header)
+    const isSupabaseFunction = DEVICE_PROXY_URL.includes('/functions/v1/');
+    const headers: HeadersInit = { 'X-User-Id': userId };
+    
+    if (isSupabaseFunction && typeof window !== 'undefined') {
+      // Get auth token from Supabase client if available
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    }
+    
     const res = await fetch(`${DEVICE_PROXY_URL}?user_id=${encodeURIComponent(userId)}`, {
       method: 'GET',
-      headers: { 'X-User-Id': userId },
+      headers,
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -177,9 +210,25 @@ async function flushUpserts(force = false) {
         }
       }
 
+      // Check if using Supabase function (needs auth header)
+      const isSupabaseFunction = DEVICE_PROXY_URL.includes('/functions/v1/');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'X-User-Id': item.record.userId,
+      };
+      
+      if (isSupabaseFunction && typeof window !== 'undefined') {
+        // Get auth token from Supabase client if available
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      }
+
       const response = await fetch(DEVICE_PROXY_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-Id': item.record.userId },
+        headers,
         body: JSON.stringify({ device: toDeviceInfo(item.record) }),
       });
       if (!response.ok) {

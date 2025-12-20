@@ -11,7 +11,25 @@ type QueuedAuditEvent = AuditEventPayload & {
 
 const RECENT_LIMIT = 200;
 const QUEUE_KEY = 'lovable_audit_queue_v1';
-const PROXY_URL = import.meta.env.VITE_LOVABLE_AUDIT_PROXY ?? '/api/lovable/audit';
+
+// Use Supabase Edge Function if available, otherwise fall back to local proxy
+function getAuditProxyUrl(): string {
+  // Check if we should use Supabase function
+  const useSupabaseFunction = import.meta.env.VITE_USE_SUPABASE_LOVABLE !== 'false';
+  if (useSupabaseFunction && typeof window !== 'undefined') {
+    // Get Supabase URL from env
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (supabaseUrl) {
+      // Extract project ref from Supabase URL
+      const url = new URL(supabaseUrl);
+      return `${url.origin}/functions/v1/lovable-audit`;
+    }
+  }
+  // Fallback to local proxy or custom URL
+  return import.meta.env.VITE_LOVABLE_AUDIT_PROXY ?? '/api/lovable/audit';
+}
+
+const PROXY_URL = getAuditProxyUrl();
 const MAX_ATTEMPTS = Number(import.meta.env.VITE_AUDIT_MAX_ATTEMPTS ?? 5);
 const BASE_DELAY_MS = Number(import.meta.env.VITE_AUDIT_RETRY_BASE_MS ?? 500);
 const MAX_DELAY_MS = Number(import.meta.env.VITE_AUDIT_RETRY_MAX_MS ?? 10_000);
@@ -61,14 +79,29 @@ async function sendToProxy(entry: AuditEventPayload): Promise<void> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeoutMs = Number(import.meta.env.VITE_AUDIT_TIMEOUT_MS ?? 10_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  
   try {
+    // Check if using Supabase function (needs auth header)
+    const isSupabaseFunction = PROXY_URL.includes('/functions/v1/');
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'X-User-Id': entry.actorId ?? 'anonymous',
+    };
+    
+    if (isSupabaseFunction && typeof window !== 'undefined') {
+      // Get auth token from Supabase client if available
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    }
+    
     const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': entry.actorId ?? 'anonymous',
-      },
+      headers,
       body: JSON.stringify({ event: entry }),
       signal: controller.signal,
     });

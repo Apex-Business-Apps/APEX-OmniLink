@@ -4,6 +4,7 @@
  */
 
 import { appConfig, getEnvironment } from './config';
+import { createDebugLogger } from './debug-logger';
 
 let sentry: any | null = null;
 let sentryInitialized = false;
@@ -12,14 +13,14 @@ export interface ErrorContext {
   userId?: string;
   route?: string;
   action?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PerformanceEvent {
   name: string;
   duration: number;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 async function ensureSentry() {
@@ -29,18 +30,25 @@ async function ensureSentry() {
   if (!dsn) return null;
 
   try {
+    // Dynamic import from CDN - TypeScript can't resolve these at compile time
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     sentry = await import('https://esm.sh/@sentry/browser@7.120.1');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const { BrowserTracing } = await import('https://esm.sh/@sentry/tracing@7.120.1');
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     sentry.init({
       dsn,
       environment: getEnvironment(),
       release: `${appConfig.name}@${appConfig.version}`,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       integrations: [new BrowserTracing()],
       tracesSampleRate: 0.2,
     });
     sentryInitialized = true;
-    console.log('✅ Sentry monitoring initialized');
+    if (import.meta.env.DEV) {
+      console.log('✅ Sentry monitoring initialized');
+    }
   } catch (error) {
     console.warn('Sentry initialization failed; continuing without Sentry', error);
   }
@@ -48,7 +56,7 @@ async function ensureSentry() {
   return sentry;
 }
 
-function persistLog(key: string, entry: any, max: number) {
+function persistLog(key: string, entry: unknown, max: number) {
   try {
     const logs = JSON.parse(localStorage.getItem(key) || '[]');
     logs.push(entry);
@@ -63,7 +71,9 @@ function persistLog(key: string, entry: any, max: number) {
  * Log error to monitoring service
  */
 export async function logError(error: Error, context?: ErrorContext): Promise<void> {
-  console.error('🚨 Error:', error.message, context);
+  if (import.meta.env.DEV) {
+    console.error('🚨 Error:', error.message, context);
+  }
 
   const entry = {
     message: error.message,
@@ -83,7 +93,9 @@ export async function logError(error: Error, context?: ErrorContext): Promise<vo
  * Log performance event
  */
 export function logPerformance(event: PerformanceEvent): void {
-  console.log('📊 Performance:', event);
+  if (import.meta.env.DEV) {
+    console.log('📊 Performance:', event);
+  }
   persistLog('perf_logs', event, 100);
 }
 
@@ -92,9 +104,11 @@ export function logPerformance(event: PerformanceEvent): void {
  */
 export async function logAnalyticsEvent(
   eventName: string,
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
 ): Promise<void> {
-  console.log('📈 Analytics:', eventName, properties);
+  if (import.meta.env.DEV) {
+    console.log('📈 Analytics:', eventName, properties);
+  }
 
   const s = await ensureSentry();
   if (s?.addBreadcrumb) {
@@ -112,9 +126,11 @@ export async function logAnalyticsEvent(
  */
 export async function logSecurityEvent(
   eventType: 'auth_failed' | 'rate_limit' | 'suspicious_activity' | 'csrf_attempt',
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): Promise<void> {
-  console.warn('🔒 Security Event:', eventType, details);
+  if (import.meta.env.DEV) {
+    console.warn('🔒 Security Event:', eventType, details);
+  }
 
   const entry = {
     type: eventType,
@@ -140,7 +156,7 @@ export async function logSecurityEvent(
  */
 export function trackUserAction(
   action: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   void logAnalyticsEvent('user_action', { action, ...metadata });
 }
@@ -149,35 +165,72 @@ export function trackUserAction(
  * Initialize monitoring on app start
  */
 export function initializeMonitoring(): void {
-  void ensureSentry();
+  const log = createDebugLogger('monitoring.ts', 'A');
+  
+  // #region agent log
+  log('initializeMonitoring entry');
+  // #endregion
+  
+  try {
+    void ensureSentry();
 
-  // Set up global error handler
-  window.addEventListener('error', (event) => {
-    logError(new Error(event.message), {
-      route: window.location.pathname,
-      metadata: {
+    // #region agent log
+    log('Before error handlers');
+    // #endregion
+
+    // Set up global error handler
+    window.addEventListener('error', (event) => {
+      // #region agent log
+      log('Global error caught', {
+        message: event.message,
         filename: event.filename,
         lineno: event.lineno,
-        colno: event.colno,
-      },
+      });
+      // #endregion
+      logError(new Error(event.message), {
+        route: window.location.pathname,
+        metadata: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+        },
+      });
     });
-  });
 
-  // Set up unhandled promise rejection handler
-  window.addEventListener('unhandledrejection', (event) => {
-    logError(new Error(event.reason), {
-      route: window.location.pathname,
-      metadata: { type: 'unhandled_promise' },
+    // Set up unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', (event) => {
+      // #region agent log
+      log('Unhandled promise rejection', {
+        reason: event.reason instanceof Error ? event.reason.message : String(event.reason),
+      });
+      // #endregion
+      const errorMessage = event.reason instanceof Error ? event.reason.message : String(event.reason);
+      logError(new Error(errorMessage), {
+        route: window.location.pathname,
+        metadata: { type: 'unhandled_promise' },
+      });
     });
-  });
 
-  console.log('✅ Monitoring initialized');
+    // #region agent log
+    log('Monitoring initialized successfully');
+    // #endregion
+    if (import.meta.env.DEV) {
+      console.log('✅ Monitoring initialized');
+    }
+  } catch (error) {
+    // #region agent log
+    log('Monitoring initialization error', {
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    // #endregion
+    console.error('Failed to initialize monitoring:', error);
+  }
 }
 
 /**
  * Get all error logs (for debugging)
  */
-export function getErrorLogs(): any[] {
+export function getErrorLogs(): unknown[] {
   try {
     return JSON.parse(localStorage.getItem('error_logs') || '[]');
   } catch {
@@ -188,7 +241,7 @@ export function getErrorLogs(): any[] {
 /**
  * Get all security logs (for debugging)
  */
-export function getSecurityLogs(): any[] {
+export function getSecurityLogs(): unknown[] {
   try {
     return JSON.parse(localStorage.getItem('security_logs') || '[]');
   } catch {
@@ -203,5 +256,7 @@ export function clearLogs(): void {
   localStorage.removeItem('error_logs');
   localStorage.removeItem('security_logs');
   localStorage.removeItem('perf_logs');
-  console.log('🗑️ Logs cleared');
+  if (import.meta.env.DEV) {
+    console.log('🗑️ Logs cleared');
+  }
 }

@@ -174,13 +174,19 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []); // Fixed: state dependency removed to prevent infinite loops
 
-  return {
+  // Memoize dismiss function to prevent unnecessary re-renders
+  const dismiss = React.useCallback((toastId?: string) => {
+    dispatch({ type: "DISMISS_TOAST", toastId });
+  }, []);
+
+  // Return stable object reference using useMemo
+  return React.useMemo(() => ({
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  };
+    dismiss,
+  }), [state, dismiss]);
 }
 
 export { useToast, toast };

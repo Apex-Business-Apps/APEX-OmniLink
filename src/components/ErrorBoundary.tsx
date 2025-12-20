@@ -24,14 +24,38 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    const log = createDebugLogger('ErrorBoundary.tsx', 'D');
+    
+    // #region agent log
+    log('ErrorBoundary caught error', {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
+    // #endregion
+    
+    if (import.meta.env.DEV) {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
     
     // Log to monitoring service if available
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof window !== 'undefined' && (window as any).errorTracker) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).errorTracker.captureException(error, {
         extra: errorInfo,
       });
     }
+    
+    // Also use our monitoring system
+    import('@/lib/monitoring').then(({ logError }) => {
+      logError(error, {
+        action: 'error_boundary',
+        metadata: {
+          componentStack: errorInfo.componentStack,
+        },
+      });
+    }).catch(() => {});
   }
 
   private handleReset = () => {

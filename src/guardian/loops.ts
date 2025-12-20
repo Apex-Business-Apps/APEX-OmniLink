@@ -22,14 +22,21 @@ export function startGuardianLoops() {
   // Periodic health ping to backend
   intervals.push(
     setInterval(async () => {
-      if (typeof window === 'undefined') {
-        recordLoopHeartbeat('guardian-health-ping');
-        return;
-      }
-      const { runHealthCheck } = await import('@/lib/healthcheck');
-      const result = await runHealthCheck().catch(() => null);
-      if (result?.status === 'OK') {
-        recordLoopHeartbeat('guardian-health-ping');
+      try {
+        if (typeof window === 'undefined') {
+          recordLoopHeartbeat('guardian-health-ping');
+          return;
+        }
+        const { runHealthCheck } = await import('@/lib/healthcheck');
+        const result = await runHealthCheck().catch((error) => {
+          console.error('Health check failed:', error);
+          return null;
+        });
+        if (result?.status === 'OK') {
+          recordLoopHeartbeat('guardian-health-ping');
+        }
+      } catch (error) {
+        console.error('Error in guardian health ping:', error);
       }
     }, 120000)
   );

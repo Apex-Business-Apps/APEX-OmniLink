@@ -18,6 +18,7 @@ interface PendingRequest<T> {
 const cache = new Map<string, CacheEntry<any>>();
 const pendingRequests = new Map<string, PendingRequest<any>>();
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+let cleanupInterval: NodeJS.Timeout | null = null;
 
 /**
  * Generate cache key from request details
@@ -32,32 +33,56 @@ function getCacheKey(url: string, options?: RequestInit): string {
  * Clean up expired cache entries and old pending requests
  */
 function cleanup(): void {
-  const now = Date.now();
-  
-  // Clean cache
-  for (const [key, entry] of cache.entries()) {
-    if (now > entry.expiresAt) {
-      cache.delete(key);
+  try {
+    const now = Date.now();
+    
+    // Clean cache
+    for (const [key, entry] of cache.entries()) {
+      if (now > entry.expiresAt) {
+        cache.delete(key);
+      }
     }
-  }
-  
-  // Clean pending requests older than 1 minute
-  for (const [key, pending] of pendingRequests.entries()) {
-    if (now - pending.timestamp > 60000) {
-      pendingRequests.delete(key);
+    
+    // Clean pending requests older than 1 minute
+    for (const [key, pending] of pendingRequests.entries()) {
+      if (now - pending.timestamp > 60000) {
+        pendingRequests.delete(key);
+      }
     }
-  }
 
-  recordLoopHeartbeat('request-cache-cleanup');
+    recordLoopHeartbeat('request-cache-cleanup');
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Error in request cache cleanup:', error);
+    }
+  }
+}
+
+/**
+ * Initialize cleanup interval
+ */
+function startCleanup(): void {
+  if (cleanupInterval) return;
+  cleanupInterval = setInterval(cleanup, 60000);
+}
+
+/**
+ * Stop cleanup interval
+ */
+export function stopCleanup(): void {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
 }
 
 // Run cleanup every minute
-setInterval(cleanup, 60000);
+startCleanup();
 
 /**
  * Deduplicated fetch with caching
  */
-export async function cachedFetch<T = any>(
+export async function cachedFetch<T = unknown>(
   url: string,
   options?: RequestInit,
   ttl: number = DEFAULT_TTL

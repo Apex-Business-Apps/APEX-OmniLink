@@ -8,37 +8,58 @@ import { DashboardLayout } from "./components/DashboardLayout";
 import { ConsentBanner } from "./components/ConsentBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useOfflineSupport } from "./hooks/useOfflineSupport";
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { initializeMonitoring } from './lib/monitoring';
 import { initializeSecurity } from './lib/security';
 import { logConfiguration } from './lib/config';
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Links from "./pages/Links";
-import Files from "./pages/Files";
-import Automations from "./pages/Automations";
-import Integrations from "./pages/Integrations";
-import ApexAssistant from "./pages/ApexAssistant";
-import Todos from "./pages/Todos";
-import Privacy from "./pages/Privacy";
-import NotFound from "./pages/NotFound";
-import TradeLine247 from "./pages/apps/TradeLine247";
-import AutoRepAi from "./pages/apps/AutoRepAi";
-import KeepSafe from "./pages/apps/KeepSafe";
-import StrideGuide from "./pages/apps/StrideGuide";
-import RobuxMinerPro from "./pages/apps/RobuxMinerPro";
-import FLOWBills from "./pages/apps/FLOWBills";
-import JubeeLove from "./pages/apps/JubeeLove";
-import BuiltCanadian from "./pages/apps/BuiltCanadian";
-import TechSpecs from "./pages/TechSpecs";
+import { createDebugLogger } from './lib/debug-logger';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load pages for better code splitting
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Links = lazy(() => import("./pages/Links"));
+const Files = lazy(() => import("./pages/Files"));
+const Automations = lazy(() => import("./pages/Automations"));
+const Integrations = lazy(() => import("./pages/Integrations"));
+const ApexAssistant = lazy(() => import("./pages/ApexAssistant"));
+const Todos = lazy(() => import("./pages/Todos"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TradeLine247 = lazy(() => import("./pages/apps/TradeLine247"));
+const AutoRepAi = lazy(() => import("./pages/apps/AutoRepAi"));
+const KeepSafe = lazy(() => import("./pages/apps/KeepSafe"));
+const StrideGuide = lazy(() => import("./pages/apps/StrideGuide"));
+const RobuxMinerPro = lazy(() => import("./pages/apps/RobuxMinerPro"));
+const FLOWBills = lazy(() => import("./pages/apps/FLOWBills"));
+const JubeeLove = lazy(() => import("./pages/apps/JubeeLove"));
+const BuiltCanadian = lazy(() => import("./pages/apps/BuiltCanadian"));
+const TechSpecs = lazy(() => import("./pages/TechSpecs"));
+const Diagnostics = lazy(() => import("./pages/Diagnostics"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
+        const log = createDebugLogger('App.tsx', 'C');
+        // #region agent log
+        const errorStatus = (error as { status?: number })?.status;
+        log('React Query retry check', {
+          failureCount,
+          errorStatus,
+          willRetry: errorStatus !== undefined && (errorStatus < 400 || errorStatus >= 500) ? failureCount < 3 : false,
+        });
+        // #endregion
         // Don't retry on 4xx errors
-        if (error?.status >= 400 && error?.status < 500) return false;
+        if (errorStatus !== undefined && errorStatus >= 400 && errorStatus < 500) return false;
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -47,9 +68,31 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Prevent excessive refetches
       refetchOnMount: false, // Use cached data when available
       refetchOnReconnect: true, // Refetch when network reconnects
+      onError: (error) => {
+        const log = createDebugLogger('App.tsx', 'C');
+        // #region agent log
+        log('React Query global error', {
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+        // #endregion
+        if (import.meta.env.DEV) {
+          console.error('React Query error:', error);
+        }
+      },
     },
     mutations: {
       retry: false, // Don't retry mutations by default
+      onError: (error) => {
+        const log = createDebugLogger('App.tsx', 'C');
+        // #region agent log
+        log('React Query mutation error', {
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+        // #endregion
+        if (import.meta.env.DEV) {
+          console.error('React Query mutation error:', error);
+        }
+      },
     },
   },
 });
@@ -58,10 +101,40 @@ const AppContent = () => {
   useOfflineSupport();
   
   useEffect(() => {
-    // Initialize production systems
-    initializeMonitoring();
-    initializeSecurity();
-    logConfiguration();
+    const log = createDebugLogger('App.tsx', 'A');
+    
+    // #region agent log
+    log('AppContent useEffect entry');
+    // #endregion
+    
+    try {
+      // Initialize production systems
+      // #region agent log
+      log('Before initializeMonitoring');
+      // #endregion
+      initializeMonitoring();
+      
+      // #region agent log
+      log('Before initializeSecurity');
+      // #endregion
+      initializeSecurity();
+      
+      // #region agent log
+      log('Before logConfiguration');
+      // #endregion
+      logConfiguration();
+      
+      // #region agent log
+      log('AppContent initialization complete');
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      log('AppContent initialization error', { 
+        error: error instanceof Error ? error.message : 'unknown' 
+      });
+      // #endregion
+      console.error('Failed to initialize app:', error);
+    }
   }, []);
   
   return null;
@@ -77,29 +150,32 @@ const App = () => (
         <BrowserRouter>
           <ConsentBanner />
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/login" element={<Auth />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-              <Route path="/links" element={<DashboardLayout><Links /></DashboardLayout>} />
-              <Route path="/files" element={<DashboardLayout><Files /></DashboardLayout>} />
-            <Route path="/automations" element={<DashboardLayout><Automations /></DashboardLayout>} />
-            <Route path="/integrations" element={<DashboardLayout><Integrations /></DashboardLayout>} />
-            <Route path="/apex" element={<DashboardLayout><ApexAssistant /></DashboardLayout>} />
-              <Route path="/todos" element={<DashboardLayout><Todos /></DashboardLayout>} />
-              <Route path="/apps/tradeline247" element={<TradeLine247 />} />
-              <Route path="/apps/autorepai" element={<AutoRepAi />} />
-              <Route path="/apps/keepsafe" element={<KeepSafe />} />
-              <Route path="/apps/strideguide" element={<StrideGuide />} />
-              <Route path="/apps/robuxminerpro" element={<RobuxMinerPro />} />
-              <Route path="/apps/flowbills" element={<FLOWBills />} />
-              <Route path="/apps/jubeelove" element={<JubeeLove />} />
-              <Route path="/apps/built-canadian" element={<BuiltCanadian />} />
-              <Route path="/tech-specs" element={<TechSpecs />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/login" element={<Auth />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+                <Route path="/links" element={<DashboardLayout><Links /></DashboardLayout>} />
+                <Route path="/files" element={<DashboardLayout><Files /></DashboardLayout>} />
+                <Route path="/automations" element={<DashboardLayout><Automations /></DashboardLayout>} />
+                <Route path="/integrations" element={<DashboardLayout><Integrations /></DashboardLayout>} />
+                <Route path="/apex" element={<DashboardLayout><ApexAssistant /></DashboardLayout>} />
+                <Route path="/todos" element={<DashboardLayout><Todos /></DashboardLayout>} />
+                <Route path="/apps/tradeline247" element={<TradeLine247 />} />
+                <Route path="/apps/autorepai" element={<AutoRepAi />} />
+                <Route path="/apps/keepsafe" element={<KeepSafe />} />
+                <Route path="/apps/strideguide" element={<StrideGuide />} />
+                <Route path="/apps/robuxminerpro" element={<RobuxMinerPro />} />
+                <Route path="/apps/flowbills" element={<FLOWBills />} />
+                <Route path="/apps/jubeelove" element={<JubeeLove />} />
+                <Route path="/apps/built-canadian" element={<BuiltCanadian />} />
+                <Route path="/tech-specs" element={<TechSpecs />} />
+                <Route path="/diagnostics" element={<DashboardLayout><Diagnostics /></DashboardLayout>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

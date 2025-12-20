@@ -9,10 +9,10 @@ export const CloudSetupMessage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-amber-500" />
-            Lovable Cloud Setup Required
+            Supabase Configuration Required
           </CardTitle>
           <CardDescription>
-            Your backend needs to be configured to continue
+            Your Supabase backend needs to be configured to continue
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -20,26 +20,30 @@ export const CloudSetupMessage = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Missing Supabase Configuration</AlertTitle>
             <AlertDescription>
-              The Lovable Cloud backend credentials are not configured in your preview environment.
+              Supabase credentials are not configured. Please set up your environment variables.
             </AlertDescription>
           </Alert>
 
           <div className="space-y-2">
             <h3 className="font-semibold">To fix this:</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-              <li>Open your Lovable project settings</li>
-              <li>Navigate to the <strong>Cloud</strong> tab</li>
-              <li>Complete the Lovable Cloud setup if you haven't already</li>
-              <li>Ensure your Supabase project is properly connected</li>
-              <li>Refresh this preview once setup is complete</li>
+              <li>Create a <code className="bg-muted px-1 py-0.5 rounded">.env.local</code> file in your project root</li>
+              <li>Add your Supabase credentials:
+                <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-x-auto">
+{`VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+# OR use anon key:
+VITE_SUPABASE_ANON_KEY=your-anon-key`}
+                </pre>
+              </li>
+              <li>Get these values from your Supabase project: <strong>Settings → API</strong></li>
+              <li>Restart your development server</li>
             </ol>
           </div>
 
           <div className="p-4 bg-muted rounded-lg">
             <p className="text-sm">
-              <strong>Note:</strong> Lovable Cloud provides a complete backend with authentication, 
-              database, storage, and serverless functions. Once configured, your environment 
-              variables will be automatically injected into your preview.
+              <strong>Note:</strong> Make sure <code className="bg-background px-1 py-0.5 rounded">.env.local</code> is in your <code className="bg-background px-1 py-0.5 rounded">.gitignore</code> to keep your credentials secure.
             </p>
           </div>
         </CardContent>
