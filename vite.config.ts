@@ -1,7 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
+
+// Conditionally import lovable-tagger if available
+let componentTagger: (() => any) | undefined;
+try {
+  const tagger = await import("lovable-tagger");
+  componentTagger = tagger.componentTagger;
+} catch {
+  // lovable-tagger not available, skip it
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,10 +20,8 @@ export default defineConfig(({ mode }) => ({
     // Edge functions are still available but not required for client-side operations
   },
   plugins: [
-    react(), 
-    // lovable-tagger is optional dev tool, keep for now but can be removed later
-    mode === "development" && componentTagger()
-  ].filter(Boolean),
+    react()
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
