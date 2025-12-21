@@ -12,6 +12,7 @@ interface AgentResponse {
   threadId: string;
   skillsUsed: string[];
   toolResults?: any[];
+  agentRunId?: string;
 }
 
 // Prompt injection patterns to detect and block
@@ -80,9 +81,104 @@ class OmniLinkAgent {
     this.skillRegistry = new SkillRegistry(supabase);
   }
 
+  // Telemetry recording methods
+  private async recordAgentRunStart(threadId: string, userMessage: string): Promise<string> {
+    try {
+      const { data, error } = await this.supabase
+        .from('agent_runs')
+        .insert({
+          thread_id: threadId,
+          user_message: userMessage,
+          status: 'running'
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Failed to record agent run start:', error);
+        return crypto.randomUUID(); // Fallback ID
+      }
+
+      return data.id;
+    } catch (error) {
+      console.error('Failed to record agent run start:', error);
+      return crypto.randomUUID(); // Fallback ID
+    }
+  }
+
+  private async recordAgentRunEnd(agentRunId: string, response: string, skillsUsed: string[], error?: string): Promise<void> {
+    try {
+      const endTime = new Date().toISOString();
+      const status = error ? 'failed' : 'completed';
+
+      await this.supabase
+        .from('agent_runs')
+        .update({
+          end_time: endTime,
+          agent_response: response,
+          skills_used: skillsUsed,
+          status: status,
+          error_message: error,
+          total_duration_ms: 0 // Would need to calculate from start time
+        })
+        .eq('id', agentRunId);
+    } catch (error) {
+      console.error('Failed to record agent run end:', error);
+    }
+  }
+
+  private async recordSkillMatches(agentRunId: string, query: string, matches: any[]): Promise<void> {
+    try {
+      const skillMatchRecords = matches.map((match, index) => ({
+        agent_run_id: agentRunId,
+        query_text: query,
+        skill_name: match.name,
+        score: match.score,
+        rank: index + 1,
+        search_type: 'hybrid', // Assuming hybrid search
+        final_score: match.score
+      }));
+
+      if (skillMatchRecords.length > 0) {
+        await this.supabase
+          .from('skill_matches')
+          .insert(skillMatchRecords);
+      }
+    } catch (error) {
+      console.error('Failed to record skill matches:', error);
+    }
+  }
+
+  private async recordToolInvocation(agentRunId: string, skillMatchId: string | null, toolName: string, args: any, result: any, error?: string): Promise<void> {
+    try {
+      const startTime = new Date();
+      const endTime = new Date();
+
+      await this.supabase
+        .from('tool_invocations')
+        .insert({
+          agent_run_id: agentRunId,
+          skill_match_id: skillMatchId,
+          tool_name: toolName,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          duration_ms: endTime.getTime() - startTime.getTime(),
+          status: error ? 'failed' : 'completed',
+          input_args: args,
+          output_result: result,
+          error_message: error
+        });
+    } catch (error) {
+      console.error('Failed to record tool invocation:', error);
+    }
+  }
+
   async processRequest(request: AgentRequest): Promise<AgentResponse> {
     const threadId = request.threadId || crypto.randomUUID();
     const sanitizedMessage = sanitizeInput(request.message);
+
+    // Record agent run start
+    const agentRunId = await this.recordAgentRunStart(threadId, sanitizedMessage);
 
     // Load or initialize agent state
     let state = await this.loadAgentState(threadId);
@@ -95,51 +191,74 @@ class OmniLinkAgent {
 
     try {
       // Phase 1: Skill Retrieval Node
-      await this.skillRetrievalNode(state, sanitizedMessage);
+      const skillMatches = await this.skillRetrievalNode(state, sanitizedMessage);
+
+      // Record skill matches in telemetry
+      await this.recordSkillMatches(agentRunId, sanitizedMessage, skillMatches);
 
       // Phase 2: Agent Reasoning Node
       const response = await this.agentReasoningNode(state);
 
       // Phase 3: Tool Execution Node (if tools were called)
       if (response.toolCalls && response.toolCalls.length > 0) {
-        await this.toolExecutionNode(state, response.toolCalls);
+        await this.toolExecutionNode(state, response.toolCalls, agentRunId);
         // Re-run reasoning with tool results
         const finalResponse = await this.agentReasoningNode(state);
         await this.saveAgentState(threadId, state);
+
+        const finalResponseText = redactPII(finalResponse.content);
+        await this.recordAgentRunEnd(agentRunId, finalResponseText, state.current_skills.map(s => s.name));
+
         return {
-          response: redactPII(finalResponse.content),
+          response: finalResponseText,
           threadId,
           skillsUsed: state.current_skills.map(s => s.name),
-          toolResults: state.tool_results
+          toolResults: state.tool_results,
+          agentRunId
         };
       }
 
       await this.saveAgentState(threadId, state);
+      const responseText = redactPII(response.content);
+      await this.recordAgentRunEnd(agentRunId, responseText, state.current_skills.map(s => s.name));
+
       return {
-        response: redactPII(response.content),
+        response: responseText,
         threadId,
-        skillsUsed: state.current_skills.map(s => s.name)
+        skillsUsed: state.current_skills.map(s => s.name),
+        agentRunId
       };
 
     } catch (error) {
       console.error('Agent processing error:', error);
+      // Record failed run
+      await this.recordAgentRunEnd(agentRunId, '', [], error.message);
+
       return {
         response: 'I apologize, but I encountered an error processing your request. Please try again.',
         threadId,
-        skillsUsed: []
+        skillsUsed: [],
+        agentRunId
       };
     }
   }
 
-  private async skillRetrievalNode(state: AgentState, userMessage: string): Promise<void> {
+  private async skillRetrievalNode(state: AgentState, userMessage: string): Promise<any[]> {
     try {
       // Retrieve relevant skills based on user message
       const relevantSkills = await this.skillRegistry.retrieveSkills(userMessage, 5, 0.1);
       state.current_skills = relevantSkills;
       console.log(`Retrieved ${relevantSkills.length} skills for query: ${userMessage}`);
+
+      // Return skill matches for telemetry (simplified version)
+      return relevantSkills.map((skill, index) => ({
+        name: skill.name,
+        score: 1.0 - (index * 0.1) // Mock score for telemetry
+      }));
     } catch (error) {
       console.error('Skill retrieval failed:', error);
       state.current_skills = []; // Fallback to no skills
+      return [];
     }
   }
 
@@ -170,7 +289,7 @@ class OmniLinkAgent {
     }
   }
 
-  private async toolExecutionNode(state: AgentState, toolCalls: any[]): Promise<void> {
+  private async toolExecutionNode(state: AgentState, toolCalls: any[], agentRunId: string): Promise<void> {
     const toolResults: any[] = [];
 
     for (const toolCall of toolCalls) {
@@ -193,6 +312,9 @@ class OmniLinkAgent {
           result: result
         });
 
+        // Record tool invocation telemetry
+        await this.recordToolInvocation(agentRunId, null, toolCall.function.name, args, result);
+
         // Add tool result to conversation
         state.messages.push({
           role: 'tool',
@@ -206,6 +328,9 @@ class OmniLinkAgent {
           tool_call_id: toolCall.id,
           error: `Execution failed: ${error.message}`
         });
+
+        // Record failed tool invocation telemetry
+        await this.recordToolInvocation(agentRunId, null, toolCall.function.name, JSON.parse(toolCall.function.arguments), null, error.message);
 
         // Add error result to conversation
         state.messages.push({
