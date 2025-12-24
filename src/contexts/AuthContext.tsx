@@ -44,18 +44,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // #endregion
     
     try {
-      // Check if Lovable Cloud backend is configured with fallbacks
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const env = import.meta.env as any;
-      const supabaseUrl =
-        import.meta.env.VITE_SUPABASE_URL ??
-        env?.NEXT_PUBLIC_SUPABASE_URL ??
-        env?.PUBLIC_SUPABASE_URL;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const supabaseAnonKey =
         import.meta.env.VITE_SUPABASE_ANON_KEY ??
-        env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-        env?.PUBLIC_SUPABASE_ANON_KEY ??
         import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
       // #region agent log
@@ -68,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!supabaseUrl || !supabaseAnonKey) {
         if (import.meta.env.DEV) {
           console.warn(
-            'Missing Supabase environment variables. Checked: VITE_SUPABASE_URL | NEXT_PUBLIC_SUPABASE_URL | PUBLIC_SUPABASE_URL and VITE_SUPABASE_ANON_KEY | NEXT_PUBLIC_SUPABASE_ANON_KEY | PUBLIC_SUPABASE_ANON_KEY | VITE_SUPABASE_PUBLISHABLE_KEY'
+            'Missing Supabase environment variables. Checked: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY | VITE_SUPABASE_PUBLISHABLE_KEY'
           );
         }
         setCloudConfigured(false);
