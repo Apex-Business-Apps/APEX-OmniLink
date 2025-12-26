@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Dedupe React to prevent multiple instances (fixes createContext undefined)
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     // Production optimizations
