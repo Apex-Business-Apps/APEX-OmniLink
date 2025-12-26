@@ -1,89 +1,46 @@
-// @omnilink/sw:v2 - Progressive Web App service worker
-// Provides offline support and caching strategy
+// @omnilink/sw:v3-recovery - TEMPORARY Self-Destroying Service Worker
+// This version clears all caches and unregisters itself to recover from stale cache issues
+// TODO: Revert to normal PWA mode after one successful deployment
 
-const CACHE_NAME = 'omnilink-v2';
-const STATIC_ASSETS = [
-  '/',
-  '/offline.html',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/app_icon.svg',
-];
+console.log('[SW Recovery] Self-destroying service worker loaded');
 
-// Install event - cache static assets
+// Install event - skip waiting and activate immediately
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW] Failed to cache some assets:', err);
-        // Don't fail installation if some assets are missing
-      });
-    })
-  );
+  console.log('[SW Recovery] Installing - will self-destruct on activate');
   self.skipWaiting(); // Activate immediately
 });
 
-// Activate event - clean up old caches
+// Activate event - delete ALL caches and unregister this service worker
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  console.log('[SW Recovery] Activating - clearing all caches and unregistering...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((cacheName) => cacheName !== CACHE_NAME)
-          .map((cacheName) => {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-      );
-    })
-  );
-  self.clients.claim(); // Take control immediately
-});
-
-// Fetch event - network-first strategy with cache fallback
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  
-  // Only handle GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  // Skip cross-origin requests
-  if (!request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  event.respondWith(
-    // Try network first
-    fetch(request)
-      .then((response) => {
-        // Cache successful responses
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
+    Promise.all([
+      // Delete ALL caches
+      caches.keys().then((cacheNames) => {
+        console.log('[SW Recovery] Deleting all caches:', cacheNames);
+        return Promise.all(
+          cacheNames.map((cacheName) => caches.delete(cacheName))
+        );
+      }),
+      // Unregister this service worker
+      self.registration.unregister().then(() => {
+        console.log('[SW Recovery] Service worker unregistered successfully');
+        // Reload all clients to get fresh content
+        return self.clients.matchAll().then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({ type: 'SW_UNREGISTERED', action: 'reload' });
           });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(request).then((cached) => {
-          if (cached) {
-            return cached;
-          }
-          // Return offline page for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match('/offline.html');
-          }
-          // Return empty response for other requests
-          return new Response('', { status: 503, statusText: 'Service Unavailable' });
         });
       })
+    ]).then(() => {
+      console.log('[SW Recovery] Cache recovery complete. Page will reload with fresh content.');
+    })
   );
+  self.clients.claim(); // Take control immediately before unregistering
+});
+
+// Fetch event - pass through all requests (no caching during recovery)
+self.addEventListener('fetch', (event) => {
+  // Just pass through to network, no caching
+  event.respondWith(fetch(event.request));
 });
