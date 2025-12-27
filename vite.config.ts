@@ -42,32 +42,8 @@ export default defineConfig(({ mode }) => ({
     } : undefined,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Code splitting for better caching
-          if (id.includes('node_modules')) {
-            // Vendor chunks
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            if (id.includes('@radix-ui') || id.includes('@radix')) {
-              return 'vendor-ui';
-            }
-            if (id.includes('@tanstack')) {
-              return 'vendor-query';
-            }
-            // Other large dependencies
-            return 'vendor-other';
-          }
-          // Split by route/page for better code splitting
-          if (id.includes('/pages/')) {
-            const match = id.match(/\/pages\/([^/]+)/);
-            if (match) {
-              return `page-${match[1]}`;
-            }
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom', 'scheduler'],
         },
         // Optimize chunk file names
         chunkFileNames: 'assets/js/[name]-[hash].js',
