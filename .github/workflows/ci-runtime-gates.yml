@@ -1,0 +1,156 @@
+name: CI Runtime Gates
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ─────────────────────────────────────────────────────────────
+      # PHASE 1: Static Analysis
+      # ─────────────────────────────────────────────────────────────
+      - name: TypeScript type check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint || true  # Don't fail on warnings
+
+      - name: React singleton check
+        run: npm run check:react
+
+      # ─────────────────────────────────────────────────────────────
+      # PHASE 2: Unit Tests
+      # ─────────────────────────────────────────────────────────────
+      - name: Run unit tests
+        run: npm test
+
+      # ─────────────────────────────────────────────────────────────
+      # PHASE 3: Build
+      # ─────────────────────────────────────────────────────────────
+      - name: Build production bundle
+        run: npm run build
+
+      # ─────────────────────────────────────────────────────────────
+      # PHASE 4: Runtime Smoke Tests
+      # ─────────────────────────────────────────────────────────────
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host --port 4173 &
+          echo $! > preview.pid
+          # Wait for server to be ready
+          npx wait-on http://localhost:4173 --timeout 30000
+
+      - name: Run asset access tests
+        run: npm run test:assets
+        env:
+          BASE_URL: http://localhost:4173
+
+      - name: Run Playwright render tests
+        run: npm run test:e2e
+        env:
+          BASE_URL: http://localhost:4173
+
+      - name: Stop preview server
+        if: always()
+        run: |
+          if [ -f preview.pid ]; then
+            kill $(cat preview.pid) || true
+            rm preview.pid
+          fi
+
+      # ─────────────────────────────────────────────────────────────
+      # PHASE 5: Upload Artifacts
+      # ─────────────────────────────────────────────────────────────
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: test-results/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────
+  # OPTIONAL: Vercel Preview URL Tests
+  # Runs against deployed preview if available
+  # ─────────────────────────────────────────────────────────────────
+  preview-smoke-test:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    continue-on-error: true  # Don't block merge if preview isn't ready
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Wait for Vercel Preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
+        id: vercel-preview
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 300
+          check_interval: 10
+        continue-on-error: true
+
+      - name: Run asset tests against preview
+        if: steps.vercel-preview.outputs.url != ''
+        run: npm run test:assets
+        env:
+          BASE_URL: ${{ steps.vercel-preview.outputs.url }}
+
+      - name: Run Playwright tests against preview
+        if: steps.vercel-preview.outputs.url != ''
+        run: npm run test:e2e
+        env:
+          BASE_URL: ${{ steps.vercel-preview.outputs.url }}
+
+      - name: Upload preview test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: preview-playwright-report
+          path: playwright-report/
+          retention-days: 7

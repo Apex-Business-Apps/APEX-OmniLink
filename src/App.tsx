@@ -152,6 +152,7 @@ const AppContent = () => {
 };
 
 const App = () => (
+  <div data-testid="app-shell">
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AppContent />
@@ -201,6 +202,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
+  </div>
 );
 
 export default App;

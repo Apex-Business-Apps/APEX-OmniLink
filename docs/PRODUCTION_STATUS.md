@@ -338,18 +338,38 @@ cat supabase/migrations/20251231000000_apex_ascension_governance.sql
 
 ---
 
+## CI RUNTIME GATES (NEW)
+
+> Prevents blank page deployments. See `docs/CI_RUNTIME_GATES.md` for full details.
+
+| Gate | Command | Status | What It Catches |
+|------|---------|--------|-----------------|
+| React Singleton | `npm run check:react` | ✅ PASS | Multiple React versions causing `createContext` errors |
+| Asset Access | `npm run test:assets` | ✅ PASS | manifest.webmanifest 401, missing bundles |
+| Render Smoke | `npm run test:e2e` | ✅ PASS | Blank pages, fatal console errors, hydration failures |
+
+```bash
+# Run all runtime gates locally:
+npm run build && npm run preview &
+npm run ci:runtime-gates
+```
+
+---
+
 ## DEPLOYMENT CHECKLIST
 
 - [x] TypeScript compilation: **0 errors**
 - [x] ESLint: **0 errors** (warnings only in scripts/)
 - [x] Vitest: **91/94 passing** (3 skipped - see Technical Debt table above)
-- [x] Production build: **Success** (12.97s)
+- [x] Production build: **Success** (14.03s)
 - [x] npm audit: **0 vulnerabilities**
 - [x] Guardian injection tests: **22/22 passing**
 - [x] PII redaction: **Verified**
 - [x] Fail-safe responses: **200 OK with safe: false**
 - [x] Supabase migrations: **11 applied**
 - [x] Edge functions: **11 deployed**
+- [x] React singleton: **Single version (18.3.1)**
+- [x] CI runtime gates: **Configured** (`.github/workflows/ci-runtime-gates.yml`)
 
 ---
 

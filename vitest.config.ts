@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['tests/**/*.spec.ts', 'tests/**/*.spec.tsx'],
+    exclude: ['tests/e2e-playwright/**', 'node_modules/**'],
     setupFiles: ['tests/setup.ts'],
   },
   resolve: {
