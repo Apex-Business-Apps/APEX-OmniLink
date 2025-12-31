@@ -1,4 +1,5 @@
 // Shared types for OmniLink Agentic RAG system
+// Extended for APEX ASCENSION Tri-Force Architecture
 
 export type JsonSchema = {
   type: string;
@@ -53,3 +54,47 @@ export type SkillMatch = {
   metadata: Record<string, any>;
   score: number;
 };
+
+// ============================================================================
+// APEX ASCENSION: Tri-Force Architecture Types
+// ============================================================================
+
+export interface PlanStep {
+  id: number;
+  description: string;
+  tool?: string;
+  args?: Record<string, unknown>;
+  depends_on?: number[];
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  result?: unknown;
+  error?: string;
+}
+
+export interface GuardianResult {
+  safe: boolean;
+  reason?: string;
+  violations?: string[];
+  scannedAt: string;
+}
+
+export interface AgentResponse {
+  response: string;
+  threadId: string;
+  skillsUsed: string[];
+  toolResults?: unknown[];
+  agentRunId?: string;
+  safe: boolean;
+  guardianResult?: GuardianResult;
+  plan?: PlanStep[];
+}
+
+export interface AgentPolicy {
+  id?: string;
+  name: string;
+  rule_logic: string;
+  description?: string;
+  is_blocking: boolean;
+  priority: number;
+  created_at?: string;
+  updated_at?: string;
+}
