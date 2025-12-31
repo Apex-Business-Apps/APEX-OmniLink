@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, waitFor, act } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import React from 'react';
 
 /**
@@ -25,7 +25,7 @@ describe('Battery Tests - Production Stress', () => {
   });
 
   describe('Concurrent Operations', () => {
-    it('handles 100 concurrent API calls without errors', async () => {
+    it('handles 100 concurrent API calls without errors', { timeout: 30000 }, async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -38,15 +38,13 @@ describe('Battery Tests - Production Stress', () => {
       );
 
       const results = await Promise.allSettled(promises);
-      
+
       const successful = results.filter(r => r.status === 'fulfilled').length;
       expect(successful).toBe(100);
       expect(mockFetch).toHaveBeenCalledTimes(100);
-    }, { timeout: 30000 });
+    });
 
-    it('handles 50 concurrent database queries', async () => {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
+    it('handles 50 concurrent database queries', { timeout: 30000 }, async () => {
       // Mock Supabase client
       const mockSelect = vi.fn().mockResolvedValue({
         data: Array.from({ length: 10 }, (_, i) => ({ id: i, name: `Item ${i}` })),
@@ -59,11 +57,11 @@ describe('Battery Tests - Production Stress', () => {
 
       const results = await Promise.allSettled(queries);
       const successful = results.filter(r => r.status === 'fulfilled').length;
-      
-      expect(successful).toBeGreaterThanOrEqual(45); // Allow some failures under stress
-    }, { timeout: 30000 });
 
-    it('handles rapid state updates without race conditions', async () => {
+      expect(successful).toBeGreaterThanOrEqual(45); // Allow some failures under stress
+    });
+
+    it('handles rapid state updates without race conditions', { timeout: 30000 }, async () => {
       let state = 0;
       const updates: number[] = [];
       let updateCount = 0;
@@ -81,14 +79,14 @@ describe('Battery Tests - Production Stress', () => {
       });
 
       await Promise.all(updatePromises);
-      
+
       // Verify all updates completed (race conditions are expected in async operations)
       expect(updateCount).toBe(1000);
       expect(updates.length).toBe(1000);
       // Final state should be one of the update values (not necessarily the last due to race conditions)
       expect(state).toBeGreaterThanOrEqual(0);
       expect(state).toBeLessThan(1000);
-    }, { timeout: 30000 });
+    });
   });
 
   describe('Memory Leaks & Cleanup', () => {
@@ -158,10 +156,10 @@ describe('Battery Tests - Production Stress', () => {
   });
 
   describe('Network Failure Recovery', () => {
-    it('handles 10 consecutive network failures with retry', async () => {
+    it('handles 10 consecutive network failures with retry', { timeout: 30000 }, async () => {
       let attemptCount = 0;
       const maxRetries = 15; // Increased to handle 10 failures
-      
+
       const mockFetch = vi.fn().mockImplementation(async () => {
         attemptCount++;
         if (attemptCount <= 10) {
@@ -174,7 +172,7 @@ describe('Battery Tests - Production Stress', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const attemptRequest = async (retries = 0): Promise<any> => {
+      const attemptRequest = async (retries = 0): Promise<unknown> => {
         try {
           return await fetch('/api/test');
         } catch (error) {
@@ -187,11 +185,11 @@ describe('Battery Tests - Production Stress', () => {
       };
 
       // Should eventually succeed after retries
-      const result = await attemptRequest();
+      const result = await attemptRequest() as { ok: boolean };
       expect(result.ok).toBe(true);
-    }, { timeout: 30000 });
+    });
 
-    it('handles partial network failures gracefully', async () => {
+    it('handles partial network failures gracefully', { timeout: 30000 }, async () => {
       let callCount = 0;
       const mockFetch = vi.fn().mockImplementation(async () => {
         callCount++;
@@ -212,10 +210,10 @@ describe('Battery Tests - Production Stress', () => {
       const successful = results.filter(r => r.status === 'fulfilled').length;
       // Should handle partial failures gracefully
       expect(successful).toBeGreaterThan(15);
-    }, { timeout: 30000 });
+    });
 
     it('recovers from timeout errors', async () => {
-      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: any) => {
+      const mockFetch = vi.fn().mockImplementation(async (_url: string, options?: { signal?: AbortSignal }) => {
         if (options?.signal) {
           // Check if already aborted
           if (options.signal.aborted) {
@@ -235,9 +233,9 @@ describe('Battery Tests - Production Stress', () => {
 
       try {
         await fetch('/api/test', { signal: controller.signal });
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Accept either AbortError or Error
-        expect(['AbortError', 'Error']).toContain(error.name);
+        expect(['AbortError', 'Error']).toContain((error as Error).name);
       } finally {
         clearTimeout(timeout);
       }
@@ -245,7 +243,7 @@ describe('Battery Tests - Production Stress', () => {
   });
 
   describe('Rapid State Changes', () => {
-    it('handles 1000 rapid state updates', async () => {
+    it('handles 1000 rapid state updates', { timeout: 5000 }, async () => {
       const TestComponent = () => {
         const [count, setCount] = React.useState(0);
 
@@ -267,7 +265,7 @@ describe('Battery Tests - Production Stress', () => {
       };
 
       const { unmount } = render(React.createElement(TestComponent));
-      
+
       await waitFor(() => {
         // Component should handle rapid updates
       }, { timeout: 2000 });
@@ -275,11 +273,11 @@ describe('Battery Tests - Production Stress', () => {
       unmount();
       // Should not throw errors
       expect(true).toBe(true);
-    }, { timeout: 5000 });
+    });
 
-    it('handles rapid form submissions', async () => {
-      const submissions: any[] = [];
-      const handleSubmit = async (data: any) => {
+    it('handles rapid form submissions', { timeout: 10000 }, async () => {
+      const submissions: Array<{ id: number }> = [];
+      const handleSubmit = async (data: { id: number }) => {
         await new Promise(resolve => setTimeout(resolve, 10));
         submissions.push(data);
       };
@@ -291,7 +289,7 @@ describe('Battery Tests - Production Stress', () => {
 
       await Promise.all(promises);
       expect(submissions.length).toBe(100);
-    }, { timeout: 10000 });
+    });
   });
 
   describe('Large Data Sets', () => {
@@ -351,7 +349,7 @@ describe('Battery Tests - Production Stress', () => {
   });
 
   describe('Long-Running Operations', () => {
-    it('handles 5-minute operation without timeout', async () => {
+    it('handles 5-minute operation without timeout', { timeout: 10000 }, async () => {
       let progress = 0;
       const startTime = Date.now();
 
@@ -367,9 +365,9 @@ describe('Battery Tests - Production Stress', () => {
 
       expect(progress).toBe(100);
       expect(duration).toBeLessThan(3000); // Allow for test environment overhead
-    }, { timeout: 10000 });
+    });
 
-    it('handles continuous polling for 1 minute', async () => {
+    it('handles continuous polling for 1 minute', { timeout: 5000 }, async () => {
       let pollCount = 0;
       const maxPolls = 10; // Reduced for test speed
 
@@ -386,9 +384,9 @@ describe('Battery Tests - Production Stress', () => {
 
       await startPolling();
       expect(pollCount).toBe(maxPolls);
-    }, { timeout: 5000 });
+    });
 
-    it('handles background sync operations', async () => {
+    it('handles background sync operations', { timeout: 10000 }, async () => {
       const syncOperations: string[] = [];
 
       const sync = async (id: string) => {
@@ -401,7 +399,7 @@ describe('Battery Tests - Production Stress', () => {
       await Promise.all(syncs);
 
       expect(syncOperations.length).toBe(20);
-    }, { timeout: 10000 });
+    });
   });
 
   describe('Error Handling Under Load', () => {
@@ -460,7 +458,7 @@ describe('Battery Tests - Production Stress', () => {
   });
 
   describe('Performance Under Load', () => {
-    it('maintains response time under 100ms for 1000 operations', async () => {
+    it('maintains response time under 100ms for 1000 operations', { timeout: 30000 }, async () => {
       const responseTimes: number[] = [];
 
       const operation = async () => {
@@ -478,7 +476,7 @@ describe('Battery Tests - Production Stress', () => {
 
       expect(avgTime).toBeLessThan(100);
       expect(maxTime).toBeLessThan(500);
-    }, { timeout: 30000 });
+    });
 
     it('handles memory efficiently with 1000 components', async () => {
       const Component = ({ id }: { id: number }) => {

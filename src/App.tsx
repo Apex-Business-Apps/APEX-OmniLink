@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { DashboardLayout } from "./components/DashboardLayout";
@@ -53,6 +53,32 @@ const PageLoader = () => (
 );
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      const log = createDebugLogger('App.tsx', 'C');
+      // #region agent log
+      log('React Query global error', {
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      // #endregion
+      if (import.meta.env.DEV) {
+        console.error('React Query error:', error);
+      }
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      const log = createDebugLogger('App.tsx', 'C');
+      // #region agent log
+      log('React Query mutation error', {
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      // #endregion
+      if (import.meta.env.DEV) {
+        console.error('React Query mutation error:', error);
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       retry: (failureCount, error: unknown) => {
@@ -75,31 +101,9 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Prevent excessive refetches
       refetchOnMount: false, // Use cached data when available
       refetchOnReconnect: true, // Refetch when network reconnects
-      onError: (error) => {
-        const log = createDebugLogger('App.tsx', 'C');
-        // #region agent log
-        log('React Query global error', {
-          error: error instanceof Error ? error.message : 'unknown',
-        });
-        // #endregion
-        if (import.meta.env.DEV) {
-          console.error('React Query error:', error);
-        }
-      },
     },
     mutations: {
       retry: false, // Don't retry mutations by default
-      onError: (error) => {
-        const log = createDebugLogger('App.tsx', 'C');
-        // #region agent log
-        log('React Query mutation error', {
-          error: error instanceof Error ? error.message : 'unknown',
-        });
-        // #endregion
-        if (import.meta.env.DEV) {
-          console.error('React Query mutation error:', error);
-        }
-      },
     },
   },
 });

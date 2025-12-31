@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import builtCanadianBadge from '@/assets/built_canadian_badge.svg';
-import apexEmblem from '@/assets/apex_emblem_logo.svg';
 import apexWordmark from '@/assets/apex_wordmark_hero.svg';
 import SecretLogin from '@/components/SecretLogin';
 

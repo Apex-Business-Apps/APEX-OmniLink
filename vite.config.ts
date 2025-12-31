@@ -2,15 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-// Conditionally import lovable-tagger if available
-let componentTagger: (() => any) | undefined;
-try {
-  const tagger = await import("lovable-tagger");
-  componentTagger = tagger.componentTagger;
-} catch {
-  // lovable-tagger not available, skip it
-}
-
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {

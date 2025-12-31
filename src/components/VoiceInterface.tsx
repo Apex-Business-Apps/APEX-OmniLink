@@ -193,7 +193,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript, onSpeakin
         }
       };
 
-      ws.onerror = (error) => {
+      ws.onerror = (_error) => {
         void logAnalyticsEvent('voice.ws.error', { error: 'WebSocket error' });
         setIsConnecting(false);
         cleanupTransport();

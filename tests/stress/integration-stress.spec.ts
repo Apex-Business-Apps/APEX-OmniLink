@@ -17,7 +17,7 @@ describe('Integration Stress Tests', () => {
   });
 
   describe('Authentication Flow', () => {
-    it('handles 50 concurrent login attempts', async () => {
+    it('handles 50 concurrent login attempts', { timeout: 10000 }, async () => {
       const loginAttempts = Array.from({ length: 50 }, (_, i) => {
         return new Promise((resolve) => {
           setTimeout(() => {
@@ -28,13 +28,13 @@ describe('Integration Stress Tests', () => {
 
       const results = await Promise.allSettled(loginAttempts);
       const successful = results.filter(r => r.status === 'fulfilled').length;
-      
-      expect(successful).toBe(50);
-    }, { timeout: 10000 });
 
-    it('handles rapid login/logout cycles', async () => {
+      expect(successful).toBe(50);
+    });
+
+    it('handles rapid login/logout cycles', { timeout: 10000 }, async () => {
       let sessionCount = 0;
-      
+
       const login = async () => {
         sessionCount++;
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -52,7 +52,7 @@ describe('Integration Stress Tests', () => {
       }
 
       expect(sessionCount).toBe(0);
-    }, { timeout: 10000 });
+    });
   });
 
   describe('Data Synchronization', () => {
@@ -74,7 +74,7 @@ describe('Integration Stress Tests', () => {
       expect(target[999].id).toBe(999);
     });
 
-    it('handles concurrent updates to same record', async () => {
+    it('handles concurrent updates to same record', { timeout: 10000 }, async () => {
       let record = { id: 1, version: 0, data: 'initial' };
       const updates: Array<{ version: number; data: string }> = [];
 
@@ -95,18 +95,23 @@ describe('Integration Stress Tests', () => {
       );
 
       await Promise.all(updatePromises);
-      
+
       expect(record.version).toBeGreaterThan(0);
       expect(updates.length).toBe(50);
-    }, { timeout: 10000 });
+    });
   });
 
   describe('Real-Time Updates', () => {
     it('handles 1000 WebSocket messages', async () => {
-      const messages: any[] = [];
+      interface WSMessage {
+        id: number;
+        type: string;
+        data: string;
+      }
+      const messages: WSMessage[] = [];
       let messageCount = 0;
 
-      const handleMessage = (msg: any) => {
+      const handleMessage = (msg: WSMessage) => {
         messages.push(msg);
         messageCount++;
       };
@@ -121,10 +126,10 @@ describe('Integration Stress Tests', () => {
     });
 
     it('handles message queue overflow gracefully', async () => {
-      const queue: any[] = [];
+      const queue: Array<{ id: number }> = [];
       const maxQueueSize = 100;
 
-      const enqueue = (msg: any) => {
+      const enqueue = (msg: { id: number }) => {
         if (queue.length >= maxQueueSize) {
           queue.shift(); // Remove oldest
         }
@@ -143,7 +148,7 @@ describe('Integration Stress Tests', () => {
   });
 
   describe('File Operations', () => {
-    it('handles 100 concurrent file uploads', async () => {
+    it('handles 100 concurrent file uploads', { timeout: 15000 }, async () => {
       const uploads = Array.from({ length: 100 }, (_, i) => {
         const file = {
           name: `file-${i}.txt`,
@@ -160,18 +165,18 @@ describe('Integration Stress Tests', () => {
 
       const results = await Promise.allSettled(uploads);
       const successful = results.filter(r => r.status === 'fulfilled').length;
-      
-      expect(successful).toBe(100);
-    }, { timeout: 15000 });
 
-    it('handles large file processing', async () => {
+      expect(successful).toBe(100);
+    });
+
+    it('handles large file processing', { timeout: 10000 }, async () => {
       const chunkSize = 1024 * 1024; // 1MB chunks
       const totalSize = 100 * 1024 * 1024; // 100MB
       const chunks = Math.ceil(totalSize / chunkSize);
 
       let processedChunks = 0;
 
-      const processChunk = async (chunkNum: number) => {
+      const processChunk = async (_chunkNum: number) => {
         await new Promise(resolve => setTimeout(resolve, 10));
         processedChunks++;
       };
@@ -182,11 +187,11 @@ describe('Integration Stress Tests', () => {
 
       await Promise.all(chunksToProcess);
       expect(processedChunks).toBe(chunks);
-    }, { timeout: 10000 });
+    });
   });
 
   describe('API Rate Limiting', () => {
-    it('handles rate limit enforcement', async () => {
+    it('handles rate limit enforcement', { timeout: 10000 }, async () => {
       const rateLimit = 10; // 10 requests per second
       const requests: number[] = [];
       let blockedCount = 0;
@@ -211,10 +216,10 @@ describe('Integration Stress Tests', () => {
       );
 
       await Promise.all(requestPromises);
-      
+
       // Some should be blocked
       expect(blockedCount).toBeGreaterThan(0);
-    }, { timeout: 10000 });
+    });
   });
 });
 

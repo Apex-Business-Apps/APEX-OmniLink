@@ -39,7 +39,7 @@ describe('audit log queue', () => {
     expect(entry.id).toBeDefined();
   });
 
-  it.skip('keeps events queued when Lovable returns 500', async () => {
+  it.skip('keeps events queued when Lovable returns 500', { timeout: 10000 }, async () => {
     const { recordAuditEvent, getAuditQueueSnapshot, flushQueue } = await importAudit();
     let callCount = 0;
     (fetch as any).mockImplementation(async () => {
@@ -78,6 +78,6 @@ describe('audit log queue', () => {
     queue = await getAuditQueueSnapshot();
     // After successful retry, queue should be empty
     expect(queue.length).toBe(0);
-  }, { timeout: 10000 });
+  });
 });
 
