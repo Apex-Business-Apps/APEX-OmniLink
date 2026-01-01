@@ -520,7 +520,7 @@ If no tools are needed, return a single step for direct response.`;
     }
 
     // Load agent state
-    let state = await this.loadAgentState(threadId);
+    const state = await this.loadAgentState(threadId);
     state.messages.push({
       role: 'user',
       content: request.message,

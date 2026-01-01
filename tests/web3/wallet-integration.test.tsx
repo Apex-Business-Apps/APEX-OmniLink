@@ -7,6 +7,7 @@
  * Date: 2026-01-01
  */
 
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -22,7 +23,7 @@ vi.mock('wagmi', async () => {
     useAccount: vi.fn(),
     useSignMessage: vi.fn(),
     useDisconnect: vi.fn(),
-    WagmiProvider: ({ children }: { children: React.ReactNode }) => children,
+    WagmiProvider: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
   };
 });
 
@@ -47,7 +48,7 @@ import { useConnect, useAccount, useSignMessage, useDisconnect } from 'wagmi';
 import { supabase } from '@/integrations/supabase/client';
 
 describe('Wallet Integration Flow', () => {
-  const mockAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+  const mockAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0';
   const mockSignature =
     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12';
 

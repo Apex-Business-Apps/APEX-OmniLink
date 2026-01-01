@@ -16,10 +16,10 @@ vi.mock('viem', () => ({
 }));
 
 describe('Web3 Signature Verification', () => {
-  const mockWalletAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb' as const;
+  const mockWalletAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' as const;
   const mockSignature =
     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12' as const;
-  const mockMessage = 'Welcome to OmniLink APEX!\n\nSign this message to verify your wallet ownership.\n\nWallet: 0x742d35cc6634c0532925a3b844bc9e7595f0beb\nNonce: abc123\n\nThis request will not trigger a blockchain transaction or cost any gas fees.';
+  const mockMessage = 'Welcome to OmniLink APEX!\n\nSign this message to verify your wallet ownership.\n\nWallet: 0x742d35cc6634c0532925a3b844bc9e7595f0beb0\nNonce: abc123\n\nThis request will not trigger a blockchain transaction or cost any gas fees.';
 
   beforeEach(() => {
     vi.clearAllMocks();
