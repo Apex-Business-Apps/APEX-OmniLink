@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getOmniLinkHealth } from '@/integrations/omnilink';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
@@ -13,6 +14,7 @@ interface HealthStatus {
   checks: {
     supabase: { status: 'ok' | 'error'; message: string; latency?: number };
     database: { status: 'ok' | 'error'; message: string; latency?: number };
+    omnilink: { status: 'ok' | 'error' | 'disabled'; message: string };
   };
   timestamp: string;
 }
@@ -27,6 +29,7 @@ export default function Health() {
       const checks: HealthStatus['checks'] = {
         supabase: { status: 'error', message: 'Not checked' },
         database: { status: 'error', message: 'Not checked' },
+        omnilink: { status: 'error', message: 'Not checked' },
       };
 
       // Check Supabase connection
@@ -76,10 +79,28 @@ export default function Health() {
         };
       }
 
+      // Check OmniLink port (disabled/ok/error)
+      try {
+        const omnilink = await getOmniLinkHealth();
+        checks.omnilink = {
+          status: omnilink.status,
+          message: omnilink.lastError ?? 'OmniLink port ok',
+        };
+      } catch (error) {
+        checks.omnilink = {
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+
       const overallStatus: HealthStatus['status'] = 
-        checks.supabase.status === 'ok' && checks.database.status === 'ok'
+        checks.supabase.status === 'ok'
+          && checks.database.status === 'ok'
+          && (checks.omnilink.status === 'ok' || checks.omnilink.status === 'disabled')
           ? 'healthy'
-          : checks.supabase.status === 'ok' || checks.database.status === 'ok'
+          : checks.supabase.status === 'ok'
+            || checks.database.status === 'ok'
+            || checks.omnilink.status === 'ok'
           ? 'degraded'
           : 'unhealthy';
 
@@ -163,6 +184,19 @@ export default function Health() {
                 {health.checks.database.latency !== undefined && (
                   <span className="ml-2">({health.checks.database.latency}ms)</span>
                 )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-2">
+                {health.checks.omnilink.status === 'ok' || health.checks.omnilink.status === 'disabled' ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500" />
+                )}
+                <span className="font-medium">OmniLink Port</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {health.checks.omnilink.message}
               </div>
             </div>
           </div>

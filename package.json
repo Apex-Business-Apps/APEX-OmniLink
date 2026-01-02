@@ -19,9 +19,11 @@
     "ci:runtime-gates": "npm run check:react && npm run test:assets && npm run test:e2e",
     "smoke-test": "tsx scripts/smoke-test.ts",
     "guardian:status": "tsx scripts/guardian/status.ts",
+    "omnilink:health": "tsx scripts/omnilink/health.ts",
     "zero-trust:baseline": "tsx scripts/zero-trust/baseline-cli.ts",
     "dr:test": "tsx scripts/dr/run-dr-test.ts --dry-run",
     "prompt-defense:analyze": "tsx scripts/prompt-defense/analyze_flags.ts",
+    "secret:scan": "node scripts/secret-scan.mjs",
     "security:audit": "node -e \"const fs=require('fs');const dir='security';if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});\" && npm audit --json > security/npm-audit-latest.json || true"
   },
   "dependencies": {

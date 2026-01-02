@@ -32,7 +32,7 @@ jobs:
         run: npm run typecheck
 
       - name: ESLint
-        run: npm run lint || true  # Don't fail on warnings
+        run: npm run lint
 
       - name: React singleton check
         run: npm run check:react
