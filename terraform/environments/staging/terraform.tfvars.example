@@ -1,0 +1,15 @@
+# OmniHub Staging Environment Configuration
+# Copy this file to terraform.tfvars and fill in your values
+
+# Cloudflare Configuration
+cloudflare_zone_id = "your_cloudflare_zone_id_here"
+
+# Vercel CNAME targets (get from Vercel dashboard)
+vercel_cname         = "cname.vercel-dns.com"
+vercel_cname_staging = "cname.vercel-dns.com"
+
+# Upstash Redis region
+upstash_region = "us-east-1"  # Choose closest to your users
+
+# Alert email for health checks
+alert_email = "devops@omnihub.dev"
