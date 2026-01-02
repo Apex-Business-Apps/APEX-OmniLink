@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getOmniLinkIntegrationBrainPrompt } from "../_shared/omnilinkIntegrationBrain.ts";
+import { evaluatePromptSafety, validateLLMOutput } from "../_shared/promptDefense.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,11 +18,28 @@ serve(async (req) => {
   try {
     const { query, history = [] } = await req.json();
     const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    const traceId = crypto.randomUUID();
 
     if (!openAIKey) {
       return new Response(
         JSON.stringify({ error: 'OPENAI_API_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (typeof query !== 'string' || !query.trim()) {
+      return new Response(
+        JSON.stringify({ error: 'Query must be a non-empty string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const promptSafety = evaluatePromptSafety(query);
+    if (!promptSafety.safe) {
+      console.warn('APEX: Prompt rejected', { traceId, violations: promptSafety.violations });
+      return new Response(
+        JSON.stringify({ error: 'Prompt rejected by safety guardrails' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -37,7 +55,7 @@ serve(async (req) => {
     const model = Deno.env.get('OPENAI_MODEL') || 'gpt-4o-2024-08-06';
     const fallbackModel = 'gpt-4o-mini';
     
-    console.log('APEX: Processing query:', query);
+    console.log('APEX: Processing query', { traceId, length: query.length, historyCount: history.length });
     
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000); // 60 second timeout
@@ -71,7 +89,7 @@ serve(async (req) => {
       clearTimeout(timeout);
     }
     
-    console.log('OpenAI response status:', response.status);
+    console.log('OpenAI response status:', response.status, { traceId });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -125,7 +143,16 @@ serve(async (req) => {
     const data = await response.json();
     const assistantMessage = data.choices[0].message.content;
     
-    console.log('APEX: Received response');
+    console.log('APEX: Received response', { traceId });
+
+    const outputSafety = validateLLMOutput(assistantMessage);
+    if (!outputSafety.safe) {
+      console.error('APEX: Output failed safety validation', { traceId, violations: outputSafety.violations });
+      return new Response(
+        JSON.stringify({ error: 'AI response blocked by safety guardrails' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Try to parse as JSON for structured output
     let structuredResponse;
