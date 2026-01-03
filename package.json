@@ -11,6 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:unit": "vitest run tests/lib",
+    "test:integration": "vitest run tests/integration",
     "test:prompt-defense": "vitest run tests/prompt-defense",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",

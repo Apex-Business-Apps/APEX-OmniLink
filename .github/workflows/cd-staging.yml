@@ -1,0 +1,167 @@
+# CONTINUOUS DEPLOYMENT - STAGING
+# Automatically deploys to staging on merge to main
+
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Manual trigger
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  terraform:
+    name: Terraform Apply (Staging)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/environments/staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        env:
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_upstash_email: ${{ secrets.UPSTASH_EMAIL }}
+          TF_VAR_upstash_api_key: ${{ secrets.UPSTASH_API_KEY }}
+          TF_VAR_vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          TF_VAR_github_repo: ${{ github.repository }}
+          TF_VAR_vite_supabase_url: ${{ secrets.STAGING_SUPABASE_URL }}
+          TF_VAR_vite_supabase_publishable_key: ${{ secrets.STAGING_SUPABASE_KEY }}
+          TF_VAR_vite_sentry_dsn: ${{ secrets.SENTRY_DSN }}
+          TF_VAR_vite_datadog_application_id: ${{ secrets.DATADOG_APP_ID }}
+          TF_VAR_vite_datadog_client_token: ${{ secrets.DATADOG_CLIENT_TOKEN }}
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve tfplan
+        env:
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_upstash_email: ${{ secrets.UPSTASH_EMAIL }}
+          TF_VAR_upstash_api_key: ${{ secrets.UPSTASH_API_KEY }}
+          TF_VAR_vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          TF_VAR_github_repo: ${{ github.repository }}
+          TF_VAR_vite_supabase_url: ${{ secrets.STAGING_SUPABASE_URL }}
+          TF_VAR_vite_supabase_publishable_key: ${{ secrets.STAGING_SUPABASE_KEY }}
+          TF_VAR_vite_sentry_dsn: ${{ secrets.SENTRY_DSN }}
+          TF_VAR_vite_datadog_application_id: ${{ secrets.DATADOG_APP_ID }}
+          TF_VAR_vite_datadog_client_token: ${{ secrets.DATADOG_CLIENT_TOKEN }}
+
+  build-and-deploy:
+    name: Build and Deploy (Vercel)
+    runs-on: ubuntu-latest
+    needs: terraform
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:unit
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_DATADOG_APPLICATION_ID: ${{ secrets.DATADOG_APP_ID }}
+          VITE_DATADOG_CLIENT_TOKEN: ${{ secrets.DATADOG_CLIENT_TOKEN }}
+
+      - name: Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_STAGING }}
+          vercel-args: '--prod' # Deploy to staging's production
+          working-directory: ./
+
+  smoke-tests:
+    name: Run Smoke Tests
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for deployment
+        run: sleep 30 # Wait for Vercel deployment to stabilize
+
+      - name: Run smoke tests
+        run: npm run test:e2e
+        env:
+          STAGING_URL: https://staging.omnihub.dev
+
+      - name: Health check
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://staging.omnihub.dev/health)
+          if [ $response -ne 200 ]; then
+            echo "Health check failed with status $response"
+            exit 1
+          fi
+          echo "Health check passed (200 OK)"
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [terraform, build-and-deploy, smoke-tests]
+    if: always()
+
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Staging Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Staging URL:** https://staging.omnihub.dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.smoke-tests.result }}" == "success" ]; then
+            echo "✅ **Status:** Deployment successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Deployment failed" >> $GITHUB_STEP_SUMMARY
+          fi
