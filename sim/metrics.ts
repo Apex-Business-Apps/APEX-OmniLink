@@ -65,6 +65,7 @@ export interface Scorecard {
   timestamp: Date;
   duration: number;
   overallScore: number; // 0-100
+  requiredScore: number; // Threshold used for pass/fail
   apps: Record<AppName, AppScore>;
   system: SystemScore;
   passed: boolean;
@@ -260,6 +261,8 @@ export class MetricsCollector {
 
   /**
    * Generate scorecard
+   *
+   * @param requiredScore - Minimum score threshold for pass/fail (default: 70 for PRs, 90 for main/scheduled)
    */
   generateScorecard(
     runId: string,
@@ -267,7 +270,8 @@ export class MetricsCollector {
     tenant: string,
     seed: number,
     queueDepth: number = 0,
-    circuitStates: Record<string, string> = {}
+    circuitStates: Record<string, string> = {},
+    requiredScore?: number
   ): Scorecard {
     const duration = this.endTime
       ? this.endTime.getTime() - this.startTime.getTime()
@@ -302,8 +306,14 @@ export class MetricsCollector {
 
     const overallScore = (avgAppScore * 0.6) + (systemScore.score * 0.4); // 60% app, 40% system
 
+    // Determine threshold based on context
+    // Default: 70 for PRs (permissive), 90 for main/scheduled (strict)
+    // Can be overridden via CHAOS_THRESHOLD env var or requiredScore param
+    const threshold = requiredScore ??
+      (process.env.CHAOS_THRESHOLD ? parseInt(process.env.CHAOS_THRESHOLD) : 70);
+
     // Overall pass/fail
-    const passed = overallScore >= 70 && systemScore.passed;
+    const passed = overallScore >= threshold && systemScore.passed;
 
     // Collect all issues
     const issues = [...appIssues];
@@ -325,6 +335,7 @@ export class MetricsCollector {
       timestamp: this.startTime,
       duration,
       overallScore,
+      requiredScore: threshold,
       apps,
       system: systemScore,
       passed,

@@ -172,19 +172,24 @@ jobs:
         env:
           SIM_MODE: 'true'
           SANDBOX_TENANT: 'ci-chaos-${{ github.run_id }}-seed-${{ matrix.seed }}'
+          # Tiered thresholds: PR = 70 (permissive), main/scheduled = 90 (strict)
+          CHAOS_THRESHOLD: ${{ github.event_name == 'pull_request' && '70' || '90' }}
 
       - name: Check simulation passed
         id: check-results
         run: |
           SCORE=$(jq -r '.overallScore' evidence/latest/scorecard.json)
           PASSED=$(jq -r '.passed' evidence/latest/scorecard.json)
+          REQUIRED=$(jq -r '.requiredScore' evidence/latest/scorecard.json)
           echo "Score: $SCORE"
+          echo "Required: $REQUIRED"
           echo "Passed: $PASSED"
           echo "score=$SCORE" >> $GITHUB_OUTPUT
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "required=$REQUIRED" >> $GITHUB_OUTPUT
 
           if [ "$PASSED" != "true" ]; then
-            echo "::error::Chaos simulation failed with score $SCORE"
+            echo "::error::Chaos simulation failed with score $SCORE (required: $REQUIRED)"
             exit 1
           fi
 
@@ -204,6 +209,7 @@ jobs:
 
           SCORE="${{ steps.check-results.outputs.score }}"
           PASSED="${{ steps.check-results.outputs.passed }}"
+          REQUIRED="${{ steps.check-results.outputs.required }}"
 
           if [ "$PASSED" = "true" ]; then
             echo "### ✅ PASSED" >> $GITHUB_STEP_SUMMARY
@@ -213,6 +219,7 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Score:** $SCORE/100" >> $GITHUB_STEP_SUMMARY
+          echo "**Required:** $REQUIRED/100" >> $GITHUB_STEP_SUMMARY
           echo "**Seed:** ${{ matrix.seed }}" >> $GITHUB_STEP_SUMMARY
           echo "**Run ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -233,6 +240,7 @@ jobs:
             try {
               const score = '${{ steps.check-results.outputs.score }}';
               const passed = '${{ steps.check-results.outputs.passed }}';
+              const required = '${{ steps.check-results.outputs.required }}';
               const seed = '${{ matrix.seed }}';
 
               const emoji = passed === 'true' ? '✅' : '❌';
@@ -241,6 +249,7 @@ jobs:
               const comment = `## ${emoji} Chaos Simulation Results (Seed ${seed})
 
               - **Score:** ${score}/100
+              - **Required:** ${required}/100
               - **Status:** ${status}
               - **Seed:** ${seed}
               - **Run ID:** ${{ github.run_id }}

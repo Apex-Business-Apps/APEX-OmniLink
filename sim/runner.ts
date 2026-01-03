@@ -429,6 +429,7 @@ export class SimulationRunner {
 
     this.log('🏆 Scorecard:');
     this.log(`   Overall Score: ${result.scorecard.overallScore.toFixed(1)}/100`);
+    this.log(`   Required Score: ${result.scorecard.requiredScore}/100`);
     this.log(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
     this.log('');
 

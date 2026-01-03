@@ -376,6 +376,7 @@ function printFinalSummary(result: any): void {
   const emoji = score >= 90 ? '🌟' : score >= 70 ? '✅' : score >= 50 ? '⚠️' : '❌';
 
   console.log(`\n${emoji} Overall Score: ${score.toFixed(1)}/100`);
+  console.log(`   Required Score: ${result.scorecard.requiredScore}/100`);
   console.log(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
   console.log(`   Duration: ${result.durationMs}ms`);
   console.log(`   Beats: ${result.beats.length}`);
