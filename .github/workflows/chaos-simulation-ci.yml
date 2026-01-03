@@ -1,0 +1,408 @@
+name: Chaos Simulation CI
+
+on:
+  push:
+    branches: [main, develop, 'claude/**']
+    paths:
+      - 'sim/**'
+      - 'docs/sim/**'
+      - '.github/workflows/chaos-simulation-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'sim/**'
+      - 'docs/sim/**'
+  schedule:
+    # Run chaos tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      chaos_level:
+        description: 'Chaos Level'
+        required: false
+        default: 'default'
+        type: choice
+        options:
+          - none
+          - light
+          - default
+          - heavy
+      seed:
+        description: 'Random Seed (for reproducibility)'
+        required: false
+        default: '42'
+
+env:
+  NODE_VERSION: '20'
+  SIM_MODE: 'true'
+  SANDBOX_TENANT: 'ci-test'
+
+# Explicit least-privilege permissions for workflow
+# Prevents 403 errors when commenting on PRs
+permissions:
+  contents: read          # Required: Clone repository
+  pull-requests: write    # Required: Comment on PRs
+  issues: write           # Required: Comment on PRs (via issues API)
+  # All other permissions: none (implicit)
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run simulation unit tests
+        run: npm run test:sim
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+  quick-smoke-test:
+    name: Quick Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: unit-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quick smoke test
+        run: npm run sim:quick
+        env:
+          SIM_MODE: 'true'
+          SANDBOX_TENANT: 'ci-quick-${{ github.run_id }}'
+
+      - name: Upload smoke test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-smoke-evidence
+          path: evidence/latest/
+          retention-days: 3
+
+  dry-run-simulation:
+    name: Dry Run Simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: unit-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dry simulation
+        run: npm run sim:dry
+        env:
+          SIM_MODE: 'true'
+          SANDBOX_TENANT: 'ci-dry-${{ github.run_id }}'
+
+      - name: Upload dry run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-evidence
+          path: evidence/latest/
+          retention-days: 7
+
+  full-chaos-simulation:
+    name: Full Chaos Simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, quick-smoke-test]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [42, 100, 200]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full chaos simulation (seed ${{ matrix.seed }})
+        run: npm run sim:chaos -- --seed ${{ matrix.seed }}
+        env:
+          SIM_MODE: 'true'
+          SANDBOX_TENANT: 'ci-chaos-${{ github.run_id }}-seed-${{ matrix.seed }}'
+
+      - name: Check simulation passed
+        id: check-results
+        run: |
+          SCORE=$(jq -r '.overallScore' evidence/latest/scorecard.json)
+          PASSED=$(jq -r '.passed' evidence/latest/scorecard.json)
+          echo "Score: $SCORE"
+          echo "Passed: $PASSED"
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+
+          if [ "$PASSED" != "true" ]; then
+            echo "::error::Chaos simulation failed with score $SCORE"
+            exit 1
+          fi
+
+      - name: Upload chaos simulation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-simulation-evidence-seed-${{ matrix.seed }}
+          path: evidence/latest/
+          retention-days: 14
+
+      - name: Publish results to job summary
+        if: always()
+        run: |
+          echo "## 🌀 Chaos Simulation Results (Seed ${{ matrix.seed }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          SCORE="${{ steps.check-results.outputs.score }}"
+          PASSED="${{ steps.check-results.outputs.passed }}"
+
+          if [ "$PASSED" = "true" ]; then
+            echo "### ✅ PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Score:** $SCORE/100" >> $GITHUB_STEP_SUMMARY
+          echo "**Seed:** ${{ matrix.seed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Run ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[📊 View detailed evidence](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Evidence artifact:** \`chaos-simulation-evidence-seed-${{ matrix.seed }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment PR with results
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.fork == false &&
+          github.actor != 'dependabot[bot]' &&
+          always()
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const score = '${{ steps.check-results.outputs.score }}';
+              const passed = '${{ steps.check-results.outputs.passed }}';
+              const seed = '${{ matrix.seed }}';
+
+              const emoji = passed === 'true' ? '✅' : '❌';
+              const status = passed === 'true' ? 'PASSED' : 'FAILED';
+
+              const comment = `## ${emoji} Chaos Simulation Results (Seed ${seed})
+
+              - **Score:** ${score}/100
+              - **Status:** ${status}
+              - **Seed:** ${seed}
+              - **Run ID:** ${{ github.run_id }}
+
+              [View full evidence](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              `;
+
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+
+              console.log('✅ PR comment posted successfully');
+            } catch (error) {
+              // Expected for forks, Dependabot, or restrictive permissions
+              console.warn('⚠️  Could not post PR comment:', error.message);
+              console.log('ℹ️  This is expected for forks and Dependabot PRs');
+              console.log('📊 Results are available in job summary and artifacts');
+            }
+
+  burst-load-test:
+    name: Burst Load Test (1000 events)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [unit-tests, dry-run-simulation]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run burst mode (1000 events)
+        run: npm run sim:burst
+        env:
+          SIM_MODE: 'true'
+          SANDBOX_TENANT: 'ci-burst-${{ github.run_id }}'
+
+      - name: Extract performance metrics
+        id: metrics
+        run: |
+          TOTAL_EVENTS=$(jq -r '.beats | length' evidence/latest/result.json)
+          DURATION=$(jq -r '.duration' evidence/latest/scorecard.json)
+          SCORE=$(jq -r '.overallScore' evidence/latest/scorecard.json)
+          THROUGHPUT=$(echo "scale=2; $TOTAL_EVENTS / ($DURATION / 1000)" | bc)
+
+          echo "total_events=$TOTAL_EVENTS" >> $GITHUB_OUTPUT
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "throughput=$THROUGHPUT" >> $GITHUB_OUTPUT
+
+          echo "### Performance Metrics"
+          echo "- Total Events: $TOTAL_EVENTS"
+          echo "- Duration: ${DURATION}ms"
+          echo "- Throughput: ${THROUGHPUT} events/sec"
+          echo "- Score: $SCORE/100"
+
+      - name: Upload burst test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burst-load-test-evidence
+          path: evidence/latest/
+          retention-days: 30
+
+  determinism-check:
+    name: Determinism Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: unit-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run simulation twice with same seed
+        run: |
+          export SIM_MODE=true
+          export SANDBOX_TENANT=ci-determinism-${{ github.run_id }}
+
+          npm run sim:chaos -- --seed 42 > run1.log 2>&1
+          cp evidence/latest/scorecard.json scorecard1.json
+
+          npm run sim:chaos -- --seed 42 > run2.log 2>&1
+          cp evidence/latest/scorecard.json scorecard2.json
+
+      - name: Verify determinism
+        run: |
+          SCORE1=$(jq -r '.overallScore' scorecard1.json)
+          SCORE2=$(jq -r '.overallScore' scorecard2.json)
+
+          echo "Run 1 Score: $SCORE1"
+          echo "Run 2 Score: $SCORE2"
+
+          if [ "$SCORE1" != "$SCORE2" ]; then
+            echo "::error::Determinism check failed - scores differ!"
+            echo "Expected same score with seed 42, got $SCORE1 and $SCORE2"
+            exit 1
+          fi
+
+          echo "✅ Determinism verified - both runs scored $SCORE1"
+
+      - name: Upload determinism evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: determinism-verification
+          path: |
+            scorecard1.json
+            scorecard2.json
+            run1.log
+            run2.log
+          retention-days: 7
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [unit-tests, quick-smoke-test, dry-run-simulation, full-chaos-simulation, determinism-check]
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Chaos Simulation CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Quick Smoke Test: ${{ needs.quick-smoke-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry Run: ${{ needs.dry-run-simulation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Full Chaos Simulation: ${{ needs.full-chaos-simulation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Determinism Check: ${{ needs.determinism-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "All test evidence has been uploaded as artifacts and can be downloaded from the Actions tab." >> $GITHUB_STEP_SUMMARY
+
+      - name: Check if all tests passed
+        run: |
+          if [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.quick-smoke-test.result }}" != "success" ] || \
+             [ "${{ needs.dry-run-simulation.result }}" != "success" ] || \
+             [ "${{ needs.full-chaos-simulation.result }}" != "success" ] || \
+             [ "${{ needs.determinism-check.result }}" != "success" ]; then
+            echo "::error::One or more chaos simulation tests failed"
+            exit 1
+          fi
+          echo "✅ All chaos simulation tests passed!"

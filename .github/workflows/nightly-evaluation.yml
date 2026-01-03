@@ -5,6 +5,15 @@ on:
     # Run every night at 2 AM UTC
     - cron: '0 2 * * *'
   workflow_dispatch: # Allow manual triggering
+    inputs:
+      force_run:
+        description: 'Force evaluation run even if no activity is detected'
+        type: boolean
+        default: false
+      lookback_hours:
+        description: 'Lookback window in hours for activity detection'
+        type: number
+        default: 24
 
 jobs:
   evaluate-agent:
@@ -14,16 +23,29 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Check system usage
+      id: usage-check
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        USAGE_LOOKBACK_HOURS: ${{ github.event.inputs.lookback_hours || 24 }}
+        FORCE_EVAL: ${{ github.event.inputs.force_run || false }}
+        USAGE_TABLE: agent_runs
+      run: ./.github/scripts/check_system_usage.sh
+
     - name: Setup Node.js
+      if: steps.usage-check.outputs.should_run == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
 
     - name: Install dependencies
+      if: steps.usage-check.outputs.should_run == 'true'
       run: npm ci
 
     - name: Run agent evaluations
+      if: steps.usage-check.outputs.should_run == 'true'
       run: |
         # Set up Supabase environment
         echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> $GITHUB_ENV
@@ -36,22 +58,71 @@ jobs:
           -d '{"run_all_active": true}' \
           -o evaluation_results.json
 
-    - name: Generate evaluation report
+    - name: Generate skipped evaluation artifacts
+      if: steps.usage-check.outputs.should_run != 'true'
       run: |
+        generated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        cat <<EOF > evaluation_results.json
+        {
+          "status": "skipped",
+          "reason": "${{ steps.usage-check.outputs.reason }}",
+          "count": ${{ steps.usage-check.outputs.count }},
+          "lookback_hours": ${{ github.event.inputs.lookback_hours || 24 }},
+          "generated_at": "${generated_at}",
+          "results": []
+        }
+        EOF
+
+        cat <<EOF > evaluation_report.md
+        # Nightly Agent Evaluation Report
+
+        **Date:** $(date)
+        **Run:** ${{ github.run_id }}
+
+        ## SKIPPED: no activity
+
+        Reason: \`${{ steps.usage-check.outputs.reason }}\`
+        Lookback hours: ${{ github.event.inputs.lookback_hours || 24 }}
+        Activity count: ${{ steps.usage-check.outputs.count }}
+        EOF
+
+    - name: Generate evaluation report
+      if: steps.usage-check.outputs.should_run == 'true'
+      run: |
+        if [ ! -f evaluation_results.json ] || ! jq empty evaluation_results.json >/dev/null 2>&1; then
+          generated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          cat <<EOF > evaluation_results.json
+          {
+            "status": "failed",
+            "reason": "missing_or_invalid_results",
+            "count": 0,
+            "generated_at": "${generated_at}",
+            "results": []
+          }
+          EOF
+        fi
+
         echo "# Nightly Agent Evaluation Report" > evaluation_report.md
         echo "" >> evaluation_report.md
         echo "**Date:** $(date)" >> evaluation_report.md
         echo "**Run:** ${{ github.run_id }}" >> evaluation_report.md
         echo "" >> evaluation_report.md
 
-        if [ -f evaluation_results.json ]; then
-          echo "## Results Summary" >> evaluation_report.md
-          jq -r '.evaluations[] | "- **\(.eval_case_id)**: \(.verdict) (\(.score))"' evaluation_results.json >> evaluation_report.md
-          echo "" >> evaluation_report.md
-          echo "## Detailed Results" >> evaluation_report.md
-          jq -r '.evaluations[] | "### \(.eval_case_id)\n- Score: \(.score)\n- Verdict: \(.verdict)\n- Skills Found: \(.skills_found | join(", "))\n- Response Quality: \(.response_quality)\n- Performance: \(.performance_ms)ms\n"' evaluation_results.json >> evaluation_report.md
+        echo "## Results Summary" >> evaluation_report.md
+        jq -r '(.results // .evaluations // [])[] | "- **\(.eval_case_id // .id // "unknown")**: \(.verdict // "unknown") (\(.score // "n/a"))"' evaluation_results.json >> evaluation_report.md
+        echo "" >> evaluation_report.md
+        echo "## Detailed Results" >> evaluation_report.md
+        jq -r '(.results // .evaluations // [])[] | "### \(.eval_case_id // .id // "unknown")\n- Score: \(.score // "n/a")\n- Verdict: \(.verdict // "unknown")\n- Skills Found: \((.skills_found // []) | join(", "))\n- Response Quality: \(.response_quality // "n/a")\n- Performance: \(.performance_ms // "n/a")ms\n"' evaluation_results.json >> evaluation_report.md
+
+    - name: Write evaluation summary
+      if: always()
+      run: |
+        if [ "${{ steps.usage-check.outputs.should_run }}" = "true" ]; then
+          echo "✅ Evaluation RUN (reason: ${{ steps.usage-check.outputs.reason }})" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "## Error: No evaluation results found" >> evaluation_report.md
+          echo "🟡 Evaluation SKIPPED (reason: ${{ steps.usage-check.outputs.reason }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "Lookback hours: ${{ github.event.inputs.lookback_hours || 24 }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Activity count: ${{ steps.usage-check.outputs.count }}" >> "$GITHUB_STEP_SUMMARY"
         fi
 
     - name: Upload evaluation results

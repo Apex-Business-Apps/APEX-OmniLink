@@ -1,0 +1,135 @@
+{
+  "timestamp": "2026-01-03T02:48:28.111Z",
+  "clientProfile": {
+    "name": "Sarah Martinez",
+    "business": "Sarah's Boutique",
+    "techLevel": "non-technical",
+    "frustrationLevel": "high",
+    "urgency": "everything is urgent",
+    "description": "Small business owner, struggles with tech, needs integration help"
+  },
+  "results": [
+    {
+      "scenarioId": 1,
+      "scenarioName": "Morning Chaos - Multiple Urgent Requests",
+      "guardianStatus": {
+        "safe": true
+      },
+      "skillsUsed": [
+        "CheckCreditScore",
+        "GetWeather",
+        "SearchDatabase"
+      ],
+      "planSteps": 4,
+      "responseTime": 1,
+      "userExperienceScore": 7,
+      "technicalAccuracy": 6,
+      "empathyScore": 7,
+      "issues": [],
+      "successes": [
+        "✅ Response shows empathy and understanding",
+        "✅ Agent properly organized multiple requests",
+        "✅ Response length appropriate",
+        "✅ Asks clarifying questions for vague requirements"
+      ]
+    },
+    {
+      "scenarioId": 2,
+      "scenarioName": "Accidental Security Trigger",
+      "guardianStatus": {
+        "safe": false,
+        "reason": "Message contains potential security bypass language",
+        "violations": [
+          "bypass_attempt",
+          "ignore_rules",
+          "admin_mode",
+          "override_attempt"
+        ]
+      },
+      "skillsUsed": [],
+      "planSteps": 0,
+      "responseTime": 0,
+      "userExperienceScore": 5,
+      "technicalAccuracy": 6,
+      "empathyScore": 7,
+      "issues": [],
+      "successes": [
+        "✅ Response shows empathy and understanding",
+        "✅ Response avoids technical jargon",
+        "✅ Response length appropriate",
+        "✅ Asks clarifying questions for vague requirements"
+      ]
+    },
+    {
+      "scenarioId": 3,
+      "scenarioName": "Vague Requirements",
+      "guardianStatus": {
+        "safe": true
+      },
+      "skillsUsed": [],
+      "planSteps": 1,
+      "responseTime": 0,
+      "userExperienceScore": 5,
+      "technicalAccuracy": 6,
+      "empathyScore": 7,
+      "issues": [],
+      "successes": [
+        "✅ Response shows empathy and understanding",
+        "✅ Response avoids technical jargon",
+        "✅ Response length appropriate",
+        "✅ Asks clarifying questions for vague requirements"
+      ]
+    },
+    {
+      "scenarioId": 4,
+      "scenarioName": "Emotional Overwhelm",
+      "guardianStatus": {
+        "safe": true
+      },
+      "skillsUsed": [],
+      "planSteps": 2,
+      "responseTime": 0,
+      "userExperienceScore": 6,
+      "technicalAccuracy": 6,
+      "empathyScore": 7,
+      "issues": [],
+      "successes": [
+        "✅ Response shows empathy and understanding",
+        "✅ Response avoids technical jargon",
+        "✅ Response length appropriate",
+        "✅ Provides clear actionable steps",
+        "✅ Asks clarifying questions for vague requirements"
+      ]
+    },
+    {
+      "scenarioId": 5,
+      "scenarioName": "Technical Misunderstanding",
+      "guardianStatus": {
+        "safe": true
+      },
+      "skillsUsed": [],
+      "planSteps": 1,
+      "responseTime": 1,
+      "userExperienceScore": 8,
+      "technicalAccuracy": 6,
+      "empathyScore": 7,
+      "issues": [],
+      "successes": [
+        "✅ Response shows empathy and understanding",
+        "✅ Agent properly organized multiple requests",
+        "✅ Response length appropriate",
+        "✅ Provides clear actionable steps",
+        "✅ Asks clarifying questions for vague requirements"
+      ]
+    }
+  ],
+  "summary": {
+    "totalScenarios": 5,
+    "averages": {
+      "userExperience": 6.2,
+      "technicalAccuracy": 6,
+      "empathy": 7,
+      "responseTime": 0.4
+    }
+  }
+}
