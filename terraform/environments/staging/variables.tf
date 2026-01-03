@@ -1,29 +1,63 @@
-variable "cloudflare_zone_id" {
-  description = "Cloudflare Zone ID for omnihub.dev"
+# Provider credentials
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token"
   type        = string
   sensitive   = true
 }
 
-variable "vercel_cname" {
-  description = "Vercel CNAME target for production"
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID"
   type        = string
-  default     = "cname.vercel-dns.com"
 }
 
-variable "vercel_cname_staging" {
-  description = "Vercel CNAME target for staging"
+variable "upstash_email" {
+  description = "Upstash account email"
   type        = string
-  default     = "cname.vercel-dns.com"
 }
 
-variable "upstash_region" {
-  description = "Upstash Redis region"
+variable "upstash_api_key" {
+  description = "Upstash API key"
   type        = string
-  default     = "us-east-1"
+  sensitive   = true
 }
 
-variable "alert_email" {
-  description = "Email for Cloudflare health check alerts"
+variable "vercel_token" {
+  description = "Vercel API token"
   type        = string
-  default     = "devops@omnihub.dev"
+  sensitive   = true
+}
+
+# Application configuration
+variable "github_repo" {
+  description = "GitHub repository (owner/repo)"
+  type        = string
+}
+
+# Environment variables
+variable "vite_supabase_url" {
+  description = "Supabase URL"
+  type        = string
+}
+
+variable "vite_supabase_publishable_key" {
+  description = "Supabase publishable key"
+  type        = string
+  sensitive   = true
+}
+
+variable "vite_sentry_dsn" {
+  description = "Sentry DSN"
+  type        = string
+  sensitive   = true
+}
+
+variable "vite_datadog_application_id" {
+  description = "Datadog application ID"
+  type        = string
+}
+
+variable "vite_datadog_client_token" {
+  description = "Datadog client token"
+  type        = string
+  sensitive   = true
 }
