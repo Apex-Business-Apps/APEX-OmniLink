@@ -596,7 +596,7 @@ export class SupabaseDatabase implements IDatabase {
     options?: { filters?: QueryFilter[] }
   ): Promise<() => void> {
     try {
-      let channel = this.client
+      const channel = this.client
         .channel(`${table}_changes`)
         .on(
           'postgres_changes',
