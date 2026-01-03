@@ -13,50 +13,19 @@ import type { IStorage } from '@/lib/storage'
 // SETUP
 // ============================================================================
 
+const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ''
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY
+  ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  ?? process.env.SUPABASE_ANON_KEY
+  ?? ''
+const requireIntegration = (process.env.REQUIRE_SUPABASE_INTEGRATION_TESTS ?? '')
+  .toLowerCase() === 'true'
+const hasCreds = Boolean(supabaseUrl && supabaseKey)
+const suite = hasCreds ? describe : describe.skip
+
 let storage: IStorage
 const testBucket = 'test-integration'
 const testFiles: string[] = []
-
-beforeAll(async () => {
-  // Use test Supabase instance
-  const supabaseUrl = process.env.TEST_SUPABASE_URL || process.env.VITE_SUPABASE_URL
-  const supabaseKey = process.env.TEST_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Test Supabase credentials not configured')
-  }
-
-  storage = createStorage({
-    provider: 'supabase',
-    url: supabaseUrl,
-    apiKey: supabaseKey,
-    serviceRoleKey: supabaseKey,
-    debug: true,
-  })
-
-  // Verify connection
-  const isHealthy = await storage.ping()
-  if (!isHealthy) {
-    throw new Error('Storage connection failed')
-  }
-
-  // Create test bucket
-  const { error } = await storage.createBucket(testBucket, { public: true })
-  if (error && !error.message.includes('already exists')) {
-    console.warn('Could not create test bucket:', error.message)
-  }
-
-  console.log('✅ Connected to test storage')
-})
-
-afterAll(async () => {
-  // Cleanup: Delete all test files
-  if (testFiles.length > 0) {
-    await storage.deleteMany(testBucket, testFiles)
-  }
-
-  console.log('🧹 Cleaned up test files')
-})
 
 // Helper: Register file for cleanup
 function registerTestFile(path: string) {
@@ -67,7 +36,48 @@ function registerTestFile(path: string) {
 // INTEGRATION TESTS
 // ============================================================================
 
-describe('Storage Integration Tests', () => {
+suite('Storage Integration Tests', () => {
+  if (!hasCreds && requireIntegration) {
+    it('requires Supabase test credentials', () => {
+      throw new Error(
+        'Test Supabase credentials not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY).'
+      )
+    })
+    return
+  }
+
+  beforeAll(async () => {
+    storage = createStorage({
+      provider: 'supabase',
+      url: supabaseUrl,
+      apiKey: supabaseKey,
+      serviceRoleKey: supabaseKey,
+      debug: true,
+    })
+
+    // Verify connection
+    const isHealthy = await storage.ping()
+    if (!isHealthy) {
+      throw new Error('Storage connection failed')
+    }
+
+    // Create test bucket
+    const { error } = await storage.createBucket(testBucket, { public: true })
+    if (error && !error.message.includes('already exists')) {
+      console.warn('Could not create test bucket:', error.message)
+    }
+
+    console.log('✅ Connected to test storage')
+  })
+
+  afterAll(async () => {
+    // Cleanup: Delete all test files
+    if (testFiles.length > 0) {
+      await storage.deleteMany(testBucket, testFiles)
+    }
+
+    console.log('🧹 Cleaned up test files')
+  })
   // -------------------------------------------------------------------------
   // HEALTH CHECK
   // -------------------------------------------------------------------------

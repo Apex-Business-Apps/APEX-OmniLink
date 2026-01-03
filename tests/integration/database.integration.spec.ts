@@ -13,47 +13,57 @@ import type { IDatabase } from '@/lib/database'
 // SETUP
 // ============================================================================
 
+const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ''
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY
+  ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  ?? process.env.SUPABASE_ANON_KEY
+  ?? ''
+const requireIntegration = (process.env.REQUIRE_SUPABASE_INTEGRATION_TESTS ?? '')
+  .toLowerCase() === 'true'
+const hasCreds = Boolean(supabaseUrl && supabaseKey)
+const suite = hasCreds ? describe : describe.skip
+
 let db: IDatabase
 let testUserId: string
-
-beforeAll(async () => {
-  // Use test Supabase instance
-  const supabaseUrl = process.env.TEST_SUPABASE_URL || process.env.VITE_SUPABASE_URL
-  const supabaseKey = process.env.TEST_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Test Supabase credentials not configured')
-  }
-
-  db = createDatabase({
-    provider: 'supabase',
-    url: supabaseUrl,
-    apiKey: supabaseKey,
-    serviceRoleKey: supabaseKey,
-    debug: true,
-  })
-
-  // Verify connection
-  const isHealthy = await db.ping()
-  if (!isHealthy) {
-    throw new Error('Database connection failed')
-  }
-
-  console.log('✅ Connected to test database')
-})
-
-afterAll(async () => {
-  // Cleanup: Delete test user if created
-  if (testUserId) {
-    await db.deleteById('users', testUserId)
-  }
-})
 
 // ============================================================================
 // INTEGRATION TESTS
 // ============================================================================
 
-describe('Database Integration Tests', () => {
+suite('Database Integration Tests', () => {
+  if (!hasCreds && requireIntegration) {
+    it('requires Supabase test credentials', () => {
+      throw new Error(
+        'Test Supabase credentials not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY).'
+      )
+    })
+    return
+  }
+
+  beforeAll(async () => {
+    db = createDatabase({
+      provider: 'supabase',
+      url: supabaseUrl,
+      apiKey: supabaseKey,
+      serviceRoleKey: supabaseKey,
+      debug: true,
+    })
+
+    // Verify connection
+    const isHealthy = await db.ping()
+    if (!isHealthy) {
+      throw new Error('Database connection failed')
+    }
+
+    console.log('✅ Connected to test database')
+  })
+
+  afterAll(async () => {
+    // Cleanup: Delete test user if created
+    if (testUserId) {
+      await db.deleteById('users', testUserId)
+    }
+  })
   // -------------------------------------------------------------------------
   // HEALTH CHECK
   // -------------------------------------------------------------------------
