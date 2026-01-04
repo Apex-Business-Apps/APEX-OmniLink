@@ -28,3 +28,11 @@ dist-ssr
 *.sln
 *.sw?
 /evidence/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+!terraform.auto.tfvars

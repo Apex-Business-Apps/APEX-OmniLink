@@ -19,13 +19,18 @@ terraform {
     }
   }
 
-  # Terraform Cloud backend (recommended)
-  cloud {
-    organization = "omnihub"
-    workspaces {
-      name = "omnihub-staging"
-    }
+  # Local backend for now (switch to Terraform Cloud when TF_API_TOKEN is available)
+  backend "local" {
+    path = "terraform.tfstate"
   }
+
+  # Uncomment when ready to use Terraform Cloud:
+  # cloud {
+  #   organization = "omnihub"
+  #   workspaces {
+  #     name = "omnihub-staging"
+  #   }
+  # }
 }
 
 # Providers
