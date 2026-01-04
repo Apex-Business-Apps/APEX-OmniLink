@@ -36,3 +36,7 @@ dist-ssr
 .terraform.lock.hcl
 terraform.tfvars
 !terraform.auto.tfvars
+
+# Development server
+.dev-server.pid
+dev-server.log
