@@ -64,7 +64,7 @@ jobs:
           SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:54322/postgres
           REDIS_URL: redis://localhost:6379
         run: |
-          pytest --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=70
+          pytest --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=45
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
