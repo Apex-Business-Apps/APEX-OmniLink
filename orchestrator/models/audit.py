@@ -264,8 +264,9 @@ class AuditLogger:
 
     async def _store_file(self, event: AuditLogEntry) -> None:
         """Store audit event in local file (for development/testing)."""
-        import aiofiles
         import json
+
+        import aiofiles
 
         log_file = f"audit_logs_{event.timestamp.date()}.jsonl"
 
