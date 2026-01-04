@@ -261,7 +261,7 @@ async def search_database(params: dict[str, Any]) -> dict[str, Any]:
         activity.logger.error(f"Database search failed: {str(e)}")
         # Use ApplicationError for retryable failures (network timeouts, temporary unavailability)
         from temporalio.exceptions import ApplicationError
-        raise ApplicationError(f"Database search failed: {str(e)}", non_retryable=False)
+        raise ApplicationError(f"Database search failed: {str(e)}", non_retryable=False) from e
 
 
 @activity.defn(name="create_record")

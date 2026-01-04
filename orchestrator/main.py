@@ -26,7 +26,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from temporalio.client import Client
 from temporalio.worker import Worker
-from uvicorn import run
+from uvicorn import Config, Server
 
 # Import all components
 from activities.tools import (
@@ -85,7 +85,7 @@ async def create_goal(request: GoalRequest):
 
     except Exception as e:
         logger.error(f"Failed to create goal workflow: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/health")
@@ -258,13 +258,13 @@ async def start_api_server() -> None:
     logger.info("Health check: http://{host}:{port}/health")
 
     # Run FastAPI with uvicorn
-    config = uvicorn.Config(
+    config = Config(
         app=app,
         host=host,
         port=port,
         log_level=settings.log_level.lower(),
     )
-    server = uvicorn.Server(config)
+    server = Server(config)
     await server.serve()
 
 

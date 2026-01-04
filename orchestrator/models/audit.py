@@ -14,6 +14,7 @@ All audit events must be logged using this schema to maintain:
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -121,8 +122,12 @@ class AuditLogEntry(BaseModel):
     correlation_id: str = Field(..., description="Correlation ID for request tracing")
 
     # Timestamp (Critical for compliance)
-    timestamp: datetime = Field(..., description="Event timestamp (ISO 8601 with timezone)")
-    event_sequence: int = Field(..., description="Sequence number for ordering within correlation_id")
+    timestamp: datetime = Field(
+        ..., description="Event timestamp (ISO 8601 with timezone)"
+    )
+    event_sequence: int = Field(
+        ..., description="Sequence number for ordering within correlation_id"
+    )
 
     # Actor Information
     actor_id: str = Field(..., description="ID of the user/service that performed the action")
@@ -140,12 +145,21 @@ class AuditLogEntry(BaseModel):
     resource_owner: Optional[str] = Field(None, description="Owner of the resource (if applicable)")
 
     # Context & Metadata
-    metadata: AuditMetadata = Field(default_factory=AuditMetadata, description="Structured metadata")
+    metadata: AuditMetadata = Field(
+        default_factory=AuditMetadata, description="Structured metadata"
+    )
 
     # Compliance Fields (Required for SOC2/GDPR)
-    data_classification: str = Field("internal", description="Data classification level")
-    retention_period_days: int = Field(2555, description="How long to retain this log (7 years for financial)")
-    compliance_frameworks: List[str] = Field(default_factory=lambda: ["soc2", "gdpr"], description="Applicable compliance frameworks")
+    data_classification: str = Field(
+        "internal", description="Data classification level"
+    )
+    retention_period_days: int = Field(
+        2555, description="How long to retain this log (7 years for financial)"
+    )
+    compliance_frameworks: List[str] = Field(
+        default_factory=lambda: ["soc2", "gdpr"],
+        description="Applicable compliance frameworks"
+    )
 
     # Security & Integrity
     integrity_hash: Optional[str] = Field(None, description="Cryptographic hash for tamper detection")
@@ -251,8 +265,8 @@ class AuditLogger:
 
         log_file = f"audit_logs_{event.timestamp.date()}.jsonl"
 
-        async with aiofiles.open(log_file, 'a') as f:
-            await f.write(json.dumps(event.model_dump(), default=str) + '\n')
+        async with aiofiles.open(log_file, "a") as f:
+            await f.write(json.dumps(event.model_dump(), default=str) + "\n")
 
     async def query_events(
         self,
