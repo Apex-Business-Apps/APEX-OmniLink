@@ -162,8 +162,12 @@ class AuditLogEntry(BaseModel):
     )
 
     # Security & Integrity
-    integrity_hash: Optional[str] = Field(None, description="Cryptographic hash for tamper detection")
-    previous_hash: Optional[str] = Field(None, description="Hash of previous log entry for chain integrity")
+    integrity_hash: Optional[str] = Field(
+        None, description="Cryptographic hash for tamper detection"
+    )
+    previous_hash: Optional[str] = Field(
+        None, description="Hash of previous log entry for chain integrity"
+    )
 
     # Processing Metadata
     processed_at: Optional[datetime] = Field(None, description="When this log was processed")
