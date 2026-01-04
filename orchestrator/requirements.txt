@@ -1,0 +1,39 @@
+# Core dependencies (for pip install -r requirements.txt)
+# Prefer pyproject.toml, this is for compatibility
+
+# Temporal.io
+temporalio>=1.5.0
+
+# Data validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Redis with vector search
+redis[hiredis]>=5.0.0
+redis-om>=0.2.0
+
+# LLM interface
+instructor>=1.0.0
+litellm>=1.0.0
+
+# Database
+supabase>=2.3.0
+asyncpg>=0.29.0
+
+# Utilities
+python-dotenv>=1.0.0
+httpx>=0.26.0
+tenacity>=8.2.0
+
+# Embeddings
+sentence-transformers>=2.3.0
+numpy>=1.26.0
+
+# Development dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.2.0
+mypy>=1.8.0
+ruff>=0.1.0
+black>=23.12.0

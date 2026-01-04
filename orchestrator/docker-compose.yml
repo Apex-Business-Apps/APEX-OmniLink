@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Temporal server (workflow engine)
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"  # gRPC
+      - "8233:8233"  # Web UI
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgres
+    depends_on:
+      - postgres
+
+  # PostgreSQL (Temporal backend)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5433:5432"
+    volumes:
+      - temporal_data:/var/lib/postgresql/data
+
+  # Redis Stack (with vector search)
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+      - "6379:6379"  # Redis
+      - "8001:8001"  # RedisInsight UI
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # APEX Orchestrator Worker
+  orchestrator:
+    build: .
+    environment:
+      # Temporal
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=apex-orchestrator
+
+      # Redis
+      - REDIS_URL=redis://redis:6379
+
+      # Supabase (override with your values)
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+
+      # LLM
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEFAULT_LLM_MODEL=gpt-4-turbo-preview
+
+      # App
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+
+    depends_on:
+      - temporal
+      - redis
+    restart: unless-stopped
+
+volumes:
+  temporal_data:
+  redis_data:

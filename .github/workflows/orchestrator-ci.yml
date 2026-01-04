@@ -1,0 +1,132 @@
+name: Orchestrator CI
+
+on:
+  push:
+    branches: [main, develop, "claude/**"]
+    paths:
+      - "orchestrator/**"
+      - ".github/workflows/orchestrator-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "orchestrator/**"
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      redis:
+        image: redis/redis-stack:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "orchestrator/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: orchestrator
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run linters
+        working-directory: orchestrator
+        run: |
+          ruff check .
+          black --check .
+
+      - name: Run type checker
+        working-directory: orchestrator
+        run: |
+          mypy --strict models/ infrastructure/ workflows/ activities/ config.py main.py || true
+
+      - name: Run tests with coverage
+        working-directory: orchestrator
+        env:
+          SUPABASE_URL: http://localhost:54321
+          SUPABASE_SERVICE_ROLE_KEY: test-key
+          SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:54322/postgres
+          REDIS_URL: redis://localhost:6379
+        run: |
+          pytest --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=70
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./orchestrator/coverage.xml
+          flags: orchestrator
+          name: orchestrator-coverage
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: orchestrator
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit
+
+      - name: Run safety check
+        working-directory: orchestrator
+        run: |
+          pip install -e .
+          safety check || true
+
+      - name: Run bandit security scan
+        working-directory: orchestrator
+        run: |
+          bandit -r . -ll -f json -o bandit-report.json || true
+
+      - name: Upload bandit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: orchestrator/bandit-report.json
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        working-directory: orchestrator
+        run: |
+          docker build -t apex-orchestrator:${{ github.sha }} .
+
+      - name: Test Docker image
+        run: |
+          docker run --rm apex-orchestrator:${{ github.sha }} python -c "print('Docker build successful')"

@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apex-orchestrator"
+version = "0.1.0"
+description = "AI Agent Orchestration Platform with Temporal.io, Event Sourcing, and Saga Patterns"
+authors = [{name = "APEX Business Systems"}]
+requires-python = ">=3.11"
+dependencies = [
+    # Temporal.io workflow engine
+    "temporalio>=1.5.0",
+
+    # Data validation and serialization
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+
+    # Redis with vector search capabilities
+    "redis[hiredis]>=5.0.0",
+    "redis-om>=0.2.0",
+
+    # LLM interface with instructor + litellm
+    "instructor>=1.0.0",
+    "litellm>=1.0.0",
+
+    # Database
+    "supabase>=2.3.0",
+    "asyncpg>=0.29.0",
+
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "httpx>=0.26.0",
+    "tenacity>=8.2.0",
+
+    # Embeddings for semantic cache
+    "sentence-transformers>=2.3.0",
+    "numpy>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
+    "mypy>=1.8.0",
+    "ruff>=0.1.0",
+    "black>=23.12.0",
+    "httpx>=0.26.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["models*", "infrastructure*", "workflows*", "activities*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "B", "Q"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
