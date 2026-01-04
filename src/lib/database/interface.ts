@@ -184,57 +184,6 @@ export interface IDatabase {
   setUserContext(userId: string): void
 
   // -------------------------------------------------------------------------
-  // STORAGE OPERATIONS (Optional - for providers with integrated storage)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Upload file to storage
-   * Returns public URL
-   */
-  uploadFile(
-    bucket: string,
-    path: string,
-    file: File | Blob,
-    options?: { contentType?: string; cacheControl?: string }
-  ): Promise<DatabaseResult<string>>
-
-  /**
-   * Download file from storage
-   * Returns file blob
-   */
-  downloadFile(
-    bucket: string,
-    path: string
-  ): Promise<DatabaseResult<Blob>>
-
-  /**
-   * Delete file from storage
-   */
-  deleteFile(
-    bucket: string,
-    path: string
-  ): Promise<DatabaseResult<boolean>>
-
-  /**
-   * Get public URL for file
-   */
-  getFileUrl(bucket: string, path: string): string
-
-  // -------------------------------------------------------------------------
-  // REALTIME SUBSCRIPTIONS (Optional - not all providers support)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Subscribe to changes on a table
-   * Returns unsubscribe function
-   */
-  subscribe<T>(
-    table: string,
-    callback: (event: 'INSERT' | 'UPDATE' | 'DELETE', record: T) => void,
-    options?: { filters?: QueryFilter[] }
-  ): Promise<() => void>
-
-  // -------------------------------------------------------------------------
   // HEALTH CHECK
   // -------------------------------------------------------------------------
 

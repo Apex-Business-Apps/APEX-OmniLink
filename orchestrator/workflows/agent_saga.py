@@ -25,6 +25,11 @@ Key Concepts:
    - No random numbers, system time, or network calls
    - All I/O via Activities
 
+5. **DAG Execution**: True parallel execution for independent steps
+   - Topological sort identifies execution order
+   - Independent steps (no dependencies) execute in parallel via asyncio.gather
+   - Steps with depends_on wait for their dependencies
+
 Architecture:
     User Goal → Guardian Check → Semantic Cache Lookup →
     → [Cache Hit: Inject Params] OR [Cache Miss: LLM Plan Generation] →
@@ -32,6 +37,8 @@ Architecture:
     → [Success: Store Result] OR [Failure: Rollback Saga]
 """
 
+import asyncio
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Optional
@@ -405,68 +412,156 @@ class AgentWorkflow:
 
     async def _execute_plan(self) -> None:
         """
-        Execute plan steps in dependency order (DAG traversal).
+        Execute plan steps in dependency order (DAG traversal with parallel execution).
 
-        For simplicity, this implementation executes sequentially.
-        Production version should:
-        - Build dependency graph from step.depends_on
-        - Execute independent steps in parallel
-        - Handle conditional branches
+        DAG Execution Algorithm:
+        1. Build dependency graph from step.depends_on fields
+        2. Topological sort to find execution levels
+        3. Execute steps at same level in parallel via asyncio.gather
+        4. Pass results to dependent steps
         """
+        # Build step lookup and dependency graph
+        step_lookup = {}
+        dependencies: dict[str, list[str]] = defaultdict(list)
+        dependents: dict[str, list[str]] = defaultdict(list)
+
         for idx, step in enumerate(self.plan_steps):
             step_id = step.get("id", f"step_{idx}")
+            step_lookup[step_id] = step
+            deps = step.get("depends_on", [])
+            if isinstance(deps, str):
+                deps = [deps]
+            dependencies[step_id] = deps
+            for dep in deps:
+                dependents[dep].append(step_id)
 
-            step_name = step.get("name", step_id)
-            workflow.logger.info(f"▶ Executing step {idx + 1}/{len(self.plan_steps)}: {step_name}")
+        # Calculate in-degrees for topological sort
+        in_degree = {step_id: len(deps) for step_id, deps in dependencies.items()}
 
-            # Record tool call request
+        # Find all steps with no dependencies (ready to execute)
+        ready_queue = [step_id for step_id, degree in in_degree.items() if degree == 0]
+        executed = set()
+        level = 1
+
+        workflow.logger.info(
+            f"🔀 DAG Execution: {len(self.plan_steps)} steps, "
+            f"{len(ready_queue)} initial parallel steps"
+        )
+
+        while ready_queue:
+            # Execute all ready steps in parallel
+            if len(ready_queue) > 1:
+                workflow.logger.info(
+                    f"▶ Level {level}: Executing {len(ready_queue)} steps in PARALLEL: "
+                    f"{ready_queue}"
+                )
+            else:
+                workflow.logger.info(f"▶ Level {level}: Executing step: {ready_queue[0]}")
+
+            # Create coroutines for parallel execution
+            parallel_tasks = [
+                self._execute_single_step(step_lookup[step_id], step_id)
+                for step_id in ready_queue
+            ]
+
+            # Execute in parallel and collect results
+            results = await asyncio.gather(*parallel_tasks, return_exceptions=True)
+
+            # Process results and handle failures
+            next_ready = []
+            for step_id, result in zip(ready_queue, results):
+                if isinstance(result, Exception):
+                    # Step failed - trigger rollback
+                    self.failed_step_id = step_id
+                    raise result
+
+                # Mark as executed and update dependents
+                executed.add(step_id)
+                self.step_results[step_id] = result
+
+                # Check if any dependents are now ready
+                for dependent_id in dependents[step_id]:
+                    in_degree[dependent_id] -= 1
+                    if in_degree[dependent_id] == 0 and dependent_id not in executed:
+                        next_ready.append(dependent_id)
+
+            ready_queue = next_ready
+            level += 1
+
+        # Verify all steps executed (detect cycles)
+        if len(executed) != len(self.plan_steps):
+            missing = set(step_lookup.keys()) - executed
+            raise ApplicationError(
+                f"DAG cycle detected or missing dependencies: {missing}",
+                non_retryable=True,
+            )
+
+        workflow.logger.info(f"✓ DAG execution complete: {len(executed)} steps in {level - 1} levels")
+
+    async def _execute_single_step(self, step: dict[str, Any], step_id: str) -> dict[str, Any]:
+        """
+        Execute a single step with event logging and compensation registration.
+
+        Args:
+            step: Step definition from plan
+            step_id: Unique step identifier
+
+        Returns:
+            Step execution result
+
+        Raises:
+            ActivityError: If step fails after retries
+        """
+        step_name = step.get("name", step_id)
+        workflow.logger.info(f"  ⚙ Starting step: {step_name}")
+
+        # Record tool call request
+        await self._append_event(
+            ToolCallRequested(
+                correlation_id=workflow.info().workflow_id,
+                tool_name=step["tool"],
+                tool_input=step.get("input", {}),
+                step_id=step_id,
+                compensation_activity=step.get("compensation"),
+            )
+        )
+
+        try:
+            result = await self.saga.execute_with_compensation(
+                activity_name=step["tool"],
+                activity_input=step.get("input", {}),
+                compensation_activity=step.get("compensation"),
+                compensation_input=step.get("compensation_input"),
+                step_id=step_id,
+            )
+
+            # Record success
             await self._append_event(
-                ToolCallRequested(
+                ToolResultReceived(
                     correlation_id=workflow.info().workflow_id,
                     tool_name=step["tool"],
-                    tool_input=step.get("input", {}),
                     step_id=step_id,
-                    compensation_activity=step.get("compensation"),
+                    success=True,
+                    result=result,
                 )
             )
 
-            # Execute with Saga compensation
-            try:
-                result = await self.saga.execute_with_compensation(
-                    activity_name=step["tool"],
-                    activity_input=step.get("input", {}),
-                    compensation_activity=step.get("compensation"),
-                    compensation_input=step.get("compensation_input"),
+            workflow.logger.info(f"  ✓ Completed step: {step_name}")
+            return result
+
+        except ActivityError as e:
+            # Record failure
+            await self._append_event(
+                ToolResultReceived(
+                    correlation_id=workflow.info().workflow_id,
+                    tool_name=step["tool"],
                     step_id=step_id,
+                    success=False,
+                    error=str(e),
                 )
-
-                # Record success
-                await self._append_event(
-                    ToolResultReceived(
-                        correlation_id=workflow.info().workflow_id,
-                        tool_name=step["tool"],
-                        step_id=step_id,
-                        success=True,
-                        result=result,
-                    )
-                )
-
-                self.step_results[step_id] = result
-
-            except ActivityError as e:
-                # Step failed after retries - trigger rollback
-                await self._append_event(
-                    ToolResultReceived(
-                        correlation_id=workflow.info().workflow_id,
-                        tool_name=step["tool"],
-                        step_id=step_id,
-                        success=False,
-                        error=str(e),
-                    )
-                )
-
-                self.failed_step_id = step_id
-                raise  # Re-raise to trigger workflow failure
+            )
+            workflow.logger.error(f"  ✗ Failed step: {step_name} - {str(e)}")
+            raise
 
     async def _handle_success(self) -> dict[str, Any]:
         """Handle successful workflow completion."""
