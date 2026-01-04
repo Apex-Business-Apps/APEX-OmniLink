@@ -11,7 +11,41 @@
  * - Pain points: Disconnected systems, manual processes, overwhelmed
  */
 
-import { createClient } from '@supabase/supabase-js';
+// createClient imported for future Supabase integration
+// import { createClient } from '@supabase/supabase-js';
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface GuardianResult {
+  safe: boolean;
+  reason?: string;
+  violations?: string[];
+}
+
+interface PlanStep {
+  id: number;
+  description: string;
+  status: string;
+}
+
+interface AgentResponse {
+  response: string;
+  threadId: string;
+  skillsUsed: string[];
+  plan: PlanStep[];
+  safe: boolean;
+  guardianResult: GuardianResult;
+}
+
+interface ResponseAnalysis {
+  userExperienceScore: number;
+  technicalAccuracy: number;
+  empathyScore: number;
+  issues: string[];
+  successes: string[];
+}
 
 // ============================================================================
 // SIMULATION CONFIGURATION
@@ -273,7 +307,7 @@ class ChaoticClientSimulator {
   /**
    * Call the OmniLink Agent API
    */
-  private async callOmniLinkAgent(message: string): Promise<any> {
+  private async callOmniLinkAgent(message: string): Promise<AgentResponse> {
     // In a real simulation, this would call the actual Supabase function
     // For sandbox mode, we'll simulate the response structure
 
@@ -300,7 +334,7 @@ class ChaoticClientSimulator {
       }
 
       return await response.json();
-    } catch (error) {
+    } catch (_error) {
       console.warn('⚠️  Agent API call failed, falling back to mock');
       return this.mockAgentResponse(message);
     }
@@ -309,7 +343,7 @@ class ChaoticClientSimulator {
   /**
    * Mock agent response for sandbox testing
    */
-  private mockAgentResponse(message: string): any {
+  private mockAgentResponse(message: string): AgentResponse {
     // Detect potential security triggers
     const securityPatterns = [
       /bypass/i,
@@ -393,7 +427,7 @@ Which of these would you like to tackle first?`;
   /**
    * Generate mock execution plan
    */
-  private generateMockPlan(stepCount: number): any[] {
+  private generateMockPlan(stepCount: number): PlanStep[] {
     const plans = [];
     for (let i = 1; i <= Math.min(stepCount, 5); i++) {
       plans.push({
@@ -408,7 +442,7 @@ Which of these would you like to tackle first?`;
   /**
    * Analyze the response quality
    */
-  private analyzeResponse(clientMessage: string, agentResponse: any): any {
+  private analyzeResponse(clientMessage: string, agentResponse: AgentResponse): ResponseAnalysis {
     const analysis = {
       userExperienceScore: 5,
       technicalAccuracy: 5,
@@ -631,7 +665,7 @@ export async function runChaoticClientSimulation() {
 // If running directly
 if (import.meta.main) {
   runChaoticClientSimulation()
-    .then(report => {
+    .then(_report => {
       console.log('\n📄 Detailed report saved to: simulation-results.json');
       // In real scenario, would save to file
     })

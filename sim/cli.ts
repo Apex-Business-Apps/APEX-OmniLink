@@ -14,8 +14,8 @@
 import { runSimulation, quickTest } from './runner';
 import { assertGuardRails } from './guard-rails';
 import { DEFAULT_CHAOS_CONFIG, LIGHT_CHAOS_CONFIG, HEAVY_CHAOS_CONFIG, NO_CHAOS_CONFIG } from './chaos-engine';
-import type { Beat } from './runner';
-import type { CallReceivedPayload, CallCompletedPayload, AppointmentScheduledPayload, AppName } from './contracts';
+import type { Beat, SimulationResult } from './runner';
+import type { CallReceivedPayload, AppointmentScheduledPayload, AppName } from './contracts';
 import fs from 'fs';
 import path from 'path';
 
@@ -44,11 +44,11 @@ function parseArgs(): CLIOptions {
     const arg = args[i];
 
     if (arg === '--mode') {
-      options.mode = args[++i] as any;
+      options.mode = args[++i] as CLIOptions['mode'];
     } else if (arg === '--seed') {
       options.seed = parseInt(args[++i]);
     } else if (arg === '--chaos') {
-      options.chaos = args[++i] as any;
+      options.chaos = args[++i] as CLIOptions['chaos'];
     } else if (arg === '--beats') {
       options.beats = parseInt(args[++i]);
     } else if (arg === '--scenario') {
@@ -247,8 +247,6 @@ async function runBurstMode(options: CLIOptions): Promise<void> {
   console.log(`   Concurrency: Auto-scaled\n`);
 
   const startTime = Date.now();
-  const results: any[] = [];
-  const errors: any[] = [];
 
   // Generate burst beats (simplified events for load testing)
   const burstBeats: Beat[] = [];
@@ -260,7 +258,7 @@ async function runBurstMode(options: CLIOptions): Promise<void> {
       number: i + 1,
       name: `Burst Event ${i + 1}`,
       app,
-      eventType: `${app}:burst.test` as any,
+      eventType: `${app}:burst.test` as Beat['eventType'],
       payload: {
         burstId: i + 1,
         timestamp: Date.now(),
@@ -328,7 +326,7 @@ async function runBurstMode(options: CLIOptions): Promise<void> {
 // EVIDENCE SAVING
 // ============================================================================
 
-async function saveEvidence(result: any): Promise<void> {
+async function saveEvidence(result: SimulationResult): Promise<void> {
   const evidenceDir = path.join(process.cwd(), 'evidence', result.runId);
 
   if (!fs.existsSync(evidenceDir)) {
@@ -367,7 +365,7 @@ async function saveEvidence(result: any): Promise<void> {
 // OUTPUT FORMATTING
 // ============================================================================
 
-function printFinalSummary(result: any): void {
+function printFinalSummary(result: SimulationResult): void {
   console.log('\n' + '═'.repeat(64));
   console.log('FINAL SUMMARY');
   console.log('═'.repeat(64));
