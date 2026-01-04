@@ -19,6 +19,8 @@ jobs:
     defaults:
       run:
         working-directory: terraform/environments/staging
+    env:
+      HAS_TF_SECRETS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
 
     steps:
       - name: Checkout code
@@ -59,7 +61,7 @@ jobs:
           TF_VAR_vite_datadog_client_token: ${{ secrets.DATADOG_CLIENT_TOKEN || 'mock-token' }}
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && secrets.CLOUDFLARE_API_TOKEN != ''
+        if: ${{ github.ref == 'refs/heads/main' && env.HAS_TF_SECRETS == 'true' }}
         run: terraform apply -auto-approve tfplan
         continue-on-error: true
         env:
@@ -95,6 +97,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: terraform
     if: always() # Run even if terraform fails
+    env:
+      HAS_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
 
     steps:
       - name: Checkout code
@@ -122,7 +126,7 @@ jobs:
           VITE_DATADOG_CLIENT_TOKEN: ${{ secrets.DATADOG_CLIENT_TOKEN }}
 
       - name: Deploy to Vercel (Staging)
-        if: secrets.VERCEL_TOKEN != ''
+        if: ${{ env.HAS_VERCEL_TOKEN == 'true' }}
         uses: amondnet/vercel-action@v25
         continue-on-error: true
         with:
@@ -164,14 +168,14 @@ jobs:
         run: sleep 30 # Wait for Vercel deployment to stabilize
 
       - name: Run smoke tests
-        if: secrets.VERCEL_TOKEN != ''
+        if: ${{ env.HAS_VERCEL_TOKEN == 'true' }}
         run: npm run test:e2e
         continue-on-error: true
         env:
           STAGING_URL: https://staging.omnihub.dev
 
       - name: Health check
-        if: secrets.VERCEL_TOKEN != ''
+        if: ${{ env.HAS_VERCEL_TOKEN == 'true' }}
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" https://staging.omnihub.dev/health)
           if [ $response -ne 200 ]; then
