@@ -469,7 +469,7 @@ class AgentWorkflow:
 
             # Process results and handle failures
             next_ready = []
-            for step_id, result in zip(ready_queue, results):
+            for step_id, result in zip(ready_queue, results, strict=True):
                 if isinstance(result, Exception):
                     # Step failed - trigger rollback
                     self.failed_step_id = step_id
@@ -496,7 +496,9 @@ class AgentWorkflow:
                 non_retryable=True,
             )
 
-        workflow.logger.info(f"✓ DAG execution complete: {len(executed)} steps in {level - 1} levels")
+        workflow.logger.info(
+            f"✓ DAG execution complete: {len(executed)} steps in {level - 1} levels"
+        )
 
     async def _execute_single_step(self, step: dict[str, Any], step_id: str) -> dict[str, Any]:
         """
