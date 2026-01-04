@@ -460,8 +460,7 @@ class AgentWorkflow:
 
             # Create coroutines for parallel execution
             parallel_tasks = [
-                self._execute_single_step(step_lookup[step_id], step_id)
-                for step_id in ready_queue
+                self._execute_single_step(step_lookup[step_id], step_id) for step_id in ready_queue
             ]
 
             # Execute in parallel and collect results
