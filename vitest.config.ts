@@ -13,7 +13,12 @@ export default defineConfig({
       'sim/tests/**/*.test.ts',
       'sim/tests/**/*.spec.ts'
     ],
-    exclude: ['tests/e2e-playwright/**', 'node_modules/**'],
+    exclude: [
+      'tests/e2e-playwright/**',
+      'node_modules/**',
+      // Skip integration tests in CI (require real Supabase infrastructure)
+      ...(process.env.CI ? ['tests/integration/**'] : [])
+    ],
     setupFiles: ['tests/setup.ts'],
   },
   resolve: {
