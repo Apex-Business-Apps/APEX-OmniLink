@@ -27,7 +27,7 @@ function readRecords(filePath: string): FlagRecord[] {
     .map((line) => {
       try {
         return JSON.parse(line);
-      } catch (e) {
+      } catch {
         console.warn('Skipping invalid line', line);
         return null;
       }
