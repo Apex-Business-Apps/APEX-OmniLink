@@ -1,0 +1,47 @@
+# Gitleaks configuration
+
+# https://github.com/gitleaks/gitleaks
+
+
+
+title = "APEX-OmniHub Gitleaks Config"
+
+
+
+# Exclude paths with documentation and example files
+
+[allowlist]
+
+description = "Exclude documentation and example files"
+
+paths = [
+
+  '''PRODUCTION_BLOCKERS_ANALYSIS\.md''',
+
+  '''\.env\.example''',
+
+  '''MIGRATION.*\.md''',
+
+  '''docs/.*''',
+
+  '''examples/.*''',
+
+  '''.*\.example'''
+
+]
+
+
+
+# Exclude known safe patterns (Supabase public anon keys are safe)
+
+regexes = [
+
+  '''(?i)supabase.*anon.*key''',
+
+  '''(?i)publishable.*key''',
+
+  '''<your-.*>''',
+
+  '''mock-.*'''
+
+]
