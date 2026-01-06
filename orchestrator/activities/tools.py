@@ -190,7 +190,7 @@ Output valid JSON matching the PlanStep schema."""
                 {"role": "user", "content": f"Goal: {goal}\nContext: {json.dumps(context)}"},
             ],
             response_model=GeneratedPlan,
-            temperature=float(os.getenv("DEFAULT_LLM_TEMPERATURE", "0.0")},
+            temperature=float(os.getenv("DEFAULT_LLM_TEMPERATURE", "0.0")),
         )
 
         activity.logger.info(f"✓ Plan generated: {len(plan.steps)} steps")
