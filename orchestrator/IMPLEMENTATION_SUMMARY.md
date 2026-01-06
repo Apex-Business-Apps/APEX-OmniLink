@@ -41,8 +41,8 @@ Built a **production-grade AI Agent Orchestration platform** that solves ALL the
 - <10ms cache lookups
 
 ### Problem 5: No Multi-Region Support ❌ → ✅ SOLVED
-**Solution**: Distributed Locking (Redlock)
-- File: `activities/tools.py` (acquire_distributed_lock)
+**Solution**: Temporal Workflow Serialization
+- File: `workflows/agent_saga.py` (workflow signals and mutexes)
 - Redis-based Redlock algorithm
 - Quorum-based lock acquisition
 - Auto-expiring locks (no deadlocks)

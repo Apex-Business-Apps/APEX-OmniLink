@@ -27,17 +27,19 @@ Compensation Pattern:
 import asyncio
 import json
 import os
+import time
 from typing import Any, Optional
 from uuid import uuid4
 
 import instructor
 from litellm import acompletion
 from pydantic import BaseModel
-from supabase import Client, create_client
 from temporalio import activity
 
+from ..providers.database.factory import get_database_provider
+from ..models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
+
 # Global service instances (initialized in setup_activities())
-_supabase_client: Optional[Client] = None
 _semantic_cache = None  # SemanticCacheService instance
 _redis_client = None
 
@@ -53,7 +55,7 @@ async def setup_activities(
     redis_url: str,
 ) -> None:
     """
-    Initialize activity dependencies (Supabase, Redis, etc.).
+    Initialize activity dependencies (database provider, Redis, etc.).
 
     This MUST be called before starting Temporal worker.
 
@@ -62,11 +64,11 @@ async def setup_activities(
         supabase_key: Supabase service role key
         redis_url: Redis connection URL
     """
-    global _supabase_client, _semantic_cache, _redis_client
+    global _semantic_cache, _redis_client
 
-    # Initialize Supabase client
-    _supabase_client = create_client(supabase_url, supabase_key)
-    activity.logger.info(f"✓ Supabase client initialized: {supabase_url}")
+    # Set environment variables for database provider factory
+    os.environ["SUPABASE_URL"] = supabase_url
+    os.environ["SUPABASE_SERVICE_ROLE_KEY"] = supabase_key
 
     # Initialize semantic cache
     from infrastructure.cache import SemanticCacheService
@@ -188,7 +190,7 @@ Output valid JSON matching the PlanStep schema."""
                 {"role": "user", "content": f"Goal: {goal}\nContext: {json.dumps(context)}"},
             ],
             response_model=GeneratedPlan,
-            temperature=float(os.getenv("DEFAULT_LLM_TEMPERATURE", "0.0")),
+            temperature=float(os.getenv("DEFAULT_LLM_TEMPERATURE", "0.0")},
         )
 
         activity.logger.info(f"✓ Plan generated: {len(plan.steps)} steps")
@@ -219,9 +221,9 @@ Output valid JSON matching the PlanStep schema."""
 @activity.defn(name="search_database")
 async def search_database(params: dict[str, Any]) -> dict[str, Any]:
     """
-    Search Supabase database.
+    Search database using provider interface.
 
-    Example tool demonstrating Supabase integration with Temporal resilience.
+    Example tool demonstrating database integration with Temporal resilience.
 
     Args:
         params: {
@@ -233,42 +235,73 @@ async def search_database(params: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Query results
     """
-    if not _supabase_client:
-        raise RuntimeError("Supabase not initialized")
-
     table = params.get("table")
     filters = params.get("filters", {})
     select_fields = params.get("select", "*")
+    start_time = time.time()
 
     activity.logger.info(f"Searching {table} with filters: {filters}")
 
+    success = False
+    error_msg = None
+    result_count = 0
+
     try:
-        query = _supabase_client.table(table).select(select_fields)
+        # Get database provider instance
+        db = get_database_provider()
 
-        # Apply filters
-        for key, value in filters.items():
-            query = query.eq(key, value)
+        # Perform select operation
+        data = await db.select(
+            table=table,
+            filters=filters,
+            select_fields=select_fields
+        )
 
-        response = query.execute()
+        success = True
+        result_count = len(data)
+
+        # Audit success
+        await log_audit_event(
+            actor_id="orchestrator",
+            action=AuditAction.DATA_ACCESS,
+            resource_type=AuditResourceType.DATABASE,
+            resource_id=f"{table}:{json.dumps(filters)}",
+            status=AuditStatus.SUCCESS,
+            duration_ms=int((time.time() - start_time) * 1000),
+            workflow_id=params.get("workflow_id", ""),
+        )
 
         return {
             "success": True,
-            "data": response.data,
-            "count": len(response.data),
+            "data": data,
+            "count": result_count,
         }
 
     except Exception as e:
-        activity.logger.error(f"Database search failed: {str(e)}")
+        error_msg = str(e)
+        activity.logger.error(f"Database search failed: {error_msg}")
+
+        # Audit failure
+        await log_audit_event(
+            actor_id="orchestrator",
+            action=AuditAction.DATA_ACCESS,
+            resource_type=AuditResourceType.DATABASE,
+            resource_id=f"{table}:{json.dumps(filters)}",
+            status=AuditStatus.FAILURE,
+            duration_ms=int((time.time() - start_time) * 1000),
+            workflow_id=params.get("workflow_id", ""),
+        )
+
         # Use ApplicationError for retryable failures (network timeouts, temporary unavailability)
         from temporalio.exceptions import ApplicationError
 
-        raise ApplicationError(f"Database search failed: {str(e)}", non_retryable=False) from e
+        raise ApplicationError(f"Database search failed: {error_msg}", non_retryable=False) from e
 
 
 @activity.defn(name="create_record")
 async def create_record(params: dict[str, Any]) -> dict[str, Any]:
     """
-    Create record in Supabase.
+    Create record in database.
 
     Compensation: delete_record
 
@@ -281,34 +314,65 @@ async def create_record(params: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Created record with ID
     """
-    if not _supabase_client:
-        raise RuntimeError("Supabase not initialized")
-
     table = params.get("table")
     data = params.get("data")
+    start_time = time.time()
 
     activity.logger.info(f"Creating record in {table}")
 
-    try:
-        response = _supabase_client.table(table).insert(data).execute()
+    success = False
+    error_msg = None
+    record_id = None
 
-        created = response.data[0] if response.data else {}
+    try:
+        # Get database provider instance
+        db = get_database_provider()
+
+        # Perform insert operation
+        created = await db.insert(table=table, record=data)
+
+        success = True
+        record_id = created.get("id")
+
+        # Audit success
+        await log_audit_event(
+            actor_id="orchestrator",
+            action=AuditAction.DATA_MODIFY,
+            resource_type=AuditResourceType.DATABASE,
+            resource_id=f"{table}:{record_id}",
+            status=AuditStatus.SUCCESS,
+            duration_ms=int((time.time() - start_time) * 1000),
+            workflow_id=params.get("workflow_id", ""),
+        )
 
         return {
             "success": True,
-            "id": created.get("id"),
+            "id": record_id,
             "data": created,
         }
 
     except Exception as e:
-        activity.logger.error(f"Record creation failed: {str(e)}")
+        error_msg = str(e)
+        activity.logger.error(f"Record creation failed: {error_msg}")
+
+        # Audit failure
+        await log_audit_event(
+            actor_id="orchestrator",
+            action=AuditAction.DATA_MODIFY,
+            resource_type=AuditResourceType.DATABASE,
+            resource_id=f"{table}:create",
+            status=AuditStatus.FAILURE,
+            duration_ms=int((time.time() - start_time) * 1000),
+            workflow_id=params.get("workflow_id", ""),
+        )
+
         raise
 
 
 @activity.defn(name="delete_record")
 async def delete_record(params: dict[str, Any]) -> dict[str, Any]:
     """
-    Delete record from Supabase (compensation for create_record).
+    Delete record from database (compensation for create_record).
 
     IMPORTANT: This is idempotent - safe to call multiple times.
 
@@ -321,24 +385,38 @@ async def delete_record(params: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Deletion result
     """
-    if not _supabase_client:
-        raise RuntimeError("Supabase not initialized")
-
     table = params.get("table")
     record_id = params.get("id")
+    start_time = time.time()
 
     activity.logger.info(f"Deleting record from {table}: {record_id}")
 
-    try:
-        # Check if record exists (idempotency)
-        existing = _supabase_client.table(table).select("id").eq("id", record_id).execute()
+    success = False
+    error_msg = None
 
-        if not existing.data:
+    try:
+        # Get database provider instance
+        db = get_database_provider()
+
+        # Delete record by ID filter
+        deleted_count = await db.delete(table=table, filters={"id": record_id})
+
+        success = True
+
+        # Audit success
+        await log_audit_event(
+            actor_id="orchestrator",
+            action=AuditAction.DATA_DELETE,
+            resource_type=AuditResourceType.DATABASE,
+            resource_id=f"{table}:{record_id}",
+            status=AuditStatus.SUCCESS,
+            duration_ms=int((time.time() - start_time) * 1000),
+            workflow_id=params.get("workflow_id", ""),
+        )
+
+        if deleted_count == 0:
             activity.logger.info("Record already deleted - idempotent success")
             return {"success": True, "already_deleted": True}
-
-        # Delete record
-        _supabase_client.table(table).delete().eq("id", record_id).execute()
 
         return {
             "success": True,
@@ -346,9 +424,25 @@ async def delete_record(params: dict[str, Any]) -> dict[str, Any]:
         }
 
     except Exception as e:
-        activity.logger.error(f"Record deletion failed: {str(e)}")
+        error_msg = str(e)
+        activity.logger.error(f"Record deletion failed: {error_msg}")
+
+        # Audit failure (best-effort - don't block compensation)
+        try:
+            await log_audit_event(
+                actor_id="orchestrator",
+                action=AuditAction.DATA_DELETE,
+                resource_type=AuditResourceType.DATABASE,
+                resource_id=f"{table}:{record_id}",
+                status=AuditStatus.FAILURE,
+                duration_ms=int((time.time() - start_time) * 1000),
+                workflow_id=params.get("workflow_id", ""),
+            )
+        except Exception as audit_error:
+            activity.logger.warning(f"Audit logging failed: {audit_error}")
+
         # Don't raise - best-effort compensation
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": error_msg}
 
 
 @activity.defn(name="send_email")

@@ -51,6 +51,21 @@ jobs:
           ruff check .
           black --check .
 
+      - name: Check portability guardrails
+        run: |
+          # Fail if any Supabase SDK imports appear in orchestrator/activities
+          if grep -r "from supabase\|create_client\|supabase\." orchestrator/activities/ --include="*.py" | grep -v "__pycache__"; then
+            echo "❌ FAILED: Direct Supabase SDK usage found in orchestrator/activities/"
+            echo "All database operations must use the provider interface."
+            exit 1
+          else
+            echo "✅ PASSED: No direct Supabase SDK usage in activities"
+          fi
+
+      - name: Check for stubbed provider implementations
+        run: |
+          python scripts/ci/assert_no_stubbed_provider_impls.py
+
       - name: Run type checker
         working-directory: orchestrator
         run: |
