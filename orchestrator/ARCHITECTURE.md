@@ -7,7 +7,7 @@ The APEX Orchestrator is a production-grade AI agent orchestration platform impl
 - **Event Sourcing** for complete audit trails and deterministic replay
 - **Saga Pattern** for distributed transaction compensation
 - **Semantic Caching** with vector similarity search (70%+ cache hit rate)
-- **Multi-Region Support** via distributed locking (Redlock algorithm)
+- **Multi-Region Support** via Temporal workflow serialization and signals
 - **Type-Safe Integration** between TypeScript (edge functions) and Python (orchestrator)
 
 ## System Architecture
@@ -235,40 +235,54 @@ if similarity >= 0.85:
 - Average across production: ~70% hit rate
 - **Cost savings**: 70% fewer LLM calls = $XXX/month saved
 
-### 4. Distributed Locking (activities/tools.py)
+### 4. Concurrency & Critical Sections
 
-**Redlock Algorithm:**
+**Temporal Workflow Serialization:**
 ```python
-# Critical section: Only one instance should book a specific flight
-async def book_flight(flight_id: str):
-    # Step 1: Acquire distributed lock
-    lock_result = await acquire_distributed_lock({
-        "resource": f"flight_booking_{flight_id}",
-        "ttl_seconds": 30
-    })
-    lock_token = lock_result["lock_token"]
+# Critical sections handled via Temporal's built-in workflow mutexes
+# No manual distributed locking required
 
-    try:
+@workflow.defn(name="critical_flight_booking")
+class CriticalFlightBooking:
+    @workflow.run
+    async def run(self, flight_id: str):
+        # Step 1: Use Temporal workflow signals for coordination
+        # Only one workflow instance can proceed at a time for same flight_id
+        await self.coordinate_booking(flight_id)
+
         # Step 2: Perform booking (critical section)
-        booking = await perform_booking(flight_id)
-
-        # Step 3: Release lock
-        await release_distributed_lock({
-            "resource": f"flight_booking_{flight_id}",
-            "lock_token": lock_token
-        })
+        booking = await workflow.execute_activity(
+            "book_flight",
+            flight_id,
+            start_to_close_timeout=timedelta(seconds=30)
+        )
 
         return booking
-    except Exception as e:
-        # Lock auto-expires after TTL (no deadlocks)
-        raise
+
+    async def coordinate_booking(self, flight_id: str):
+        """Coordinate via workflow signals - Temporal handles serialization"""
+        # Workflow signals provide built-in coordination
+        signal = workflow.get_external_signal(f"flight_{flight_id}_available")
+
+        # Wait for signal or timeout
+        try:
+            await workflow.wait_condition(
+                lambda: self.is_flight_available(flight_id),
+                timeout=timedelta(seconds=300)  # 5 min timeout
+            )
+        except asyncio.TimeoutError:
+            raise ApplicationError("Flight booking timeout - try again")
+
+        # Signal other waiting workflows
+        await signal()
 ```
 
-**Multi-Region Considerations:**
-- Use Redis Enterprise with Active-Active (CRDT)
-- Redlock requires quorum (majority of nodes)
-- For 5 Redis nodes: Need 3/5 to acquire lock
-- TTL prevents deadlocks (lock auto-expires)
+**Benefits of Temporal-based Coordination:**
+- No Redis dependency for locking
+- Automatic deadlock prevention
+- Built-in timeout and retry mechanisms
+- Workflow history provides audit trail of coordination
+- Cross-region coordination via Temporal's global state
 
 ### 5. TypeScript ↔ Python Bridge
 
