@@ -62,10 +62,7 @@ class RiskTriageResult(BaseModel):
 
     lane: ManLane = Field(..., description="Risk assessment lane")
     risk_score: float = Field(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="Risk score (0.0=safe, 1.0=maximum risk)"
+        ..., ge=0.0, le=1.0, description="Risk score (0.0=safe, 1.0=maximum risk)"
     )
     reasons: List[str] = Field(default_factory=list, description="Reasons for the risk assessment")
 
@@ -97,13 +94,11 @@ class ManTask(BaseModel):
     status: str = Field(default="PENDING", description="Task status")
     risk_score: float = Field(..., description="Risk score from triage")
     risk_reasons: List[str] = Field(
-        default_factory=list,
-        description="Reasons for requiring approval"
+        default_factory=list, description="Reasons for requiring approval"
     )
 
     intent: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Original action intent (redacted)"
+        default_factory=dict, description="Original action intent (redacted)"
     )
 
     reviewer_id: Optional[str] = Field(None, description="ID of the reviewer who decided")
@@ -122,8 +117,7 @@ class ManDecisionPayload(BaseModel):
     reason: str = Field(..., description="Reason for the decision")
     reviewer_id: str = Field(..., description="ID of the reviewer")
     modified_params: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Modified parameters (for MODIFY decision)"
+        None, description="Modified parameters (for MODIFY decision)"
     )
 
 
@@ -185,9 +179,7 @@ class ManPolicy(BaseModel):
         return base
 
     def get_minimum_lane(
-        self,
-        tool_name: str,
-        workflow_key: Optional[str] = None
+        self, tool_name: str, workflow_key: Optional[str] = None
     ) -> Optional[ManLane]:
         """Get minimum required lane for a tool."""
         # Check workflow-specific override first
@@ -360,8 +352,7 @@ def get_policy_engine(policy: Optional[ManPolicy] = None) -> ManPolicyEngine:
 
 
 def get_cached_policy(
-    tenant_id: Optional[str],
-    workflow_key: Optional[str]
+    tenant_id: Optional[str], workflow_key: Optional[str]
 ) -> Optional[Dict[str, Any]]:
     """
     Get cached policy for tenant/workflow combination.
@@ -384,9 +375,7 @@ def get_cached_policy(
 
 
 def set_cached_policy(
-    tenant_id: Optional[str],
-    workflow_key: Optional[str],
-    policy: Dict[str, Any]
+    tenant_id: Optional[str], workflow_key: Optional[str], policy: Dict[str, Any]
 ) -> None:
     """
     Cache policy for tenant/workflow combination.
@@ -398,8 +387,7 @@ def set_cached_policy(
 
 
 async def load_policy_with_cache(
-    tenant_id: Optional[str],
-    workflow_key: Optional[str]
+    tenant_id: Optional[str], workflow_key: Optional[str]
 ) -> ManPolicy:
     """
     Load policy with caching for performance.

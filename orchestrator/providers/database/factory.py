@@ -48,10 +48,7 @@ def get_database_provider() -> DatabaseProvider:
                 "function properly",
             )
 
-        _db_provider = SupabaseDatabaseProvider(
-            url=supabase_url,
-            key=supabase_key
-        )
+        _db_provider = SupabaseDatabaseProvider(url=supabase_url, key=supabase_key)
 
     else:
         raise ValueError(f"Unsupported database provider: {provider_type}")

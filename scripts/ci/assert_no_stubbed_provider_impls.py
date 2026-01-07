@@ -87,9 +87,11 @@ class StubDetector(ast.NodeVisitor):
             return False
         elif isinstance(stmt, ast.Raise):
             # raise NotImplementedError(...)
-            if (isinstance(stmt.exc, ast.Call) and
-                isinstance(stmt.exc.func, ast.Name) and
-                stmt.exc.func.id == "NotImplementedError"):
+            if (
+                isinstance(stmt.exc, ast.Call)
+                and isinstance(stmt.exc.func, ast.Name)
+                and stmt.exc.func.id == "NotImplementedError"
+            ):
                 return True
             return False
         else:
@@ -99,7 +101,7 @@ class StubDetector(ast.NodeVisitor):
 def scan_file_for_stubs(file_path: Path) -> List[str]:
     """Scan a Python file for stubbed functions."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         tree = ast.parse(content)
@@ -140,7 +142,9 @@ def main() -> int:
             print(f"  - {stub}")
         print()
         print("All provider implementations must be fully implemented.")
-        print("Replace stubbed functions (pass, ..., NotImplementedError) with real code.")
+        print(
+            "Replace stubbed functions (pass, ..., NotImplementedError) with real code."
+        )
         return 1
     else:
         print("✅ No stubbed provider implementations found.")

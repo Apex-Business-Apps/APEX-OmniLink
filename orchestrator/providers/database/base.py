@@ -11,11 +11,13 @@ from typing import Any, Dict, List, Optional, Protocol
 
 class DatabaseError(Exception):
     """Base exception for database operations."""
+
     pass
 
 
 class NotFoundError(DatabaseError):
     """Raised when a requested record is not found."""
+
     pass
 
 
@@ -30,7 +32,7 @@ class DatabaseProvider(Protocol):
         self,
         table: str,
         filters: Optional[Dict[str, Any]] = None,
-        select_fields: Optional[str] = None
+        select_fields: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Select records from a table with optional filtering.

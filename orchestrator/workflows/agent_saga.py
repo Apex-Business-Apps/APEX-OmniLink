@@ -160,8 +160,7 @@ class SagaContext:
 
             stack_size = len(self.compensation_stack)
             workflow.logger.info(
-                f"✓ Registered compensation: {compensation_activity} "
-                f"(stack size={stack_size})",
+                f"✓ Registered compensation: {compensation_activity} (stack size={stack_size})",
             )
 
         return result
@@ -787,8 +786,7 @@ class AgentWorkflow:
             except ActivityError as e:
                 # Triage failure - fail-safe to allow execution
                 workflow.logger.warning(
-                    f"Risk triage failed for step {step_id}: {e} "
-                    f"- proceeding without approval"
+                    f"Risk triage failed for step {step_id}: {e} - proceeding without approval"
                 )
 
         # 7. Apply decision modifications if any
