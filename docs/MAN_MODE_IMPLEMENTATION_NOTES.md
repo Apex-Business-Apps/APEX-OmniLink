@@ -149,10 +149,55 @@ orchestrator/tests/test_database_provider.py:
 ## PHASE 4 — TEMPORAL ACTIVITIES
 
 ### Activities Added
+orchestrator/activities/man_mode.py with four Temporal activities:
+
+A) risk_triage
+- Deterministic risk assessment using policy engine
+- No external API calls - pure policy evaluation
+- Returns lane, risk_score, reasons as dict for workflow
+- Comprehensive audit logging of triage decisions
+
+B) create_man_task
+- Creates pending approval tasks for RED lane actions
+- Idempotent using deterministic idempotency keys
+- Stores redacted intent data for operator review
+- Only creates tasks for RED triage results
+
+C) resolve_man_task
+- Applies decisions to pending tasks (APPROVE/DENY/MODIFY/CANCEL_WORKFLOW)
+- Idempotent - safe to call multiple times on same task
+- Handles concurrent resolutions gracefully
+- Updates task status and stores decision metadata
+
+D) backlog_check
+- Checks tenant pending task counts against policy limits
+- Returns overload status and degrade action
+- Safe failure handling (returns non-overloaded defaults on errors)
+- Used by workflows to implement degrade behavior
+
+### Key Features
+- All activities follow Temporal patterns (try/except with ApplicationError for retries)
+- Comprehensive audit logging for all security-relevant actions
+- Idempotent operations prevent duplicate tasks/decisions
+- Deterministic behavior ensures replay safety
+- Error handling prevents workflow blocking on transient failures
+
+### Tests Added
+orchestrator/tests/test_man_activities.py:
+- Comprehensive activity testing with mocked dependencies
+- Idempotency verification for task creation and resolution
+- Concurrent operation handling tests
+- Error condition and failure mode tests
+- Backlog checking with overload scenarios
 
 ### Verification Results
+- Activities follow existing repository patterns
+- All database operations use extended provider interface
+- Audit logging integrated with existing audit system
+- Comprehensive unit test coverage for success/failure paths
+- Idempotent and deterministic behavior verified
 
-**PHASE 4 STATUS:**
+**PHASE 4 COMPLETE** - Temporal activities with comprehensive testing and audit integration.
 
 ---
 
