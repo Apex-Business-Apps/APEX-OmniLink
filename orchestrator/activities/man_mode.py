@@ -23,13 +23,11 @@ from ..models.man_mode import (
     ManDecision,
     ManDecisionPayload,
     ManLane,
-    ManPolicy,
     ManTask,
     RiskTriageResult,
     get_policy_engine,
 )
 from ..providers.database.factory import get_database_provider
-
 
 # ============================================================================
 # MAN MODE ACTIVITIES
@@ -61,7 +59,6 @@ async def risk_triage(
     """
     activity.logger.info(f"Triaging action intent for tool: {intent_data.get('tool_name')}")
 
-    success = False
     error_msg = None
 
     try:
@@ -74,7 +71,7 @@ async def risk_triage(
         # Perform deterministic triage
         result = engine.triage_intent(intent, workflow_key, free_text_signals)
 
-        success = True
+
 
         activity.logger.info(
             f"✓ Triage complete: {result.lane} (score: {result.risk_score:.2f})"
@@ -108,7 +105,8 @@ async def risk_triage(
             actor_id="orchestrator",
             action=AuditAction.SECURITY_ASSESSMENT,
             resource_type=AuditResourceType.WORKFLOW,
-            resource_id=f"{intent_data.get('workflow_id', 'unknown')}:{intent_data.get('step_id', 'unknown')}",
+            resource_id=f"{intent_data.get('workflow_id', 'unknown')}:"
+            f"{intent_data.get('step_id', 'unknown')}",
             status=AuditStatus.FAILURE,
             metadata={"error": error_msg},
         )
@@ -150,7 +148,6 @@ async def create_man_task(
         activity.logger.info(f"Skipping task creation - lane is {triage_result.lane}")
         return None
 
-    success = False
     error_msg = None
     task_id = None
 
@@ -190,7 +187,6 @@ async def create_man_task(
         )
 
         task_id = created_task["id"]
-        success = True
 
         activity.logger.info(f"✓ MAN task created: {task_id}")
 
@@ -258,7 +254,6 @@ async def resolve_man_task(
         f"Resolving MAN task {task_id} with decision: {decision_payload.decision}"
     )
 
-    success = False
     error_msg = None
 
     try:
@@ -277,7 +272,8 @@ async def resolve_man_task(
 
         # If already resolved, return existing state
         if existing_task["status"] != "PENDING":
-            activity.logger.info(f"Task {task_id} already resolved with status: {existing_task['status']}")
+            activity.logger.info(f"Task {task_id} already resolved with status: "
+                                f"{existing_task['status']}")
             # Return full task data
             full_task = await db.select_one(table="man_tasks", filters={"id": task_id})
             return full_task
@@ -312,7 +308,6 @@ async def resolve_man_task(
             full_task = await db.select_one(table="man_tasks", filters={"id": task_id})
             return full_task
 
-        success = True
 
         activity.logger.info(f"✓ MAN task {task_id} resolved: {decision_payload.decision}")
 
@@ -349,7 +344,8 @@ async def resolve_man_task(
             metadata={"error": error_msg},
         )
 
-        raise ApplicationError(f"MAN task resolution failed: {error_msg}", non_retryable=False) from e
+        raise ApplicationError(f"MAN task resolution failed: {error_msg}",
+                               non_retryable=False) from e
 
 
 @activity.defn(name="backlog_check")
@@ -374,7 +370,6 @@ async def backlog_check(tenant_id: str) -> Dict[str, Any]:
     """
     activity.logger.info(f"Checking MAN task backlog for tenant: {tenant_id}")
 
-    success = False
     error_msg = None
 
     try:
@@ -403,7 +398,6 @@ async def backlog_check(tenant_id: str) -> Dict[str, Any]:
             "action": policy.degrade_behavior if overloaded else None,
         }
 
-        success = True
 
         if overloaded:
             activity.logger.warning(

@@ -49,6 +49,8 @@ from temporalio.exceptions import ActivityError, ApplicationError
 
 # Import our models and activities
 with workflow.unsafe.imports_passed_through():
+    from orchestrator.models.man_mode import ActionIntent
+
     from models.events import (
         AgentEvent,
         GoalReceived,
@@ -58,8 +60,6 @@ with workflow.unsafe.imports_passed_through():
         WorkflowCompleted,
         WorkflowFailed,
     )
-    from orchestrator.models.man_mode import ActionIntent, ManDecision, ManDecisionPayload
-    from activities.man_mode import backlog_check, create_man_task, resolve_man_task, risk_triage
 
 
 # ============================================================================
@@ -727,7 +727,7 @@ class AgentWorkflow:
                             non_retryable=True
                         )
                     elif action == "FORCE_PAUSE":
-                        workflow.logger.warning(f"  ⏸️ Workflow paused due to backlog overload")
+                        workflow.logger.warning("  ⏸️ Workflow paused due to backlog overload")
                         self.workflow_paused = True
                         await workflow.wait_condition(lambda: not self.workflow_paused)
 

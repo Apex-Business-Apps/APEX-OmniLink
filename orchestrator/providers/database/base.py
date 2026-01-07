@@ -6,7 +6,6 @@ This enables portability between different database backends (Supabase, PostgreS
 while maintaining consistent behavior and error handling.
 """
 
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Protocol
 
 
@@ -15,7 +14,7 @@ class DatabaseError(Exception):
     pass
 
 
-class NotFound(DatabaseError):
+class NotFoundError(DatabaseError):
     """Raised when a requested record is not found."""
     pass
 

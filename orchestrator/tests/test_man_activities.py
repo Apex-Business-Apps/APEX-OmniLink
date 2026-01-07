@@ -4,21 +4,18 @@ Unit tests for MAN Mode Temporal activities.
 Tests the activities for risk triage, task creation, resolution, and backlog checking.
 """
 
-import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from orchestrator.models.man_mode import (
-    ActionIntent,
-    ManDecision,
-    ManLane,
-    RiskTriageResult,
-)
+import pytest
 from orchestrator.activities.man_mode import (
-    risk_triage,
+    backlog_check,
     create_man_task,
     resolve_man_task,
-    backlog_check,
+    risk_triage,
+)
+from orchestrator.models.man_mode import (
+    ManLane,
+    RiskTriageResult,
 )
 
 
@@ -81,7 +78,7 @@ class TestRiskTriageActivity:
             mock_engine.triage_intent.return_value = mock_result
             mock_get_engine.return_value = mock_engine
 
-            result = await risk_triage(intent_data, workflow_key, free_text_signals)
+            await risk_triage(intent_data, workflow_key, free_text_signals)
 
             mock_engine.triage_intent.assert_called_once()
             args, kwargs = mock_engine.triage_intent.call_args
@@ -179,8 +176,8 @@ class TestCreateManTaskActivity:
             mock_db.upsert.return_value = {"id": "task-123"}
             mock_get_db.return_value = mock_db
 
-            result1 = await create_man_task(intent_data, triage_data)
-            result2 = await create_man_task(intent_data, triage_data)
+            await create_man_task(intent_data, triage_data)
+            await create_man_task(intent_data, triage_data)
 
             # Should have been called twice with same idempotency key
             assert mock_db.upsert.call_count == 2

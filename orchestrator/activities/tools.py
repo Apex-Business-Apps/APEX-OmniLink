@@ -36,8 +36,8 @@ from litellm import acompletion
 from pydantic import BaseModel
 from temporalio import activity
 
-from ..providers.database.factory import get_database_provider
 from ..models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
+from ..providers.database.factory import get_database_provider
 
 # Global service instances (initialized in setup_activities())
 _semantic_cache = None  # SemanticCacheService instance
@@ -242,7 +242,6 @@ async def search_database(params: dict[str, Any]) -> dict[str, Any]:
 
     activity.logger.info(f"Searching {table} with filters: {filters}")
 
-    success = False
     error_msg = None
     result_count = 0
 
@@ -257,7 +256,7 @@ async def search_database(params: dict[str, Any]) -> dict[str, Any]:
             select_fields=select_fields
         )
 
-        success = True
+
         result_count = len(data)
 
         # Audit success
@@ -320,7 +319,6 @@ async def create_record(params: dict[str, Any]) -> dict[str, Any]:
 
     activity.logger.info(f"Creating record in {table}")
 
-    success = False
     error_msg = None
     record_id = None
 
@@ -331,7 +329,6 @@ async def create_record(params: dict[str, Any]) -> dict[str, Any]:
         # Perform insert operation
         created = await db.insert(table=table, record=data)
 
-        success = True
         record_id = created.get("id")
 
         # Audit success
@@ -391,7 +388,6 @@ async def delete_record(params: dict[str, Any]) -> dict[str, Any]:
 
     activity.logger.info(f"Deleting record from {table}: {record_id}")
 
-    success = False
     error_msg = None
 
     try:
@@ -400,8 +396,6 @@ async def delete_record(params: dict[str, Any]) -> dict[str, Any]:
 
         # Delete record by ID filter
         deleted_count = await db.delete(table=table, filters={"id": record_id})
-
-        success = True
 
         # Audit success
         await log_audit_event(
@@ -533,4 +527,5 @@ async def call_webhook(params: dict[str, Any]) -> dict[str, Any]:
 # Example: Instead of manual locking, use workflow signals:
 # await workflow.wait_condition(lambda: workflow_state.is_ready)
 # signal = workflow.get_external_signal("resource_available")
+# await signal
 # await signal

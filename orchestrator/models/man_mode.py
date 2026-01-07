@@ -37,7 +37,7 @@ class ActionIntent(BaseModel):
     flags: Dict[str, Any] = Field(default_factory=dict, description="Additional flags and metadata")
 
     @validator("tool_params")
-    def redact_sensitive_params(cls, v):
+    def redact_sensitive_params(self, v):
         """Redact sensitive parameters for audit logging."""
         # Redact common sensitive fields
         sensitive_keys = {"password", "token", "secret", "key", "api_key", "auth"}
@@ -158,7 +158,7 @@ class ManPolicy(BaseModel):
     )
 
     @validator("degrade_behavior")
-    def validate_degrade_behavior(cls, v):
+    def validate_degrade_behavior(self, v):
         """Validate degrade behavior options."""
         allowed = {"BLOCK_NEW", "FORCE_PAUSE", "AUTO_DENY"}
         if v not in allowed:
@@ -505,7 +505,7 @@ async def cleanup_expired_tasks() -> int:
         if isinstance(created_timestamp, str):
             # Assume ISO format, convert to timestamp
             from datetime import datetime
-            created_time = datetime.fromisoformat(created_timestamp.replace('Z', '+00:00')).timestamp()
+            created_time = datetime.fromisoformat(created_timestamp.replace("Z", "+00:00")).timestamp()
         else:
             created_time = created_timestamp
 
