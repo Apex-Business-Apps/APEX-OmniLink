@@ -277,13 +277,19 @@ async def resolve_man_task(task_id: str, decision_payload_data: Dict[str, Any]) 
 
         # Update task
         updates = {
-            "status": "APPROVED"
-            if decision_payload.decision == ManDecision.APPROVE
-            else "DENIED"
-            if decision_payload.decision == ManDecision.DENY
-            else "MODIFIED"
-            if decision_payload.decision == ManDecision.MODIFY
-            else "CANCELLED",
+            "status": (
+                "APPROVED"
+                if decision_payload.decision == ManDecision.APPROVE
+                else (
+                    "DENIED"
+                    if decision_payload.decision == ManDecision.DENY
+                    else (
+                        "MODIFIED"
+                        if decision_payload.decision == ManDecision.MODIFY
+                        else "CANCELLED"
+                    )
+                )
+            ),
             "reviewer_id": decision_payload.reviewer_id,
             "decision": decision_data,
         }
