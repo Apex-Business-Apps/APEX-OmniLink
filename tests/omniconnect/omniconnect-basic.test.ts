@@ -17,28 +17,28 @@ vi.mock('../../src/omniconnect/storage/encrypted-storage', () => ({
   }
 }));
 
-vi.mock('@/omniconnect/policy/policy-engine', () => ({
-  PolicyEngine: vi.fn().mockImplementation(() => ({
-    filter: vi.fn().mockResolvedValue([])
-  }))
+vi.mock('../../src/omniconnect/policy/policy-engine', () => ({
+  PolicyEngine: class {
+    filter = vi.fn().mockResolvedValue([]);
+  }
 }));
 
-vi.mock('@/omniconnect/translation/translator', () => ({
-  SemanticTranslator: vi.fn().mockImplementation(() => ({
-    translate: vi.fn().mockResolvedValue([])
-  }))
+vi.mock('../../src/omniconnect/translation/translator', () => ({
+  SemanticTranslator: class {
+    translate = vi.fn().mockResolvedValue([]);
+  }
 }));
 
-vi.mock('@/omniconnect/entitlements/entitlements-service', () => ({
-  EntitlementsService: vi.fn().mockImplementation(() => ({
-    checkEntitlement: vi.fn().mockResolvedValue(true)
-  }))
+vi.mock('../../src/omniconnect/entitlements/entitlements-service', () => ({
+  EntitlementsService: class {
+    checkEntitlement = vi.fn().mockResolvedValue(true);
+  }
 }));
 
-vi.mock('@/omniconnect/delivery/omnilink-delivery', () => ({
-  OmniLinkDelivery: vi.fn().mockImplementation(() => ({
-    deliverBatch: vi.fn().mockResolvedValue(0)
-  }))
+vi.mock('../../src/omniconnect/delivery/omnilink-delivery', () => ({
+  OmniLinkDelivery: class {
+    deliverBatch = vi.fn().mockResolvedValue(0);
+  }
 }));
 
 describe('OmniConnect Basic Functionality', () => {
