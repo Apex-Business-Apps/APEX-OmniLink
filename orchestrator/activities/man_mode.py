@@ -23,13 +23,11 @@ from ..models.man_mode import (
     ManDecision,
     ManDecisionPayload,
     ManLane,
-    ManPolicy,
     ManTask,
     RiskTriageResult,
     get_policy_engine,
 )
 from ..providers.database.factory import get_database_provider
-
 
 # ============================================================================
 # MAN MODE ACTIVITIES
@@ -73,8 +71,6 @@ async def risk_triage(
 
         # Perform deterministic triage
         result = engine.triage_intent(intent, workflow_key, free_text_signals)
-
-        success = True
 
         activity.logger.info(
             f"✓ Triage complete: {result.lane} (score: {result.risk_score:.2f})"
@@ -190,7 +186,6 @@ async def create_man_task(
         )
 
         task_id = created_task["id"]
-        success = True
 
         activity.logger.info(f"✓ MAN task created: {task_id}")
 
@@ -312,7 +307,6 @@ async def resolve_man_task(
             full_task = await db.select_one(table="man_tasks", filters={"id": task_id})
             return full_task
 
-        success = True
 
         activity.logger.info(f"✓ MAN task {task_id} resolved: {decision_payload.decision}")
 
@@ -402,8 +396,6 @@ async def backlog_check(tenant_id: str) -> Dict[str, Any]:
             "max_pending": max_pending,
             "action": policy.degrade_behavior if overloaded else None,
         }
-
-        success = True
 
         if overloaded:
             activity.logger.warning(

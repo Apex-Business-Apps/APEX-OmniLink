@@ -505,7 +505,7 @@ async def cleanup_expired_tasks() -> int:
         if isinstance(created_timestamp, str):
             # Assume ISO format, convert to timestamp
             from datetime import datetime
-            created_time = datetime.fromisoformat(created_timestamp.replace('Z', '+00:00')).timestamp()
+            created_time = datetime.fromisoformat(created_timestamp.replace("Z", "+00:00")).timestamp()
         else:
             created_time = created_timestamp
 

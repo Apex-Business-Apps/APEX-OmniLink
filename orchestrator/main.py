@@ -23,6 +23,7 @@ import os
 import sys
 
 from fastapi import FastAPI, HTTPException
+from orchestrator.models.man_mode import ManDecisionPayload, ManPolicy
 from pydantic import BaseModel
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -43,7 +44,6 @@ from activities.tools import (
     setup_activities,
 )
 from config import settings
-from orchestrator.models.man_mode import ManDecisionPayload, ManPolicy
 from workflows.agent_saga import AgentWorkflow
 
 # FastAPI app for HTTP API

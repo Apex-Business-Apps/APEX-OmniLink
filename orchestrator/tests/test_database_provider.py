@@ -4,9 +4,9 @@ Unit tests for database provider extensions (MAN Mode).
 Tests the upsert, update, and select_one methods added for MAN Mode functionality.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
+import pytest
 from orchestrator.providers.database.base import DatabaseError
 from orchestrator.providers.database.supabase_provider import SupabaseDatabaseProvider
 

@@ -4,21 +4,18 @@ Unit tests for MAN Mode Temporal activities.
 Tests the activities for risk triage, task creation, resolution, and backlog checking.
 """
 
-import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from orchestrator.models.man_mode import (
-    ActionIntent,
-    ManDecision,
-    ManLane,
-    RiskTriageResult,
-)
+import pytest
 from orchestrator.activities.man_mode import (
-    risk_triage,
+    backlog_check,
     create_man_task,
     resolve_man_task,
-    backlog_check,
+    risk_triage,
+)
+from orchestrator.models.man_mode import (
+    ManLane,
+    RiskTriageResult,
 )
 
 
