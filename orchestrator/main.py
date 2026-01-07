@@ -75,10 +75,10 @@ async def create_goal(request: GoalRequest):
         workflow_id = f"goal-{request.trace_id}"
 
         handle = await client.start_workflow(
-            "AgentSagaWorkflow",  # This should match your workflow class name
+            "AgentSagaWorkflow",
             args=[request.user_intent, request.user_id, {}],
             id=workflow_id,
-            task_queue=os.getenv("TEMPORAL_TASK_QUEUE", "apex-agent-queue"),
+            task_queue=os.getenv("TEMPORAL_TASK_QUEUE", "apex-orchestrator"),
         )
 
         logger.info(f"✓ Workflow started: {workflow_id}")
