@@ -30,13 +30,18 @@ services:
 
   # Redis Stack (with vector search)
   redis:
-    image: redis/redis-stack:latest
+    image: redis/redis-stack-server:7.2.0-v9
     ports:
-      - "6379:6379"  # Redis
-      - "8001:8001"  # RedisInsight UI
+      - "6379:6379"
+    environment:
+      - REDIS_ARGS=--loadmodule /opt/redis-stack/lib/redisearch.so --loadmodule /opt/redis-stack/lib/redisjson.so --loadmodule /opt/redis-stack/lib/redisbloom.so
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
 
   # APEX Orchestrator Worker
   orchestrator:
