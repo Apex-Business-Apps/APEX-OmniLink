@@ -47,7 +47,7 @@ class DatabaseProvider(Protocol):
             List of matching records as dictionaries
 
         Raises:
-            NotFound: If no records match the filters
+            NotFoundError: If no records match the filters
             DatabaseError: For other database errors
         """
         ...
