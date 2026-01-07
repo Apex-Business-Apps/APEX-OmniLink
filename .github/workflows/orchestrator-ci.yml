@@ -28,7 +28,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --entrypoint redis-server
-        command: >-
           --loadmodule /opt/redis-stack/lib/redisearch.so
           --loadmodule /opt/redis-stack/lib/redisjson.so
           --loadmodule /opt/redis-stack/lib/redisbloom.so
