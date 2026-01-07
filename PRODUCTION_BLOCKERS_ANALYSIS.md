@@ -71,7 +71,7 @@ Vercel builds the app on their servers and needs environment variables set in th
 **Fix Required**:
 Set these environment variables in Vercel Project Settings:
 1. `VITE_SUPABASE_URL` = `https://wwajmaohwcbooljdureo.supabase.co`
-2. `VITE_SUPABASE_PUBLISHABLE_KEY` = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3YWptYW9od2Nib29samR1cmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MjEzNjAsImV4cCI6MjA3NDk5NzM2MH0.mVUv2O8zSi9CjspgSUlUMUnr69N4gJTCXxEjJBAg-Dg`
+2. `VITE_SUPABASE_PUBLISHABLE_KEY` = `<your-supabase-anon-key-from-dashboard>`
 
 **Note**: These are public anon keys and safe to expose.
 
