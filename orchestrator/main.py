@@ -43,7 +43,7 @@ from activities.tools import (
     setup_activities,
 )
 from config import settings
-from models.man_mode import ManDecisionPayload, ManPolicy
+from orchestrator.models.man_mode import ManDecisionPayload, ManPolicy
 from workflows.agent_saga import AgentWorkflow
 
 # FastAPI app for HTTP API

@@ -58,7 +58,7 @@ with workflow.unsafe.imports_passed_through():
         WorkflowCompleted,
         WorkflowFailed,
     )
-    from models.man_mode import ActionIntent, ManDecision, ManDecisionPayload
+    from orchestrator.models.man_mode import ActionIntent, ManDecision, ManDecisionPayload
     from activities.man_mode import backlog_check, create_man_task, resolve_man_task, risk_triage
 
 
