@@ -81,3 +81,69 @@ class DatabaseProvider(Protocol):
             DatabaseError: For database errors
         """
         ...
+
+    async def upsert(
+        self,
+        table: str,
+        record: Dict[str, Any],
+        conflict_columns: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Insert or update a record (upsert) based on conflict resolution.
+
+        Args:
+            table: Table name to upsert into
+            record: Record data as a dictionary
+            conflict_columns: Columns to check for conflicts (ON CONFLICT clause)
+
+        Returns:
+            The upserted record
+
+        Raises:
+            DatabaseError: For database errors
+        """
+        ...
+
+    async def update(
+        self,
+        table: str,
+        filters: Dict[str, Any],
+        updates: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Update records matching the filters.
+
+        Args:
+            table: Table name to update
+            filters: Dictionary of field-value pairs to match (WHERE clause)
+            updates: Dictionary of field-value pairs to update (SET clause)
+
+        Returns:
+            The updated record if exactly one was updated, None otherwise
+
+        Raises:
+            DatabaseError: For database errors
+        """
+        ...
+
+    async def select_one(
+        self,
+        table: str,
+        filters: Dict[str, Any],
+        select_fields: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Select a single record from a table with filtering.
+
+        Args:
+            table: Table name to query
+            filters: Dictionary of field-value pairs to filter by (equality only)
+            select_fields: Comma-separated field names to select (None = all fields)
+
+        Returns:
+            Single matching record as dictionary, or None if not found
+
+        Raises:
+            DatabaseError: For database errors
+        """
+        ...

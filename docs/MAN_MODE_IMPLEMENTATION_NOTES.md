@@ -117,12 +117,32 @@ C) man_decision_events (append-only audit)
 ## PHASE 3 — DATABASE PROVIDER EXTENSIONS
 
 ### Extensions Added
+Extended DatabaseProvider interface (orchestrator/providers/database/base.py):
+- upsert(table, record, conflict_columns) - Insert or update with conflict resolution
+- update(table, filters, updates) - Update records with filters
+- select_one(table, filters, select_fields) - Select single record or None
+
+Implemented in SupabaseDatabaseProvider (orchestrator/providers/database/supabase_provider.py):
+- upsert: Uses Supabase upsert with on_conflict clause
+- update: Updates records and returns single updated record if exactly one
+- select_one: Selects single record or returns None if not found
+- All methods include proper error handling and exception conversion
 
 ### Tests Added
+orchestrator/tests/test_database_provider.py:
+- Comprehensive tests for upsert (success, failure, exception handling, multiple conflicts)
+- Tests for update (single record, multiple records, no records, exceptions)
+- Tests for select_one (found, not found, with field selection, exceptions)
+- All tests use mocked Supabase client for isolation
 
 ### Verification Results
+- Interface extensions are backward compatible
+- Supabase implementation follows existing patterns
+- Error handling converts exceptions to DatabaseError
+- Unit tests cover all success/failure paths
+- Methods are idempotent and safe for concurrent use
 
-**PHASE 3 STATUS:**
+**PHASE 3 COMPLETE** - Database provider extended with MAN Mode operations and comprehensive tests.
 
 ---
 
