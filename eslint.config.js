@@ -20,25 +20,18 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": ["warn", {
-        argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_"
-      }],
-      "@typescript-eslint/no-explicit-any": ["warn", {
-        fixToUnknown: true,
-        ignoreRestArgs: false
-      }],
+      "react-hooks/exhaustive-deps": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-empty-object-type": "warn",
-      "no-console": ["warn", {
-        allow: ["warn", "error"]
-      }],
+      "no-console": "warn",
     },
   },
   // Allow console.log in CLI scripts and simulation files
   {
     files: ["sim/**/*.ts", "scripts/**/*.ts", "sandbox/**/*.ts"],
     rules: {
-      "no-console": "off",
+      "no-console": "warn",
     },
   },
 );

@@ -9,28 +9,36 @@ import { registerConnector } from '@/omniconnect/core/registry';
 
 // Mock the storage and other services using class-based mocks
 // Note: Arrow functions cannot be used as constructors, so we use classes
-vi.mock('@/omniconnect/storage/encrypted-storage', () => ({
-  EncryptedTokenStorage: class MockEncryptedTokenStorage {
-    store = vi.fn();
-    get = vi.fn();
-    listActive = vi.fn().mockResolvedValue([]);
-    delete = vi.fn();
-    listByProvider = vi.fn().mockResolvedValue([]);
-    getLastSync = vi.fn().mockResolvedValue(new Date(0));
-    updateLastSync = vi.fn();
-  }
+vi.mock('../../src/omniconnect/core/dependencies/token-storage', () => ({
+  EncryptedTokenStorage: vi.fn().mockImplementation(function MockEncryptedTokenStorage() {
+    return {
+      store: vi.fn(),
+      get: vi.fn(),
+      delete: vi.fn(),
+      listActive: vi.fn().mockResolvedValue([]),
+      listByProvider: vi.fn().mockResolvedValue([]),
+      getLastSync: vi.fn().mockResolvedValue(new Date(0)),
+      updateLastSync: vi.fn()
+    };
+  })
 }));
 
-vi.mock('@/omniconnect/policy/policy-engine', () => ({
-  PolicyEngine: class MockPolicyEngine {
-    filter = vi.fn().mockResolvedValue([]);
-  }
+vi.mock('../../src/omniconnect/policy/policy-engine', () => ({
+  PolicyEngine: vi.fn().mockImplementation(function MockPolicyEngine() {
+    return {
+      evaluate: vi.fn().mockResolvedValue(true),
+      loadPolicies: vi.fn(),
+      filter: vi.fn().mockResolvedValue([])
+    };
+  })
 }));
 
-vi.mock('@/omniconnect/translation/translator', () => ({
-  SemanticTranslator: class MockSemanticTranslator {
-    translate = vi.fn().mockResolvedValue([]);
-  }
+vi.mock('../../src/omniconnect/translation/translator', () => ({
+  SemanticTranslator: vi.fn().mockImplementation(function MockSemanticTranslator() {
+    return {
+      translate: vi.fn().mockResolvedValue({ type: 'standardized_event' })
+    };
+  })
 }));
 
 vi.mock('@/omniconnect/entitlements/entitlements-service', () => ({
