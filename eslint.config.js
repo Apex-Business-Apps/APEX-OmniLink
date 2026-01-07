@@ -32,6 +32,7 @@ export default tseslint.config(
       "no-console": ["warn", {
         allow: ["warn", "error"]
       }],
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
   // Allow console.log in CLI scripts and simulation files
