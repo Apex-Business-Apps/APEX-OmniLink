@@ -1,7 +1,6 @@
-from unittest.mock import MagicMock
-
-import numpy as np
 import pytest
+from unittest.mock import MagicMock
+import numpy as np
 
 
 @pytest.fixture(autouse=True)
