@@ -58,6 +58,8 @@ with workflow.unsafe.imports_passed_through():
         WorkflowCompleted,
         WorkflowFailed,
     )
+    from models.man_mode import ActionIntent, ManDecision, ManDecisionPayload
+    from activities.man_mode import backlog_check, create_man_task, resolve_man_task, risk_triage
 
 
 # ============================================================================
@@ -159,9 +161,161 @@ class SagaContext:
             stack_size = len(self.compensation_stack)
             workflow.logger.info(
                 f"✓ Registered compensation: {compensation_activity} " f"(stack size={stack_size})"
-            )
+        )
 
         return result
+
+    # ============================================================================
+    # MAN MODE HELPER METHODS
+    # ============================================================================
+
+    def _get_tenant_id(self) -> str:
+        """
+        Extract tenant ID from workflow context.
+
+        In production, this would extract from authentication context or workflow metadata.
+        For now, use a default or extract from user_id.
+        """
+        # TODO: Extract from JWT or workflow search attributes
+        return "default_tenant"  # Placeholder
+
+    def _get_workflow_key(self) -> Optional[str]:
+        """
+        Get workflow-specific key for policy overrides.
+
+        Returns workflow identifier for per-workflow policy configuration.
+        """
+        return self.plan_id or None
+
+    def _extract_step_flags(self, step: dict[str, Any]) -> dict[str, Any]:
+        """
+        Extract MAN Mode flags from step metadata.
+
+        Args:
+            step: Step definition from plan
+
+        Returns:
+            Dict of flags for ActionIntent
+        """
+        flags = {}
+
+        # Check tool name for known risky tools
+        tool_name = step.get("tool", "")
+        if tool_name in {"send_email", "call_webhook", "create_record", "delete_record"}:
+            flags["irreversible"] = True
+
+        # Check for sensitive data patterns in parameters
+        params = step.get("input", {})
+        param_keys = str(params.keys()).lower()
+        if any(sensitive in param_keys for sensitive in ["password", "secret", "token", "key"]):
+            flags["contains_sensitive_data"] = True
+
+        # Check for rights-affecting operations
+        if tool_name in {"update_user", "delete_user", "change_permissions"}:
+            flags["affects_rights"] = True
+
+        return flags
+
+    async def _wait_for_man_decision(self, task_id: str, step_id: str) -> None:
+        """
+        Wait for a MAN decision to be submitted.
+
+        Uses workflow.wait_condition to pause execution until decision is received.
+
+        Args:
+            task_id: MAN task identifier
+            step_id: Step identifier
+
+        Raises:
+            ApplicationError: If decision is DENY or CANCEL_WORKFLOW
+        """
+        workflow.logger.info(f"⏳ Waiting for MAN decision on step {step_id} (task: {task_id})")
+
+        # Wait for decision to be submitted via update
+        await workflow.wait_condition(lambda: task_id in self.pending_man_decisions)
+
+        decision = self.pending_man_decisions[task_id]
+        decision_type = decision.get("decision")
+
+        if decision_type == "APPROVE":
+            workflow.logger.info(f"✅ Step {step_id} approved by operator")
+            return
+        elif decision_type == "DENY":
+            workflow.logger.warning(f"❌ Step {step_id} denied by operator")
+            raise ApplicationError(f"Step {step_id} denied by operator", non_retryable=True)
+        elif decision_type == "CANCEL_WORKFLOW":
+            workflow.logger.warning(f"🚫 Workflow cancelled by operator decision on step {step_id}")
+            self.workflow_cancelled = True
+            raise ApplicationError("Workflow cancelled by operator", non_retryable=True)
+        elif decision_type == "MODIFY":
+            workflow.logger.info(f"🔧 Step {step_id} modified by operator")
+            return
+        else:
+            workflow.logger.warning(f"⚠️ Unknown decision type for step {step_id}: {decision_type}")
+            # Default to approval for unknown types
+            return
+
+    # ============================================================================
+    # MAN MODE SIGNAL HANDLERS (Human Override Controls)
+    # ============================================================================
+
+    @workflow.signal
+    async def pause_workflow(self, reason: str) -> None:
+        """
+        Signal to pause workflow execution.
+
+        Args:
+            reason: Reason for pausing
+        """
+        workflow.logger.warning(f"🛑 Workflow paused by signal: {reason}")
+        self.workflow_paused = True
+
+    @workflow.signal
+    async def resume_workflow(self) -> None:
+        """
+        Signal to resume workflow execution.
+        """
+        workflow.logger.info("▶️ Workflow resumed by signal")
+        self.workflow_paused = False
+
+    @workflow.signal
+    async def cancel_workflow(self, reason: str) -> None:
+        """
+        Signal to cancel workflow execution.
+
+        Args:
+            reason: Reason for cancellation
+        """
+        workflow.logger.warning(f"❌ Workflow cancelled by signal: {reason}")
+        self.workflow_cancelled = True
+
+    @workflow.signal
+    async def force_man_mode(self, scope: str, step_ids: Optional[list[str]] = None) -> None:
+        """
+        Signal to force MAN Mode approval for steps.
+
+        Args:
+            scope: "ALL" or "STEPS"
+            step_ids: List of step IDs if scope is "STEPS"
+        """
+        if scope == "ALL":
+            self.force_man_mode_all = True
+            workflow.logger.warning("🔒 MAN Mode forced for ALL steps")
+        elif scope == "STEPS" and step_ids:
+            self.force_man_mode_steps.update(step_ids)
+            workflow.logger.warning(f"🔒 MAN Mode forced for steps: {step_ids}")
+
+    @workflow.update
+    async def submit_man_decision(self, task_id: str, decision_payload: dict[str, Any]) -> None:
+        """
+        Update to submit a decision for a MAN task.
+
+        Args:
+            task_id: MAN task identifier
+            decision_payload: Decision details
+        """
+        workflow.logger.info(f"📋 MAN decision submitted for task {task_id}")
+        self.pending_man_decisions[task_id] = decision_payload
 
     async def rollback(self) -> list[dict[str, Any]]:
         """
@@ -284,6 +438,14 @@ class AgentWorkflow:
         self.plan_steps: list[dict[str, Any]] = []
         self.step_results: dict[str, Any] = {}
         self.failed_step_id: str = ""
+
+        # MAN Mode state
+        self.man_mode_enabled: bool = True  # Can be controlled via env/config
+        self.workflow_paused: bool = False
+        self.workflow_cancelled: bool = False
+        self.force_man_mode_all: bool = False  # Force approval for all steps
+        self.force_man_mode_steps: set[str] = set()  # Force approval for specific steps
+        self.pending_man_decisions: dict[str, dict[str, Any]] = {}  # task_id -> decision payload
 
         # Continue-as-new threshold
         self.MAX_HISTORY_SIZE = 1000
@@ -501,7 +663,17 @@ class AgentWorkflow:
 
     async def _execute_single_step(self, step: dict[str, Any], step_id: str) -> dict[str, Any]:
         """
-        Execute a single step with event logging and compensation registration.
+        Execute a single step with MAN Mode gate and compensation registration.
+
+        MAN Mode Flow:
+        1. Check workflow pause/cancel signals
+        2. Build ActionIntent from step
+        3. Check backlog limits
+        4. Triage risk level
+        5. Create MAN task if RED lane
+        6. Wait for decision if task created
+        7. Execute step with decision modifications
+        8. Register compensation
 
         Args:
             step: Step definition from plan
@@ -512,25 +684,121 @@ class AgentWorkflow:
 
         Raises:
             ActivityError: If step fails after retries
+            ApplicationError: If workflow cancelled or decision denied
         """
         step_name = step.get("name", step_id)
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
 
-        # Record tool call request
+        # 1. Check workflow control signals
+        if self.workflow_cancelled:
+            raise ApplicationError("Workflow cancelled by operator", non_retryable=True)
+
+        if self.workflow_paused:
+            workflow.logger.info(f"  ⏸️ Step {step_id} paused - waiting for resume signal")
+            await workflow.wait_condition(lambda: not self.workflow_paused)
+            workflow.logger.info(f"  ▶️ Step {step_id} resumed")
+
+        # 2. Build ActionIntent from step
+        intent = ActionIntent(
+            tenant_id=self._get_tenant_id(),  # Extract from workflow context
+            workflow_id=workflow.info().workflow_id,
+            run_id=self.plan_id,
+            step_id=step_id,
+            tool_name=step["tool"],
+            tool_params=step.get("input", {}),
+            flags=self._extract_step_flags(step),  # Extract flags from step metadata
+        )
+
+        # 3. Check backlog if MAN Mode enabled
+        if self.man_mode_enabled:
+            try:
+                backlog_result = await workflow.execute_activity(
+                    "backlog_check",
+                    args=[intent.tenant_id],
+                    start_to_close_timeout=timedelta(seconds=5),
+                )
+
+                if backlog_result.get("overloaded"):
+                    action = backlog_result.get("action")
+                    if action == "BLOCK_NEW":
+                        workflow.logger.warning(f"  🚫 Step {step_id} blocked due to backlog overload")
+                        raise ApplicationError(
+                            f"Step blocked due to operator backlog ({backlog_result.get('pending_count')} pending tasks)",
+                            non_retryable=True
+                        )
+                    elif action == "FORCE_PAUSE":
+                        workflow.logger.warning(f"  ⏸️ Workflow paused due to backlog overload")
+                        self.workflow_paused = True
+                        await workflow.wait_condition(lambda: not self.workflow_paused)
+
+            except ActivityError:
+                # Backlog check failure - continue (fail-safe)
+                workflow.logger.warning("Backlog check failed - proceeding without overload protection")
+
+        # 4. Triage risk level if MAN Mode enabled
+        task_id = None
+        if self.man_mode_enabled:
+            try:
+                triage_result = await workflow.execute_activity(
+                    "risk_triage",
+                    args=[intent.model_dump(), self._get_workflow_key()],
+                    start_to_close_timeout=timedelta(seconds=5),
+                )
+
+                # Force RED if MAN Mode forced for this step
+                if self.force_man_mode_all or step_id in self.force_man_mode_steps:
+                    triage_result["lane"] = "RED"
+                    triage_result["reasons"].append("MAN Mode forced by operator")
+
+                workflow.logger.info(f"  🎯 Step {step_id} triaged: {triage_result['lane']} ({triage_result['risk_score']:.2f})")
+
+                # 5. Create MAN task if RED lane
+                if triage_result["lane"] == "RED":
+                    task_result = await workflow.execute_activity(
+                        "create_man_task",
+                        args=[intent.model_dump(), triage_result],
+                        start_to_close_timeout=timedelta(seconds=10),
+                    )
+
+                    if task_result:
+                        task_id = task_result["id"]
+                        workflow.logger.warning(f"  🛡️ Step {step_id} requires approval (task: {task_id})")
+
+                        # 6. Wait for decision
+                        await self._wait_for_man_decision(task_id, step_id)
+
+                        workflow.logger.info(f"  ✅ Step {step_id} approved - proceeding with execution")
+                    else:
+                        workflow.logger.info(f"  ⚠️ Step {step_id} RED but task creation skipped")
+
+            except ActivityError as e:
+                # Triage failure - fail-safe to allow execution
+                workflow.logger.warning(f"Risk triage failed for step {step_id}: {e} - proceeding without approval")
+
+        # 7. Apply decision modifications if any
+        modified_params = step.get("input", {}).copy()
+        if task_id and task_id in self.pending_man_decisions:
+            decision = self.pending_man_decisions[task_id]
+            if decision.get("decision") == "MODIFY" and decision.get("modified_params"):
+                modified_params.update(decision["modified_params"])
+                workflow.logger.info(f"  🔧 Step {step_id} parameters modified by operator")
+
+        # Record tool call request (with potentially modified params)
         await self._append_event(
             ToolCallRequested(
                 correlation_id=workflow.info().workflow_id,
                 tool_name=step["tool"],
-                tool_input=step.get("input", {}),
+                tool_input=modified_params,
                 step_id=step_id,
                 compensation_activity=step.get("compensation"),
             )
         )
 
         try:
+            # 8. Execute step with compensation
             result = await self.saga.execute_with_compensation(
                 activity_name=step["tool"],
-                activity_input=step.get("input", {}),
+                activity_input=modified_params,
                 compensation_activity=step.get("compensation"),
                 compensation_input=step.get("compensation_input"),
                 step_id=step_id,

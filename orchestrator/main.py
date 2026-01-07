@@ -29,6 +29,7 @@ from temporalio.worker import Worker
 from uvicorn import Config, Server
 
 # Import all components
+from activities.man_mode import backlog_check, create_man_task, resolve_man_task, risk_triage
 from activities.tools import (
     acquire_distributed_lock,
     call_webhook,
@@ -157,6 +158,11 @@ async def start_worker() -> None:
             # Distributed locking activities
             acquire_distributed_lock,
             release_distributed_lock,
+            # MAN Mode activities
+            risk_triage,
+            create_man_task,
+            resolve_man_task,
+            backlog_check,
         ],
         max_concurrent_workflow_tasks=10,
         max_concurrent_activities=20,
