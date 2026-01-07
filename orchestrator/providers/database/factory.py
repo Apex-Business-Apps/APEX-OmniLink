@@ -51,10 +51,7 @@ def get_database_provider(
                 "SUPABASE_SERVICE_ROLE_KEY environment variables"
             )
 
-        _db_provider = SupabaseDatabaseProvider(
-            url=supabase_url,
-            key=supabase_key
-        )
+        _db_provider = SupabaseDatabaseProvider(url=supabase_url, key=supabase_key)
 
     else:
         raise ValueError(f"Unsupported database provider: {provider_type}")

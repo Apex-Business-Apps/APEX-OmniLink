@@ -12,11 +12,13 @@ from typing import Any, Dict, List, Optional, Protocol
 
 class DatabaseError(Exception):
     """Base exception for database operations."""
+
     pass
 
 
 class NotFound(DatabaseError):  # noqa: N818
     """Raised when a requested record is not found."""
+
     pass
 
 
@@ -31,7 +33,7 @@ class DatabaseProvider(Protocol):
         self,
         table: str,
         filters: Optional[Dict[str, Any]] = None,
-        select_fields: Optional[str] = None
+        select_fields: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Select records from a table with optional filtering.
@@ -45,7 +47,7 @@ class DatabaseProvider(Protocol):
             List of matching records as dictionaries
 
         Raises:
-            NotFound: If no records match the filters
+            NotFoundError: If no records match the filters
             DatabaseError: For other database errors
         """
         ...

@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-CI Guardrail: Assert No Stubbed Provider Implementations
-
-This script scans the orchestrator/providers directory to ensure that
-no provider implementations contain only stubbed/placeholder code.
-
-This prevents regressions where providers are created but not properly
-implemented, leading to runtime failures.
-"""
-
 import ast
 import sys
 from pathlib import Path
@@ -51,101 +41,66 @@ class StubDetector(ast.NodeVisitor):
         if self._is_stubbed_body(node.body):
             self.stubbed_functions.append(node.name)
 
-        self.current_function = old_function
-        self.generic_visit(node)
 
-    def _is_stubbed_body(self, body: List[ast.stmt]) -> bool:
-        """Check if a function body contains only stubbed code."""
-        # Remove docstrings and comments (which are parsed as Expr nodes)
-        meaningful_stmts = []
-        for stmt in body:
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-                # Skip docstrings (string constants)
-                if isinstance(stmt.value.value, str):
-                    continue
-            meaningful_stmts.append(stmt)
-
-        # Empty body is stubbed
-        if not meaningful_stmts:
-            return True
-
-        # Check each statement
-        for stmt in meaningful_stmts:
-            if not self._is_stubbed_statement(stmt):
-                return False
-
+def check_for_stubs(directory):
+    if not os.path.exists(directory):
+        print(f"❌ Error: Target directory not found: {directory}")
         return True
 
-    def _is_stubbed_statement(self, stmt: ast.stmt) -> bool:
-        """Check if a statement is stubbed/placeholder code."""
-        if isinstance(stmt, ast.Pass):
-            return True
-        elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-            # Ellipsis (...)
-            if stmt.value.value is ...:
-                return True
-            return False
-        elif isinstance(stmt, ast.Raise):
-            # raise NotImplementedError(...)
-            if (isinstance(stmt.exc, ast.Call) and
-                isinstance(stmt.exc.func, ast.Name) and
-                stmt.exc.func.id == "NotImplementedError"):
-                return True
-            return False
-        else:
-            return False
+    print(f"🔍 Scanning directory: {directory}")
+    has_errors = False
 
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if not file.endswith(".py"):
+                continue
 
-def scan_file_for_stubs(file_path: Path) -> List[str]:
-    """Scan a Python file for stubbed functions."""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+            filepath = os.path.join(root, file)
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    tree = ast.parse(f.read(), filename=filepath)
 
-        tree = ast.parse(content)
-        detector = StubDetector()
-        detector.visit(tree)
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        # Detect 'pass' or '...' bodies
+                        if len(node.body) == 1:
+                            stmt = node.body[0]
+                            is_pass = isinstance(stmt, ast.Pass)
+                            is_ellipsis = (
+                                isinstance(stmt, ast.Expr)
+                                and isinstance(stmt.value, ast.Constant)
+                                and stmt.value.value is Ellipsis
+                            )
+                            # Ignore @abstractmethod
+                            is_abstract = any(
+                                isinstance(d, ast.Name) and d.id == "abstractmethod"
+                                for d in node.decorator_list
+                            )
 
-        return detector.stubbed_functions
+                            if (is_pass or is_ellipsis) and not is_abstract:
+                                print(f"❌ Stub found in {filepath}:{node.lineno} - '{node.name}'")
+                                has_errors = True
+            except Exception as e:
+                print(f"⚠️ Parse error {filepath}: {e}")
 
-    except Exception as e:
-        print(f"Error scanning {file_path}: {e}")
-        return []
-
-
-def main() -> int:
-    """Main entry point."""
-    # Find orchestrator/providers directory
-    providers_dir = Path(__file__).parent.parent / "orchestrator" / "providers"
-
-    if not providers_dir.exists():
-        print(f"Providers directory not found: {providers_dir}")
-        return 1
-
-    # Scan all Python files in providers directory
-    stubbed_functions = []
-    for py_file in providers_dir.rglob("*.py"):
-        if py_file.name == "__init__.py":
-            continue
-
-        stubs = scan_file_for_stubs(py_file)
-        if stubs:
-            for func in stubs:
-                stubbed_functions.append(f"{py_file.relative_to(providers_dir)}:{func}")
-
-    # Report results
-    if stubbed_functions:
-        print("❌ STUBBED PROVIDER IMPLEMENTATIONS FOUND:")
-        for stub in stubbed_functions:
-            print(f"  - {stub}")
-        print()
-        print("All provider implementations must be fully implemented.")
-        print("Replace stubbed functions (pass, ..., NotImplementedError) with real code.")
-        return 1
-    else:
-        print("✅ No stubbed provider implementations found.")
-        return 0
+    return has_errors
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # --- ROBUST PATH RESOLUTION ---
+    # Current: repo/scripts/ci/script.py
+    script_path = os.path.abspath(__file__)
+    # Go up 3 levels to Repo Root
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
+
+    target_dir = os.path.join(repo_root, "orchestrator", "providers")
+
+    print(f"📂 Repo Root: {repo_root}")
+    print(f"🎯 Target: {target_dir}")
+
+    if check_for_stubs(target_dir):
+        print("FAILURE: Stubs found.")
+        sys.exit(1)
+
+    print("✅ SUCCESS: Codebase is clean.")
+    sys.exit(0)

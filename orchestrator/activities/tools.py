@@ -250,11 +250,7 @@ async def search_database(params: dict[str, Any]) -> dict[str, Any]:
         db = get_database_provider()
 
         # Perform select operation
-        data = await db.select(
-            table=table,
-            filters=filters,
-            select_fields=select_fields
-        )
+        data = await db.select(table=table, filters=filters, select_fields=select_fields)
 
         result_count = len(data)
 
