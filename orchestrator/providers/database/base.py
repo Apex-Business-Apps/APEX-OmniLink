@@ -15,7 +15,7 @@ class DatabaseError(Exception):
     pass
 
 
-class NotFound(DatabaseError):
+class NotFoundError(DatabaseError):
     """Raised when a requested record is not found."""
     pass
 
@@ -45,7 +45,7 @@ class DatabaseProvider(Protocol):
             List of matching records as dictionaries
 
         Raises:
-            NotFound: If no records match the filters
+            NotFoundError: If no records match the filters
             DatabaseError: For other database errors
         """
         ...
