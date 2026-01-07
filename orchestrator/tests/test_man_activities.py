@@ -32,15 +32,13 @@ class TestRiskTriageActivity:
             "step_id": "step1",
             "tool_name": "send_email",
             "tool_params": {"to": "test@example.com"},
-            "flags": {"irreversible": True}
+            "flags": {"irreversible": True},
         }
 
         with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine:
             mock_engine = MagicMock()
             mock_result = RiskTriageResult(
-                lane=ManLane.RED,
-                risk_score=0.85,
-                reasons=["irreversible: 0.80"]
+                lane=ManLane.RED, risk_score=0.85, reasons=["irreversible: 0.80"]
             )
             mock_engine.triage_intent.return_value = mock_result
             mock_get_engine.return_value = mock_engine
@@ -70,11 +68,7 @@ class TestRiskTriageActivity:
 
         with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine:
             mock_engine = MagicMock()
-            mock_result = RiskTriageResult(
-                lane=ManLane.GREEN,
-                risk_score=0.1,
-                reasons=[]
-            )
+            mock_result = RiskTriageResult(lane=ManLane.GREEN, risk_score=0.1, reasons=[])
             mock_engine.triage_intent.return_value = mock_result
             mock_get_engine.return_value = mock_engine
 
@@ -99,13 +93,13 @@ class TestCreateManTaskActivity:
             "step_id": "step1",
             "tool_name": "delete_user",
             "tool_params": {"user_id": "123"},
-            "flags": {"irreversible": True}
+            "flags": {"irreversible": True},
         }
 
         triage_data = {
             "lane": "RED",
             "risk_score": 0.9,
-            "reasons": ["irreversible: 0.80", "affects_rights: 1.00"]
+            "reasons": ["irreversible: 0.80", "affects_rights: 1.00"],
         }
 
         expected_task = {
@@ -146,11 +140,7 @@ class TestCreateManTaskActivity:
             "tool_params": {"table": "users"},
         }
 
-        triage_data = {
-            "lane": "GREEN",
-            "risk_score": 0.1,
-            "reasons": []
-        }
+        triage_data = {"lane": "GREEN", "risk_score": 0.1, "reasons": []}
 
         result = await create_man_task(intent_data, triage_data)
 
@@ -202,7 +192,7 @@ class TestResolveManTaskActivity:
             "decision": "APPROVE",
             "reason": "Safe operation",
             "reviewer_id": "reviewer1",
-            "modified_params": None
+            "modified_params": None,
         }
 
         existing_task = {"id": task_id, "status": "PENDING"}
@@ -210,12 +200,15 @@ class TestResolveManTaskActivity:
             "id": task_id,
             "status": "APPROVED",
             "reviewer_id": "reviewer1",
-            "decision": decision_data
+            "decision": decision_data,
         }
 
         with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
-            mock_db.select_one.side_effect = [existing_task, updated_task]  # First call returns existing, second returns updated
+            mock_db.select_one.side_effect = [
+                existing_task,
+                updated_task,
+            ]  # First call returns existing, second returns updated
             mock_db.update.return_value = updated_task
             mock_get_db.return_value = mock_db
 
@@ -233,14 +226,14 @@ class TestResolveManTaskActivity:
         decision_data = {
             "decision": "APPROVE",
             "reason": "Safe operation",
-            "reviewer_id": "reviewer1"
+            "reviewer_id": "reviewer1",
         }
 
         resolved_task = {
             "id": task_id,
             "status": "APPROVED",
             "reviewer_id": "reviewer1",
-            "decision": {"decision": "APPROVE"}
+            "decision": {"decision": "APPROVE"},
         }
 
         with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
@@ -261,7 +254,7 @@ class TestResolveManTaskActivity:
         decision_data = {
             "decision": "APPROVE",
             "reason": "Safe operation",
-            "reviewer_id": "reviewer1"
+            "reviewer_id": "reviewer1",
         }
 
         with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
@@ -279,7 +272,7 @@ class TestResolveManTaskActivity:
         decision_data = {
             "decision": "APPROVE",
             "reason": "Safe operation",
-            "reviewer_id": "reviewer1"
+            "reviewer_id": "reviewer1",
         }
 
         existing_task = {"id": task_id, "status": "PENDING"}
@@ -305,9 +298,10 @@ class TestBacklogCheckActivity:
         """Test backlog check with normal load."""
         tenant_id = "tenant1"
 
-        with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine, \
-             patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
-
+        with (
+            patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine,
+            patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db,
+        ):
             # Mock policy
             mock_policy = MagicMock()
             mock_policy.max_pending_per_tenant = 50
@@ -334,9 +328,10 @@ class TestBacklogCheckActivity:
         """Test backlog check with overloaded tenant."""
         tenant_id = "tenant1"
 
-        with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine, \
-             patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
-
+        with (
+            patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine,
+            patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db,
+        ):
             # Mock policy
             mock_policy = MagicMock()
             mock_policy.max_pending_per_tenant = 10

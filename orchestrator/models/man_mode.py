@@ -15,9 +15,9 @@ from pydantic import BaseModel, Field, validator
 class ManLane(str, Enum):
     """Risk assessment lanes for workflow steps."""
 
-    GREEN = "GREEN"      # Execute normally
-    YELLOW = "YELLOW"    # Execute with caution (optional escalation)
-    RED = "RED"         # Require human approval before execution
+    GREEN = "GREEN"  # Execute normally
+    YELLOW = "YELLOW"  # Execute with caution (optional escalation)
+    RED = "RED"  # Require human approval before execution
     BLOCKED = "BLOCKED"  # Never execute (policy violation)
 
 
@@ -60,16 +60,21 @@ class RiskTriageResult(BaseModel):
     """
 
     lane: ManLane = Field(..., description="Risk assessment lane")
-    risk_score: float = Field(..., ge=0.0, le=1.0, description="Risk score (0.0=safe, 1.0=maximum risk)")
+    risk_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Risk score (0.0=safe, 1.0=maximum risk)"
+    )
     reasons: List[str] = Field(default_factory=list, description="Reasons for the risk assessment")
 
 
 class ManDecision(str, Enum):
     """Possible decisions on a MAN task."""
 
-    APPROVE = "APPROVE"           # Allow execution
-    DENY = "DENY"                 # Block execution
-    MODIFY = "MODIFY"             # Allow with modified parameters
+    APPROVE = "APPROVE"  # Allow execution
+    DENY = "DENY"  # Block execution
+    MODIFY = "MODIFY"  # Allow with modified parameters
     CANCEL_WORKFLOW = "CANCEL_WORKFLOW"  # Cancel entire workflow
 
 
@@ -90,9 +95,15 @@ class ManTask(BaseModel):
 
     status: str = Field(default="PENDING", description="Task status")
     risk_score: float = Field(..., description="Risk score from triage")
-    risk_reasons: List[str] = Field(default_factory=list, description="Reasons for requiring approval")
+    risk_reasons: List[str] = Field(
+        default_factory=list,
+        description="Reasons for requiring approval"
+    )
 
-    intent: Dict[str, Any] = Field(default_factory=dict, description="Original action intent (redacted)")
+    intent: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Original action intent (redacted)"
+    )
 
     reviewer_id: Optional[str] = Field(None, description="ID of the reviewer who decided")
     decision: Optional[Dict[str, Any]] = Field(None, description="Decision details")
@@ -109,7 +120,10 @@ class ManDecisionPayload(BaseModel):
     decision: ManDecision = Field(..., description="The decision")
     reason: str = Field(..., description="Reason for the decision")
     reviewer_id: str = Field(..., description="ID of the reviewer")
-    modified_params: Optional[Dict[str, Any]] = Field(None, description="Modified parameters (for MODIFY decision)")
+    modified_params: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Modified parameters (for MODIFY decision)"
+    )
 
 
 class ManPolicy(BaseModel):
@@ -122,39 +136,32 @@ class ManPolicy(BaseModel):
     # Universal risk dimensions
     global_thresholds: Dict[str, float] = Field(
         default_factory=lambda: {"red": 0.8, "yellow": 0.5},
-        description="Global risk score thresholds"
+        description="Global risk score thresholds",
     )
 
     tool_minimum_lanes: Dict[str, ManLane] = Field(
-        default_factory=dict,
-        description="Minimum lane per tool name"
+        default_factory=dict, description="Minimum lane per tool name"
     )
 
     hard_triggers: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Hard triggers that force specific lanes"
+        default_factory=dict, description="Hard triggers that force specific lanes"
     )
 
     # Per-workflow overrides
     per_workflow_overrides: Dict[str, Dict[str, Any]] = Field(
-        default_factory=dict,
-        description="Workflow-specific policy overrides"
+        default_factory=dict, description="Workflow-specific policy overrides"
     )
 
     # Operational controls
-    max_pending_per_tenant: int = Field(
-        default=50,
-        description="Maximum pending tasks per tenant"
-    )
+    max_pending_per_tenant: int = Field(default=50, description="Maximum pending tasks per tenant")
 
     task_ttl_minutes: int = Field(
         default=1440,  # 24 hours
-        description="Task time-to-live in minutes"
+        description="Task time-to-live in minutes",
     )
 
     degrade_behavior: str = Field(
-        default="BLOCK_NEW",
-        description="Behavior when backlog exceeds limit"
+        default="BLOCK_NEW", description="Behavior when backlog exceeds limit"
     )
 
     @validator("degrade_behavior")
@@ -175,7 +182,11 @@ class ManPolicy(BaseModel):
 
         return base
 
-    def get_minimum_lane(self, tool_name: str, workflow_key: Optional[str] = None) -> Optional[ManLane]:
+    def get_minimum_lane(
+        self,
+        tool_name: str,
+        workflow_key: Optional[str] = None
+    ) -> Optional[ManLane]:
         """Get minimum required lane for a tool."""
         # Check workflow-specific override first
         if workflow_key and workflow_key in self.per_workflow_overrides:
@@ -205,7 +216,7 @@ class ManPolicyEngine:
         self,
         intent: ActionIntent,
         workflow_key: Optional[str] = None,
-        free_text_signals: Optional[List[str]] = None
+        free_text_signals: Optional[List[str]] = None,
     ) -> RiskTriageResult:
         """
         Triage an action intent for risk level.
@@ -218,11 +229,7 @@ class ManPolicyEngine:
         # 1. Check hard triggers (always RED)
         if self._check_hard_triggers(intent, workflow_key):
             reasons.append("Hard trigger activated")
-            return RiskTriageResult(
-                lane=ManLane.RED,
-                risk_score=1.0,
-                reasons=reasons
-            )
+            return RiskTriageResult(lane=ManLane.RED, risk_score=1.0, reasons=reasons)
 
         # 2. Evaluate risk dimensions
         dimensions = self._evaluate_risk_dimensions(intent, free_text_signals or [])
@@ -235,9 +242,7 @@ class ManPolicyEngine:
             reasons.append(f"Tool {intent.tool_name} requires minimum {min_lane}")
             if min_lane == ManLane.RED:
                 return RiskTriageResult(
-                    lane=ManLane.RED,
-                    risk_score=max(risk_score, 0.8),
-                    reasons=reasons
+                    lane=ManLane.RED, risk_score=max(risk_score, 0.8), reasons=reasons
                 )
             elif min_lane == ManLane.YELLOW and risk_score < 0.5:
                 risk_score = 0.5
@@ -252,11 +257,7 @@ class ManPolicyEngine:
         else:
             lane = ManLane.GREEN
 
-        return RiskTriageResult(
-            lane=lane,
-            risk_score=risk_score,
-            reasons=reasons
-        )
+        return RiskTriageResult(lane=lane, risk_score=risk_score, reasons=reasons)
 
     def _check_hard_triggers(self, intent: ActionIntent, workflow_key: Optional[str]) -> bool:
         """Check if any hard triggers are activated."""
@@ -284,9 +285,7 @@ class ManPolicyEngine:
         return False
 
     def _evaluate_risk_dimensions(
-        self,
-        intent: ActionIntent,
-        free_text_signals: List[str]
+        self, intent: ActionIntent, free_text_signals: List[str]
     ) -> Dict[str, float]:
         """
         Evaluate universal risk dimensions.
@@ -310,8 +309,16 @@ class ManPolicyEngine:
         # Subjectivity: exception/vulnerability language patterns
         text_to_check = free_text_signals + [str(v) for v in intent.tool_params.values()]
         subjective_patterns = [
-            "exception", "vulnerability", "risk", "danger", "warning",
-            "critical", "emergency", "urgent", "suspicious", "anomaly"
+            "exception",
+            "vulnerability",
+            "risk",
+            "danger",
+            "warning",
+            "critical",
+            "emergency",
+            "urgent",
+            "suspicious",
+            "anomaly",
         ]
 
         text_combined = " ".join(text_to_check).lower()
@@ -350,7 +357,10 @@ def get_policy_engine(policy: Optional[ManPolicy] = None) -> ManPolicyEngine:
     return _policy_engine
 
 
-def get_cached_policy(tenant_id: Optional[str], workflow_key: Optional[str]) -> Optional[Dict[str, Any]]:
+def get_cached_policy(
+    tenant_id: Optional[str],
+    workflow_key: Optional[str]
+) -> Optional[Dict[str, Any]]:
     """
     Get cached policy for tenant/workflow combination.
 
@@ -371,20 +381,24 @@ def get_cached_policy(tenant_id: Optional[str], workflow_key: Optional[str]) -> 
     return None
 
 
-def set_cached_policy(tenant_id: Optional[str], workflow_key: Optional[str], policy: Dict[str, Any]) -> None:
+def set_cached_policy(
+    tenant_id: Optional[str],
+    workflow_key: Optional[str],
+    policy: Dict[str, Any]
+) -> None:
     """
     Cache policy for tenant/workflow combination.
     """
     import time
 
     cache_key = f"{tenant_id or 'global'}:{workflow_key or 'default'}"
-    _policy_cache[cache_key] = {
-        "policy": policy,
-        "timestamp": time.time()
-    }
+    _policy_cache[cache_key] = {"policy": policy, "timestamp": time.time()}
 
 
-async def load_policy_with_cache(tenant_id: Optional[str], workflow_key: Optional[str]) -> ManPolicy:
+async def load_policy_with_cache(
+    tenant_id: Optional[str],
+    workflow_key: Optional[str]
+) -> ManPolicy:
     """
     Load policy with caching for performance.
 
@@ -397,19 +411,19 @@ async def load_policy_with_cache(tenant_id: Optional[str], workflow_key: Optiona
 
     # Load from database
     from providers.database.factory import get_database_provider
+
     db = get_database_provider()
 
     # Try specific policy first (workflow > tenant > global)
     policies_to_try = [
         {"tenant_id": tenant_id, "workflow_key": workflow_key},  # Specific
-        {"tenant_id": tenant_id, "workflow_key": None},         # Tenant-wide
-        {"tenant_id": None, "workflow_key": None},              # Global
+        {"tenant_id": tenant_id, "workflow_key": None},  # Tenant-wide
+        {"tenant_id": None, "workflow_key": None},  # Global
     ]
 
     for policy_filters in policies_to_try:
         policy_record = await db.select_one(
-            table="man_policies",
-            filters={k: v for k, v in policy_filters.items() if v is not None}
+            table="man_policies", filters={k: v for k, v in policy_filters.items() if v is not None}
         )
 
         if policy_record:
@@ -443,11 +457,11 @@ async def check_tenant_overload(tenant_id: str) -> Dict[str, Any]:
 
     # Count pending tasks
     from providers.database.factory import get_database_provider
+
     db = get_database_provider()
 
     pending_tasks = await db.select(
-        table="man_tasks",
-        filters={"tenant_id": tenant_id, "status": "PENDING"}
+        table="man_tasks", filters={"tenant_id": tenant_id, "status": "PENDING"}
     )
 
     pending_count = len(pending_tasks)
@@ -471,6 +485,7 @@ async def cleanup_expired_tasks() -> int:
 
     # Get database provider
     from providers.database.factory import get_database_provider
+
     db = get_database_provider()
 
     # Load all policies to check TTL settings
@@ -488,10 +503,7 @@ async def cleanup_expired_tasks() -> int:
     default_ttl = DEFAULT_MAN_POLICY.task_ttl_minutes
 
     # Find expired tasks
-    all_pending_tasks = await db.select(
-        table="man_tasks",
-        filters={"status": "PENDING"}
-    )
+    all_pending_tasks = await db.select(table="man_tasks", filters={"status": "PENDING"})
 
     expired_tasks = []
     current_time = time.time()
@@ -505,7 +517,10 @@ async def cleanup_expired_tasks() -> int:
         if isinstance(created_timestamp, str):
             # Assume ISO format, convert to timestamp
             from datetime import datetime
-            created_time = datetime.fromisoformat(created_timestamp.replace("Z", "+00:00")).timestamp()
+
+            created_time = datetime.fromisoformat(
+                created_timestamp.replace("Z", "+00:00")
+            ).timestamp()
         else:
             created_time = created_timestamp
 
@@ -518,7 +533,7 @@ async def cleanup_expired_tasks() -> int:
         await db.update(
             table="man_tasks",
             filters={"id": task_id, "status": "PENDING"},
-            updates={"status": "EXPIRED"}
+            updates={"status": "EXPIRED"},
         )
         expired_count += 1
 

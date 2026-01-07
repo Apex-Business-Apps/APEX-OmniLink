@@ -45,13 +45,12 @@ class TestDatabaseProviderExtensions:
         # Setup mock response
         mock_response = MagicMock()
         mock_response.data = [{"id": "123", "name": "test"}]
-        mock_supabase_client.table.return_value.upsert.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.upsert.return_value \
+            .execute.return_value = mock_response
 
         # Test upsert
         result = await provider.upsert(
-            table="test_table",
-            record={"id": "123", "name": "test"},
-            conflict_columns=["id"]
+            table="test_table", record={"id": "123", "name": "test"}, conflict_columns=["id"]
         )
 
         # Verify result
@@ -60,8 +59,7 @@ class TestDatabaseProviderExtensions:
         # Verify Supabase client was called correctly
         mock_supabase_client.table.assert_called_with("test_table")
         mock_supabase_client.table.return_value.upsert.assert_called_with(
-            {"id": "123", "name": "test"},
-            on_conflict="id"
+            {"id": "123", "name": "test"}, on_conflict="id"
         )
 
     @pytest.mark.asyncio
@@ -70,28 +68,26 @@ class TestDatabaseProviderExtensions:
         # Setup mock response with no data
         mock_response = MagicMock()
         mock_response.data = []
-        mock_supabase_client.table.return_value.upsert.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.upsert.return_value \
+            .execute.return_value = mock_response
 
         # Test upsert and expect failure
         with pytest.raises(DatabaseError, match="Upsert failed"):
             await provider.upsert(
-                table="test_table",
-                record={"id": "123", "name": "test"},
-                conflict_columns=["id"]
+                table="test_table", record={"id": "123", "name": "test"}, conflict_columns=["id"]
             )
 
     @pytest.mark.asyncio
     async def test_upsert_exception_handling(self, provider, mock_supabase_client):
         """Test upsert exception handling."""
         # Setup mock to raise exception
-        mock_supabase_client.table.return_value.upsert.return_value.execute.side_effect = Exception("DB error")
+        mock_supabase_client.table.return_value.upsert.return_value \
+            .execute.side_effect = Exception("DB error")
 
         # Test upsert and expect DatabaseError
         with pytest.raises(DatabaseError, match="Database upsert failed"):
             await provider.upsert(
-                table="test_table",
-                record={"id": "123", "name": "test"},
-                conflict_columns=["id"]
+                table="test_table", record={"id": "123", "name": "test"}, conflict_columns=["id"]
             )
 
     @pytest.mark.asyncio
@@ -100,13 +96,12 @@ class TestDatabaseProviderExtensions:
         # Setup mock response
         mock_response = MagicMock()
         mock_response.data = [{"id": "123", "name": "updated"}]
-        mock_supabase_client.table.return_value.update.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.update.return_value.eq.return_value \
+            .execute.return_value = mock_response
 
         # Test update
         result = await provider.update(
-            table="test_table",
-            filters={"id": "123"},
-            updates={"name": "updated"}
+            table="test_table", filters={"id": "123"}, updates={"name": "updated"}
         )
 
         # Verify result
@@ -118,13 +113,12 @@ class TestDatabaseProviderExtensions:
         # Setup mock response with multiple records
         mock_response = MagicMock()
         mock_response.data = [{"id": "123"}, {"id": "456"}]
-        mock_supabase_client.table.return_value.update.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.update.return_value.eq.return_value \
+            .execute.return_value = mock_response
 
         # Test update
         result = await provider.update(
-            table="test_table",
-            filters={"status": "pending"},
-            updates={"status": "processed"}
+            table="test_table", filters={"status": "pending"}, updates={"status": "processed"}
         )
 
         # Should return None for multiple updates
@@ -136,13 +130,12 @@ class TestDatabaseProviderExtensions:
         # Setup mock response with no data
         mock_response = MagicMock()
         mock_response.data = []
-        mock_supabase_client.table.return_value.update.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.update.return_value.eq.return_value \
+            .execute.return_value = mock_response
 
         # Test update
         result = await provider.update(
-            table="test_table",
-            filters={"id": "nonexistent"},
-            updates={"name": "updated"}
+            table="test_table", filters={"id": "nonexistent"}, updates={"name": "updated"}
         )
 
         # Should return None
@@ -152,14 +145,13 @@ class TestDatabaseProviderExtensions:
     async def test_update_exception_handling(self, provider, mock_supabase_client):
         """Test update exception handling."""
         # Setup mock to raise exception
-        mock_supabase_client.table.return_value.update.return_value.eq.return_value.execute.side_effect = Exception("DB error")
+        mock_supabase_client.table.return_value.update.return_value.eq.return_value \
+            .execute.side_effect = Exception("DB error")
 
         # Test update and expect DatabaseError
         with pytest.raises(DatabaseError, match="Database update failed"):
             await provider.update(
-                table="test_table",
-                filters={"id": "123"},
-                updates={"name": "updated"}
+                table="test_table", filters={"id": "123"}, updates={"name": "updated"}
             )
 
     @pytest.mark.asyncio
@@ -168,13 +160,11 @@ class TestDatabaseProviderExtensions:
         # Setup mock response
         mock_response = MagicMock()
         mock_response.data = [{"id": "123", "name": "test"}]
-        mock_supabase_client.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.select.return_value.eq.return_value \
+            .execute.return_value = mock_response
 
         # Test select_one
-        result = await provider.select_one(
-            table="test_table",
-            filters={"id": "123"}
-        )
+        result = await provider.select_one(table="test_table", filters={"id": "123"})
 
         # Verify result
         assert result == {"id": "123", "name": "test"}
@@ -185,13 +175,11 @@ class TestDatabaseProviderExtensions:
         # Setup mock response with no data
         mock_response = MagicMock()
         mock_response.data = []
-        mock_supabase_client.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.select.return_value.eq.return_value \
+            .execute.return_value = mock_response
 
         # Test select_one
-        result = await provider.select_one(
-            table="test_table",
-            filters={"id": "nonexistent"}
-        )
+        result = await provider.select_one(table="test_table", filters={"id": "nonexistent"})
 
         # Should return None
         assert result is None
@@ -202,13 +190,12 @@ class TestDatabaseProviderExtensions:
         # Setup mock response
         mock_response = MagicMock()
         mock_response.data = [{"id": "123", "name": "test"}]
-        mock_supabase_client.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.select.return_value.eq.return_value \
+            .execute.return_value = mock_response
 
         # Test select_one with field selection
         result = await provider.select_one(
-            table="test_table",
-            filters={"id": "123"},
-            select_fields="id,name"
+            table="test_table", filters={"id": "123"}, select_fields="id,name"
         )
 
         # Verify result
@@ -221,14 +208,12 @@ class TestDatabaseProviderExtensions:
     async def test_select_one_exception_handling(self, provider, mock_supabase_client):
         """Test select_one exception handling."""
         # Setup mock to raise exception
-        mock_supabase_client.table.return_value.select.return_value.eq.return_value.execute.side_effect = Exception("DB error")
+        mock_supabase_client.table.return_value.select.return_value.eq.return_value \
+            .execute.side_effect = Exception("DB error")
 
         # Test select_one and expect DatabaseError
         with pytest.raises(DatabaseError, match="Database select_one failed"):
-            await provider.select_one(
-                table="test_table",
-                filters={"id": "123"}
-            )
+            await provider.select_one(table="test_table", filters={"id": "123"})
 
     @pytest.mark.asyncio
     async def test_upsert_multiple_conflict_columns(self, provider, mock_supabase_client):
@@ -236,13 +221,14 @@ class TestDatabaseProviderExtensions:
         # Setup mock response
         mock_response = MagicMock()
         mock_response.data = [{"id": "123", "tenant_id": "t1"}]
-        mock_supabase_client.table.return_value.upsert.return_value.execute.return_value = mock_response
+        mock_supabase_client.table.return_value.upsert.return_value \
+            .execute.return_value = mock_response
 
         # Test upsert with multiple conflict columns
         result = await provider.upsert(
             table="test_table",
             record={"id": "123", "tenant_id": "t1", "data": "test"},
-            conflict_columns=["id", "tenant_id"]
+            conflict_columns=["id", "tenant_id"],
         )
 
         # Verify result
@@ -250,6 +236,5 @@ class TestDatabaseProviderExtensions:
 
         # Verify upsert was called with joined conflict columns
         mock_supabase_client.table.return_value.upsert.assert_called_with(
-            {"id": "123", "tenant_id": "t1", "data": "test"},
-            on_conflict="id,tenant_id"
+            {"id": "123", "tenant_id": "t1", "data": "test"}, on_conflict="id,tenant_id"
         )
