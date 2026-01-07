@@ -69,12 +69,48 @@
 ## PHASE 2 — DATABASE SCHEMA
 
 ### Migration Created
+- supabase/migrations/20260107000000_create_man_mode_tables.sql
+- Idempotent migration with IF NOT EXISTS clauses
+- Proper indexes for efficient querying
+- Updated_at triggers for all tables
 
 ### Tables Added
+A) man_tasks
+- id (UUID PK), tenant_id, workflow_id, run_id, step_id, tool_name, idempotency_key (unique)
+- status, risk_score, risk_reasons (JSONB), intent (JSONB redacted)
+- reviewer_id, decision (JSONB), created_at/updated_at
+- Indexes: (tenant_id, status, created_at desc), (workflow_id, run_id), (idempotency_key)
+
+B) man_policies
+- id (UUID PK), tenant_id (nullable), workflow_key (nullable), policy_json (JSONB)
+- version, updated_by, updated_at
+- Unique constraint on (tenant_id, workflow_key) for one policy per scope
+- Index on (tenant_id, workflow_key) for lookups
+
+C) man_decision_events (append-only audit)
+- id (UUID PK), task_id (FK), tenant_id, workflow_id
+- decision, reviewer_id, reason, modified_params (JSONB), created_at
+- Indexes for audit queries
+
+### RLS Security
+- Row Level Security enabled on all tables
+- Service role full access
+- Authenticated users scoped to their tenant_id
+- Operators can update decisions and manage policies
+- Proper grants for authenticated and service roles
+
+### Default Policy
+- Global default policy inserted on migration
+- Matches ManPolicy defaults (red: 0.8, yellow: 0.5, etc.)
+- ON CONFLICT DO NOTHING for safe re-runs
 
 ### Verification Results
+- Migration created with proper structure
+- RLS policies follow existing repo patterns
+- Indexes optimized for query patterns
+- Default policy matches model defaults
 
-**PHASE 2 STATUS:**
+**PHASE 2 COMPLETE** - Database schema with RLS security and default policy.
 
 ---
 
