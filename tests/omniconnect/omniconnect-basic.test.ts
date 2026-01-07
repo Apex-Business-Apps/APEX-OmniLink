@@ -5,44 +5,49 @@
 import { describe, it, expect, vi } from 'vitest';
 import { OmniConnect } from '@/omniconnect/core/omniconnect';
 import { MetaBusinessConnector } from '@/omniconnect/connectors/meta-business';
-import { registerConnector } from '@/omniconnect/core/registry';
 
-// Mock the storage and other services using proper class constructors
-vi.mock('@/omniconnect/storage/encrypted-storage', () => ({
-  EncryptedTokenStorage: class MockEncryptedTokenStorage {
-    store = vi.fn();
-    get = vi.fn();
-    listActive = vi.fn().mockResolvedValue([]);
-    delete = vi.fn();
-    listByProvider = vi.fn().mockResolvedValue([]);
-    getLastSync = vi.fn().mockResolvedValue(new Date(0));
-    updateLastSync = vi.fn();
-  }
-}));
+// Mock the storage and other services using function constructors
+// Note: Vitest requires function (not arrow) syntax for constructors to work with `new`
+vi.mock('@/omniconnect/storage/encrypted-storage', () => {
+  const MockEncryptedTokenStorage = vi.fn(function(this: Record<string, unknown>) {
+    this.store = vi.fn();
+    this.get = vi.fn();
+    this.listActive = vi.fn().mockResolvedValue([]);
+    this.delete = vi.fn();
+    this.listByProvider = vi.fn().mockResolvedValue([]);
+    this.getLastSync = vi.fn().mockResolvedValue(new Date(0));
+    this.updateLastSync = vi.fn();
+  });
+  return { EncryptedTokenStorage: MockEncryptedTokenStorage };
+});
 
-vi.mock('@/omniconnect/policy/policy-engine', () => ({
-  PolicyEngine: class MockPolicyEngine {
-    filter = vi.fn().mockResolvedValue([]);
-  }
-}));
+vi.mock('@/omniconnect/policy/policy-engine', () => {
+  const MockPolicyEngine = vi.fn(function(this: Record<string, unknown>) {
+    this.filter = vi.fn().mockResolvedValue([]);
+  });
+  return { PolicyEngine: MockPolicyEngine };
+});
 
-vi.mock('@/omniconnect/translation/translator', () => ({
-  SemanticTranslator: class MockSemanticTranslator {
-    translate = vi.fn().mockResolvedValue([]);
-  }
-}));
+vi.mock('@/omniconnect/translation/translator', () => {
+  const MockSemanticTranslator = vi.fn(function(this: Record<string, unknown>) {
+    this.translate = vi.fn().mockResolvedValue([]);
+  });
+  return { SemanticTranslator: MockSemanticTranslator };
+});
 
-vi.mock('@/omniconnect/entitlements/entitlements-service', () => ({
-  EntitlementsService: vi.fn().mockImplementation(() => ({
-    checkEntitlement: vi.fn().mockResolvedValue(true)
-  }))
-}));
+vi.mock('@/omniconnect/entitlements/entitlements-service', () => {
+  const MockEntitlementsService = vi.fn(function(this: Record<string, unknown>) {
+    this.checkEntitlement = vi.fn().mockResolvedValue(true);
+  });
+  return { EntitlementsService: MockEntitlementsService };
+});
 
-vi.mock('@/omniconnect/delivery/omnilink-delivery', () => ({
-  OmniLinkDelivery: vi.fn().mockImplementation(() => ({
-    deliverBatch: vi.fn().mockResolvedValue(0)
-  }))
-}));
+vi.mock('@/omniconnect/delivery/omnilink-delivery', () => {
+  const MockOmniLinkDelivery = vi.fn(function(this: Record<string, unknown>) {
+    this.deliverBatch = vi.fn().mockResolvedValue(0);
+  });
+  return { OmniLinkDelivery: MockOmniLinkDelivery };
+});
 
 describe('OmniConnect Basic Functionality', () => {
   it('should create OmniConnect instance', () => {
