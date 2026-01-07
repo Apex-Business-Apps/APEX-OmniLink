@@ -116,8 +116,13 @@ def scan_file_for_stubs(file_path: Path) -> List[str]:
 
 def main() -> int:
     """Main entry point."""
-    # Find orchestrator/providers directory
-    providers_dir = Path(__file__).parent.parent / "orchestrator" / "providers"
+    # Find orchestrator/providers directory using robust absolute path resolution
+    script_path = os.path.abspath(__file__)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
+    providers_dir = Path(os.path.join(repo_root, "orchestrator", "providers"))
+
+    print(f"📂 Repo Root: {repo_root}")
+    print(f"🎯 Target: {providers_dir}")
 
     if not providers_dir.exists():
         print(f"Providers directory not found: {providers_dir}")
