@@ -10,10 +10,26 @@
  */
 
 import { assertGuardRails } from './guard-rails';
-import { ChaosEngine, type ChaosConfig, DEFAULT_CHAOS_CONFIG } from './chaos-engine';
-import { getCircuitBreaker, type CircuitBreakerConfig, getAllCircuitStats } from './circuit-breaker';
-import { executeEventIdempotently, clearAllReceipts, getStats as getIdempotencyStats } from './idempotency';
-import { MetricsCollector } from './metrics';
+import {
+  ChaosEngine,
+  type ChaosConfig,
+  type ChaosDecision,
+  type ChaosStats,
+  DEFAULT_CHAOS_CONFIG,
+} from './chaos-engine';
+import {
+  getCircuitBreaker,
+  type CircuitBreakerConfig,
+  type CircuitBreakerStats,
+  getAllCircuitStats,
+} from './circuit-breaker';
+import {
+  executeEventIdempotently,
+  clearAllReceipts,
+  type IdempotencyStats,
+  getStats as getIdempotencyStats,
+} from './idempotency';
+import { MetricsCollector, type Scorecard } from './metrics';
 import type { EventEnvelope, AppName, EventType } from './contracts';
 import { createEvent, type CallCompletedPayload } from './contracts';
 
@@ -95,10 +111,10 @@ export interface SimulationResult {
   completedAt: Date;
   durationMs: number;
   beats: BeatResult[];
-  scorecard: any; // From metrics.ts
-  chaosStats: any;
-  idempotencyStats: any;
-  circuitStats: Record<string, any>;
+  scorecard: Scorecard;
+  chaosStats: ChaosStats;
+  idempotencyStats: IdempotencyStats;
+  circuitStats: Record<string, CircuitBreakerStats>;
   logs: string[];
   passed: boolean;
 }
@@ -251,7 +267,7 @@ export class SimulationRunner {
 
         // Execute with idempotency
         // Only apply chaos on first attempt - retries should be clean
-        const { wasCached: cached, attemptCount } = await executeEventIdempotently(
+        const { wasCached: cached, attemptCount: _attemptCount } = await executeEventIdempotently(
           event,
           async (evt) => {
             return await this.executeEvent(evt, beat, chaosDecision, attempt);
@@ -332,9 +348,9 @@ export class SimulationRunner {
   private async executeEvent(
     event: EventEnvelope,
     beat: Beat,
-    chaosDecision: any,
+    chaosDecision: ChaosDecision,
     attempt: number = 0
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     // Get circuit breaker for target app
     const targetApp = Array.isArray(beat.target) ? beat.target[0] : (beat.target || 'omnihub');
     const circuitName = `circuit:${targetApp}`;
@@ -376,7 +392,7 @@ export class SimulationRunner {
   /**
    * Call app adapter (stub - would call real adapters)
    */
-  private async callAppAdapter(app: AppName, event: EventEnvelope): Promise<any> {
+  private async callAppAdapter(app: AppName, event: EventEnvelope): Promise<Record<string, unknown>> {
     // Simulate network delay
     const delay = Math.random() * 100 + 50; // 50-150ms
     await new Promise(resolve => setTimeout(resolve, delay));

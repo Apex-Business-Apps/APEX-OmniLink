@@ -6,6 +6,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import type { Scorecard, AppScore } from './metrics';
+import type { SimulationResult } from './runner';
 
 export interface EvidenceManifest {
   runId: string;
@@ -23,7 +25,7 @@ export interface EvidenceManifest {
  */
 export async function createEvidenceBundle(
   runId: string,
-  result: any
+  result: SimulationResult
 ): Promise<string> {
   const evidenceDir = path.join(process.cwd(), 'evidence', runId);
 
@@ -72,7 +74,8 @@ export async function generateHTMLReport(runId: string): Promise<string> {
     throw new Error(`Evidence not found: ${runId}`);
   }
 
-  const scorecard = JSON.parse(fs.readFileSync(scorecardPath, 'utf-8'));
+  const scorecard = JSON.parse(fs.readFileSync(scorecardPath, 'utf-8')) as Scorecard;
+  const appEntries = Object.entries(scorecard.apps) as [string, AppScore][];
 
   const html = `
 <!DOCTYPE html>
@@ -125,7 +128,7 @@ export async function generateHTMLReport(runId: string): Promise<string> {
       </tr>
     </thead>
     <tbody>
-      ${Object.entries(scorecard.apps).map(([app, score]: [string, any]) => `
+      ${appEntries.map(([app, score]) => `
         <tr>
           <td>${app}</td>
           <td>${score.score.toFixed(1)}</td>
