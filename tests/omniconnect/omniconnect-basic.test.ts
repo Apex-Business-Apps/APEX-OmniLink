@@ -7,36 +7,29 @@ import { OmniConnect } from '@/omniconnect/core/omniconnect';
 import { MetaBusinessConnector } from '@/omniconnect/connectors/meta-business';
 import { registerConnector } from '@/omniconnect/core/registry';
 
-// Mock the storage and other services using class-based mocks
-// Note: Arrow functions cannot be used as constructors, so we use classes
+// Mock the storage and other services using proper class constructors
 vi.mock('@/omniconnect/storage/encrypted-storage', () => ({
-  EncryptedTokenStorage: vi.fn().mockImplementation(function MockEncryptedTokenStorage() {
-    return {
-      store: vi.fn(),
-      get: vi.fn(),
-      listActive: vi.fn().mockResolvedValue([]),
-      delete: vi.fn(),
-      listByProvider: vi.fn().mockResolvedValue([]),
-      getLastSync: vi.fn().mockResolvedValue(new Date(0)),
-      updateLastSync: vi.fn()
-    };
-  })
+  EncryptedTokenStorage: class MockEncryptedTokenStorage {
+    store = vi.fn();
+    get = vi.fn();
+    listActive = vi.fn().mockResolvedValue([]);
+    delete = vi.fn();
+    listByProvider = vi.fn().mockResolvedValue([]);
+    getLastSync = vi.fn().mockResolvedValue(new Date(0));
+    updateLastSync = vi.fn();
+  }
 }));
 
 vi.mock('@/omniconnect/policy/policy-engine', () => ({
-  PolicyEngine: vi.fn().mockImplementation(function MockPolicyEngine() {
-    return {
-      filter: vi.fn().mockResolvedValue([])
-    };
-  })
+  PolicyEngine: class MockPolicyEngine {
+    filter = vi.fn().mockResolvedValue([]);
+  }
 }));
 
 vi.mock('@/omniconnect/translation/translator', () => ({
-  SemanticTranslator: vi.fn().mockImplementation(function MockSemanticTranslator() {
-    return {
-      translate: vi.fn().mockResolvedValue([])
-    };
-  })
+  SemanticTranslator: class MockSemanticTranslator {
+    translate = vi.fn().mockResolvedValue([]);
+  }
 }));
 
 vi.mock('@/omniconnect/entitlements/entitlements-service', () => ({
@@ -117,3 +110,4 @@ describe('OmniConnect Basic Functionality', () => {
     expect(connector.provider).toBe('meta_business');
   });
 });
+
