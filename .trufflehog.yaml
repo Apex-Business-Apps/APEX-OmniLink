@@ -1,0 +1,39 @@
+# TruffleHog configuration
+
+# Exclude files with example/documentation secrets
+
+
+
+detectors:
+
+  - name: jwt
+
+    verify: true
+
+
+
+# Exclude paths with documentation and example files
+
+exclude_paths:
+
+  - "**/PRODUCTION_BLOCKERS_ANALYSIS.md"
+
+  - "**/*.example"
+
+  - "**/docs/**"
+
+  - "**/examples/**"
+
+  - "**/.env.example"
+
+  - "**/MIGRATION_*.md"
+
+
+
+# Known public keys (Supabase anon keys are safe to expose)
+
+# These are not actual secrets - they are public by design
+
+allow:
+
+  paths:

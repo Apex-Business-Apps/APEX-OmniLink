@@ -8,6 +8,7 @@ import { Web3Provider } from "./providers/Web3Provider";
 import { DashboardLayout } from "./components/DashboardLayout";
 import { ConsentBanner } from "./components/ConsentBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PaidAccessRoute } from "./components/PaidAccessRoute";
 import { useOfflineSupport } from "./hooks/useOfflineSupport";
 import { useEffect, lazy, Suspense } from 'react';
 import { initializeMonitoring } from './lib/monitoring';
@@ -170,13 +171,13 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Auth />} />
                 <Route path="/privacy" element={<Privacy />} />
-                <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-                <Route path="/links" element={<DashboardLayout><Links /></DashboardLayout>} />
-                <Route path="/files" element={<DashboardLayout><Files /></DashboardLayout>} />
-                <Route path="/automations" element={<DashboardLayout><Automations /></DashboardLayout>} />
-                <Route path="/integrations" element={<DashboardLayout><Integrations /></DashboardLayout>} />
-                <Route path="/apex" element={<DashboardLayout><ApexAssistant /></DashboardLayout>} />
-                <Route path="/todos" element={<DashboardLayout><Todos /></DashboardLayout>} />
+                <Route path="/dashboard" element={<PaidAccessRoute><DashboardLayout><Dashboard /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/links" element={<PaidAccessRoute><DashboardLayout><Links /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/files" element={<PaidAccessRoute><DashboardLayout><Files /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/automations" element={<PaidAccessRoute><DashboardLayout><Automations /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/integrations" element={<PaidAccessRoute><DashboardLayout><Integrations /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/apex" element={<PaidAccessRoute><DashboardLayout><ApexAssistant /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/todos" element={<PaidAccessRoute><DashboardLayout><Todos /></DashboardLayout></PaidAccessRoute>} />
                 <Route path="/apps/tradeline247" element={<TradeLine247 />} />
                 <Route path="/apps/autorepai" element={<AutoRepAi />} />
                 <Route path="/apps/keepsafe" element={<KeepSafe />} />
@@ -186,7 +187,7 @@ const App = () => (
                 <Route path="/apps/jubeelove" element={<JubeeLove />} />
                 <Route path="/apps/built-canadian" element={<BuiltCanadian />} />
                 <Route path="/tech-specs" element={<TechSpecs />} />
-                <Route path="/diagnostics" element={<DashboardLayout><Diagnostics /></DashboardLayout>} />
+                <Route path="/diagnostics" element={<PaidAccessRoute><DashboardLayout><Diagnostics /></DashboardLayout></PaidAccessRoute>} />
                 <Route path="/health" element={<Health />} />
               {OMNIDASH_FLAG && (
                 <Route path="/omnidash" element={<DashboardLayout><OmniDashLayout /></DashboardLayout>}>

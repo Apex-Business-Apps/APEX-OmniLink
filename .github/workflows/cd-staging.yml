@@ -81,7 +81,7 @@ jobs:
         if: always()
         run: |
           echo "## 📋 Terraform Status" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ secrets.CLOUDFLARE_API_TOKEN }}" == "" ]; then
+          if [ "${{ env.HAS_TF_SECRETS }}" != "true" ]; then
             echo "⚠️ **Using mock values** - Add real API tokens to GitHub Secrets" >> $GITHUB_STEP_SUMMARY
             echo "- CLOUDFLARE_API_TOKEN" >> $GITHUB_STEP_SUMMARY
             echo "- CLOUDFLARE_ZONE_ID" >> $GITHUB_STEP_SUMMARY
@@ -140,7 +140,7 @@ jobs:
         if: always()
         run: |
           echo "## 🚀 Deployment Status" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ secrets.VERCEL_TOKEN }}" == "" ]; then
+          if [ "${{ env.HAS_VERCEL_TOKEN }}" != "true" ]; then
             echo "⚠️ **Skipped** - Add VERCEL_TOKEN to GitHub Secrets" >> $GITHUB_STEP_SUMMARY
           else
             echo "✅ **Deployed to Vercel**" >> $GITHUB_STEP_SUMMARY
@@ -151,6 +151,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-deploy
     if: always() # Run even if deploy fails (for status reporting)
+    env:
+      HAS_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
 
     steps:
       - name: Checkout code
