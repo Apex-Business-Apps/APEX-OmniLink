@@ -7,16 +7,18 @@ import { OmniConnect } from '../../src/omniconnect/core/omniconnect';
 import { MetaBusinessConnector } from '../../src/omniconnect/connectors/meta-business';
 import { registerConnector } from '../../src/omniconnect/core/registry';
 
-// REMEDIATION: Use Class syntax for mocks to support 'new' instantiation
-vi.mock('../../src/omniconnect/storage/encrypted-storage', () => {
-  return {
-    EncryptedTokenStorage: class MockEncryptedTokenStorage {
-      store = vi.fn().mockResolvedValue(true);
-      get = vi.fn().mockResolvedValue('mock-encrypted-token');
-      remove = vi.fn().mockResolvedValue(true);
-    }
-  };
-});
+// REMEDIATION: Use proper constructor function for mocks
+vi.mock('../../src/omniconnect/storage/encrypted-storage', () => ({
+  EncryptedTokenStorage: vi.fn().mockImplementation(function() {
+    return {
+      store: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue(null),
+      listActive: vi.fn().mockResolvedValue([]),
+      delete: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    };
+  })
+}));
 
 vi.mock('../../src/omniconnect/policy/policy-engine', () => {
   return {
@@ -54,7 +56,11 @@ describe('OmniConnect Basic Functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Ensure we create a fresh instance for every test
-    omniConnect = new OmniConnect();
+    omniConnect = new OmniConnect({
+      tenantId: 'test-tenant',
+      userId: 'test-user',
+      appId: 'test-app'
+    });
   });
 
   it('should create OmniConnect instance', () => {
