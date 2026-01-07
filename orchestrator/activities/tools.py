@@ -35,7 +35,6 @@ import instructor
 from litellm import acompletion
 from pydantic import BaseModel
 from temporalio import activity
-from temporalio.exceptions import ApplicationError
 
 from ..models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
 from ..providers.database.factory import get_database_provider
