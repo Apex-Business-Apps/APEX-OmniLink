@@ -160,8 +160,8 @@ class SagaContext:
 
             stack_size = len(self.compensation_stack)
             workflow.logger.info(
-                f"✓ Registered compensation: {compensation_activity} " f"(stack size={stack_size})"
-        )
+                f"✓ Registered compensation: {compensation_activity} (stack size={stack_size})"
+            )
 
         return result
 
@@ -721,10 +721,13 @@ class AgentWorkflow:
                 if backlog_result.get("overloaded"):
                     action = backlog_result.get("action")
                     if action == "BLOCK_NEW":
-                        workflow.logger.warning(f"  🚫 Step {step_id} blocked due to backlog overload")
+                        workflow.logger.warning(
+                            f"  🚫 Step {step_id} blocked due to backlog overload"
+                        )
                         raise ApplicationError(
-                            f"Step blocked due to operator backlog ({backlog_result.get('pending_count')} pending tasks)",
-                            non_retryable=True
+                            f"Step blocked due to operator backlog "
+                            f"({backlog_result.get('pending_count')} pending tasks)",
+                            non_retryable=True,
                         )
                     elif action == "FORCE_PAUSE":
                         workflow.logger.warning("  ⏸️ Workflow paused due to backlog overload")
@@ -733,7 +736,9 @@ class AgentWorkflow:
 
             except ActivityError:
                 # Backlog check failure - continue (fail-safe)
-                workflow.logger.warning("Backlog check failed - proceeding without overload protection")
+                workflow.logger.warning(
+                    "Backlog check failed - proceeding without overload protection"
+                )
 
         # 4. Triage risk level if MAN Mode enabled
         task_id = None
@@ -750,7 +755,10 @@ class AgentWorkflow:
                     triage_result["lane"] = "RED"
                     triage_result["reasons"].append("MAN Mode forced by operator")
 
-                workflow.logger.info(f"  🎯 Step {step_id} triaged: {triage_result['lane']} ({triage_result['risk_score']:.2f})")
+                workflow.logger.info(
+                    f"  🎯 Step {step_id} triaged: {triage_result['lane']} "
+                    f"({triage_result['risk_score']:.2f})"
+                )
 
                 # 5. Create MAN task if RED lane
                 if triage_result["lane"] == "RED":
@@ -762,18 +770,25 @@ class AgentWorkflow:
 
                     if task_result:
                         task_id = task_result["id"]
-                        workflow.logger.warning(f"  🛡️ Step {step_id} requires approval (task: {task_id})")
+                        workflow.logger.warning(
+                            f"  🛡️ Step {step_id} requires approval (task: {task_id})"
+                        )
 
                         # 6. Wait for decision
                         await self._wait_for_man_decision(task_id, step_id)
 
-                        workflow.logger.info(f"  ✅ Step {step_id} approved - proceeding with execution")
+                        workflow.logger.info(
+                            f"  ✅ Step {step_id} approved - proceeding with execution"
+                        )
                     else:
                         workflow.logger.info(f"  ⚠️ Step {step_id} RED but task creation skipped")
 
             except ActivityError as e:
                 # Triage failure - fail-safe to allow execution
-                workflow.logger.warning(f"Risk triage failed for step {step_id}: {e} - proceeding without approval")
+                workflow.logger.warning(
+                    f"Risk triage failed for step {step_id}: {e} "
+                    f"- proceeding without approval"
+                )
 
         # 7. Apply decision modifications if any
         modified_params = step.get("input", {}).copy()
