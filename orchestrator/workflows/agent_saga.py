@@ -158,7 +158,7 @@ class SagaContext:
 
             stack_size = len(self.compensation_stack)
             workflow.logger.info(
-                f"✓ Registered compensation: {compensation_activity} " f"(stack size={stack_size})"
+                f"✓ Registered compensation: {compensation_activity} (stack size={stack_size})"
             )
 
         return result
