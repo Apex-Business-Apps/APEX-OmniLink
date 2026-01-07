@@ -121,14 +121,14 @@ class SemanticCacheService:
         if not self._initialized:
             raise RuntimeError("Cache service not initialized")
 
-        goal_hash = hashlib.md5(goal.encode()).hexdigest()
-
         # Simulate some fuzzy matching for testing
         if "flight" in goal.lower() and "paris" in goal.lower():
-            return self._cache.get(hashlib.md5("Book flight to Paris tomorrow".encode()).hexdigest())
+            flight_key = hashlib.md5("Book flight to Paris tomorrow".encode()).hexdigest()
+            return self._cache.get(flight_key)
 
         if "email" in goal.lower():
-            return self._cache.get(hashlib.md5("Send email to user@example.com".encode()).hexdigest())
+            email_key = hashlib.md5("Send email to user@example.com".encode()).hexdigest()
+            return self._cache.get(email_key)
 
         # For other goals, return None (cache miss)
         return None
