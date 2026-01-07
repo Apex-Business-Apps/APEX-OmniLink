@@ -43,6 +43,7 @@ from activities.tools import (
     setup_activities,
 )
 from config import settings
+from models.man_mode import ManDecisionPayload, ManPolicy
 from workflows.agent_saga import AgentWorkflow
 
 # FastAPI app for HTTP API
@@ -94,6 +95,354 @@ async def create_goal(request: GoalRequest):
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+# ============================================================================
+# MAN MODE OPERATOR API ENDPOINTS
+# ============================================================================
+
+class ManTaskFilter(BaseModel):
+    """Query parameters for filtering MAN tasks."""
+    tenant_id: str | None = None
+    status: str | None = None
+    workflow_id: str | None = None
+    limit: int = 50
+    offset: int = 0
+
+
+@app.get("/api/v1/man/tasks")
+async def list_man_tasks(filters: ManTaskFilter = None):
+    """
+    List pending MAN tasks for operator review.
+
+    Supports filtering by tenant, status, workflow, with pagination.
+    """
+    try:
+        # Get database provider
+        from providers.database.factory import get_database_provider
+        db = get_database_provider()
+
+        # Build filters
+        query_filters = {}
+        if filters.tenant_id:
+            query_filters["tenant_id"] = filters.tenant_id
+        if filters.status:
+            query_filters["status"] = filters.status
+        if filters.workflow_id:
+            query_filters["workflow_id"] = filters.workflow_id
+
+        # Query tasks with pagination
+        tasks = await db.select(
+            table="man_tasks",
+            filters=query_filters,
+            select_fields="*"
+        )
+
+        # Apply offset/limit (simple implementation)
+        start_idx = filters.offset if filters else 0
+        limit_count = filters.limit if filters else 50
+        paginated_tasks = tasks[start_idx:start_idx + limit_count]
+
+        return {
+            "tasks": paginated_tasks,
+            "total": len(tasks),
+            "offset": start_idx,
+            "limit": limit_count
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to list MAN tasks: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/v1/man/tasks/{task_id}")
+async def get_man_task(task_id: str):
+    """
+    Get a specific MAN task by ID.
+
+    Returns full task details including redacted intent and decision history.
+    """
+    try:
+        # Get database provider
+        from providers.database.factory import get_database_provider
+        db = get_database_provider()
+
+        task = await db.select_one(
+            table="man_tasks",
+            filters={"id": task_id}
+        )
+
+        if not task:
+            raise HTTPException(status_code=404, detail="MAN task not found")
+
+        # Also fetch decision events for audit trail
+        decision_events = await db.select(
+            table="man_decision_events",
+            filters={"task_id": task_id}
+        )
+
+        return {
+            "task": task,
+            "decision_events": decision_events
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get MAN task {task_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/api/v1/man/tasks/{task_id}/decision")
+async def submit_man_decision(task_id: str, decision: ManDecisionPayload):
+    """
+    Submit a decision for a MAN task.
+
+    This will resolve the task and signal the workflow to continue.
+    """
+    try:
+        # Connect to Temporal
+        client = await Client.connect(
+            os.getenv("TEMPORAL_HOST", "localhost:7233"),
+            namespace=os.getenv("TEMPORAL_NAMESPACE", "default"),
+        )
+
+        # Get task details to find workflow ID
+        from providers.database.factory import get_database_provider
+        db = get_database_provider()
+
+        task = await db.select_one(
+            table="man_tasks",
+            filters={"id": task_id},
+            select_fields="workflow_id,tenant_id"
+        )
+
+        if not task:
+            raise HTTPException(status_code=404, detail="MAN task not found")
+
+        workflow_id = task["workflow_id"]
+
+        # Submit decision via Temporal update
+        handle = client.get_workflow_handle(workflow_id)
+        await handle.execute_update(
+            AgentWorkflow.submit_man_decision,
+            args=[task_id, decision.model_dump()]
+        )
+
+        # Also call resolve_man_task activity to update database
+        # This ensures consistency even if workflow update fails
+        try:
+            await resolve_man_task(task_id, decision.model_dump())
+        except Exception as activity_error:
+            logger.warning(f"Activity resolve_man_task failed, but workflow updated: {activity_error}")
+
+        return {"status": "decision_submitted", "task_id": task_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to submit decision for task {task_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/v1/man/policies")
+async def list_man_policies(tenant_id: str | None = None, workflow_key: str | None = None):
+    """
+    List MAN Mode policies.
+
+    Supports filtering by tenant and workflow scope.
+    """
+    try:
+        # Get database provider
+        from providers.database.factory import get_database_provider
+        db = get_database_provider()
+
+        # Build filters
+        query_filters = {}
+        if tenant_id:
+            query_filters["tenant_id"] = tenant_id
+        if workflow_key:
+            query_filters["workflow_key"] = workflow_key
+
+        policies = await db.select(
+            table="man_policies",
+            filters=query_filters
+        )
+
+        return {"policies": policies}
+
+    except Exception as e:
+        logger.error(f"Failed to list MAN policies: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.put("/api/v1/man/policies")
+async def upsert_man_policy(
+    tenant_id: str | None = None,
+    workflow_key: str | None = None,
+    policy: ManPolicy = None,
+    updated_by: str | None = None
+):
+    """
+    Create or update a MAN Mode policy.
+
+    Supports tenant-wide or workflow-specific policies.
+    """
+    try:
+        if not policy:
+            raise HTTPException(status_code=400, detail="Policy data required")
+
+        # Get database provider
+        from providers.database.factory import get_database_provider
+        db = get_database_provider()
+
+        # Prepare policy record
+        policy_record = {
+            "tenant_id": tenant_id,
+            "workflow_key": workflow_key,
+            "policy_json": policy.model_dump(),
+            "version": "1.0",  # Could be incremented based on existing version
+            "updated_by": updated_by or "api",
+        }
+
+        # Upsert policy
+        result = await db.upsert(
+            table="man_policies",
+            record=policy_record,
+            conflict_columns=["tenant_id", "workflow_key"]
+        )
+
+        logger.info(f"✓ MAN policy upserted: tenant={tenant_id}, workflow={workflow_key}")
+
+        return {"policy": result}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upsert MAN policy: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+# ============================================================================
+# WORKFLOW CONTROL ENDPOINTS
+# ============================================================================
+
+class WorkflowSignal(BaseModel):
+    """Base model for workflow signals."""
+    workflow_id: str
+    reason: str | None = None
+
+
+@app.post("/api/v1/workflows/{workflow_id}/pause")
+async def pause_workflow(workflow_id: str, signal: WorkflowSignal):
+    """
+    Send pause signal to a workflow.
+
+    This will pause execution at the next safe checkpoint.
+    """
+    try:
+        # Connect to Temporal
+        client = await Client.connect(
+            os.getenv("TEMPORAL_HOST", "localhost:7233"),
+            namespace=os.getenv("TEMPORAL_NAMESPACE", "default"),
+        )
+
+        # Send pause signal
+        handle = client.get_workflow_handle(workflow_id)
+        await handle.signal(AgentWorkflow.pause_workflow, signal.reason or "Operator requested pause")
+
+        return {"status": "signal_sent", "signal": "pause", "workflow_id": workflow_id}
+
+    except Exception as e:
+        logger.error(f"Failed to pause workflow {workflow_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/api/v1/workflows/{workflow_id}/resume")
+async def resume_workflow(workflow_id: str):
+    """
+    Send resume signal to a workflow.
+
+    This will resume execution from the pause point.
+    """
+    try:
+        # Connect to Temporal
+        client = await Client.connect(
+            os.getenv("TEMPORAL_HOST", "localhost:7233"),
+            namespace=os.getenv("TEMPORAL_NAMESPACE", "default"),
+        )
+
+        # Send resume signal
+        handle = client.get_workflow_handle(workflow_id)
+        await handle.signal(AgentWorkflow.resume_workflow)
+
+        return {"status": "signal_sent", "signal": "resume", "workflow_id": workflow_id}
+
+    except Exception as e:
+        logger.error(f"Failed to resume workflow {workflow_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/api/v1/workflows/{workflow_id}/cancel")
+async def cancel_workflow(workflow_id: str, signal: WorkflowSignal):
+    """
+    Send cancel signal to a workflow.
+
+    This will terminate workflow execution.
+    """
+    try:
+        # Connect to Temporal
+        client = await Client.connect(
+            os.getenv("TEMPORAL_HOST", "localhost:7233"),
+            namespace=os.getenv("TEMPORAL_NAMESPACE", "default"),
+        )
+
+        # Send cancel signal
+        handle = client.get_workflow_handle(workflow_id)
+        await handle.signal(AgentWorkflow.cancel_workflow, signal.reason or "Operator requested cancellation")
+
+        return {"status": "signal_sent", "signal": "cancel", "workflow_id": workflow_id}
+
+    except Exception as e:
+        logger.error(f"Failed to cancel workflow {workflow_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+class ForceManModeRequest(BaseModel):
+    """Request model for forcing MAN Mode."""
+    scope: str  # "ALL" or "STEPS"
+    step_ids: list[str] | None = None
+
+
+@app.post("/api/v1/workflows/{workflow_id}/force-man-mode")
+async def force_man_mode(workflow_id: str, request: ForceManModeRequest):
+    """
+    Force MAN Mode approval for workflow steps.
+
+    Can force approval for all steps or specific steps.
+    """
+    try:
+        # Connect to Temporal
+        client = await Client.connect(
+            os.getenv("TEMPORAL_HOST", "localhost:7233"),
+            namespace=os.getenv("TEMPORAL_NAMESPACE", "default"),
+        )
+
+        # Send force MAN Mode signal
+        handle = client.get_workflow_handle(workflow_id)
+        await handle.signal(AgentWorkflow.force_man_mode, request.scope, request.step_ids)
+
+        return {
+            "status": "signal_sent",
+            "signal": "force_man_mode",
+            "workflow_id": workflow_id,
+            "scope": request.scope,
+            "step_ids": request.step_ids
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to force MAN mode on workflow {workflow_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # Configure logging

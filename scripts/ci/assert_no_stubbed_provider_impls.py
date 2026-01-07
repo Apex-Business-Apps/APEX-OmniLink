@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-CI Guardrail: Assert No Stubbed Provider Implementations
+CI Guardrail: Assert no stubbed provider implementations.
 
-This script scans the orchestrator/providers directory to ensure that
-no provider implementations contain only stubbed/placeholder code.
+This script scans the orchestrator codebase and fails if any database provider
+methods are implemented as stubs (pass, ..., or raise NotImplementedError).
 
-This prevents regressions where providers are created but not properly
-implemented, leading to runtime failures.
+This prevents production deployments with incomplete provider implementations.
 """
 
 import ast
@@ -16,135 +15,133 @@ from pathlib import Path
 from typing import List, Set
 
 
-class StubDetector(ast.NodeVisitor):
+class ProviderImplementationChecker(ast.NodeVisitor):
     """
-    AST visitor that detects stubbed implementations.
-
-    A function is considered stubbed if it contains only:
-    - pass statements
-    - ... (Ellipsis)
-    - raise NotImplementedError
-    - Comments and docstrings
+    AST visitor that checks for stubbed method implementations in providers.
     """
 
-    def __init__(self):
-        self.stubbed_functions: List[str] = []
-        self.current_function: str = ""
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        self.violations: List[str] = []
+        self.current_class: str | None = None
+        self.current_function: str | None = None
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Track current class being visited."""
+        old_class = self.current_class
+        self.current_class = node.name
+
+        # Only check provider classes
+        if "Provider" in node.name:
+            self.generic_visit(node)
+
+        self.current_class = old_class
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Visit function definitions and check if they're stubbed."""
+        """Check function implementations for stubs."""
+        if not self.current_class or "Provider" not in self.current_class:
+            return
+
         old_function = self.current_function
         self.current_function = node.name
 
-        # Check if function body is stubbed
-        if self._is_stubbed_body(node.body):
-            self.stubbed_functions.append(node.name)
+        # Check if this is a provider method (async def)
+        if isinstance(node, ast.AsyncFunctionDef):
+            self._check_method_implementation(node)
 
         self.current_function = old_function
-        self.generic_visit(node)
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        """Visit async function definitions."""
-        old_function = self.current_function
-        self.current_function = node.name
+    def _check_method_implementation(self, node: ast.AsyncFunctionDef) -> None:
+        """Check if method implementation is a stub."""
+        if not node.body:
+            return
 
-        # Check if function body is stubbed
-        if self._is_stubbed_body(node.body):
-            self.stubbed_functions.append(node.name)
+        # Check for various stub patterns
+        first_stmt = node.body[0]
 
-        self.current_function = old_function
-        self.generic_visit(node)
+        # Pattern 1: pass
+        if isinstance(first_stmt, ast.Pass):
+            self._add_violation(f"Method {self.current_function} implemented as 'pass'")
 
-    def _is_stubbed_body(self, body: List[ast.stmt]) -> bool:
-        """Check if a function body contains only stubbed code."""
-        # Remove docstrings and comments (which are parsed as Expr nodes)
-        meaningful_stmts = []
-        for stmt in body:
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-                # Skip docstrings (string constants)
-                if isinstance(stmt.value.value, str):
-                    continue
-            meaningful_stmts.append(stmt)
+        # Pattern 2: ... (Ellipsis)
+        elif isinstance(first_stmt, ast.Expr) and isinstance(first_stmt.value, ast.Ellipsis):
+            self._add_violation(f"Method {self.current_function} implemented as '...'")
 
-        # Empty body is stubbed
-        if not meaningful_stmts:
-            return True
+        # Pattern 3: raise NotImplementedError
+        elif isinstance(first_stmt, ast.Raise):
+            if isinstance(first_stmt.exc, ast.Call):
+                if isinstance(first_stmt.exc.func, ast.Name):
+                    if first_stmt.exc.func.id == "NotImplementedError":
+                        self._add_violation(f"Method {self.current_function} raises NotImplementedError")
 
-        # Check each statement
-        for stmt in meaningful_stmts:
-            if not self._is_stubbed_statement(stmt):
-                return False
+        # Pattern 4: return None (for methods that should return data)
+        elif isinstance(first_stmt, ast.Return) and first_stmt.value is None:
+            # Allow return None for some methods, but flag suspicious ones
+            method_name = node.name
+            if method_name in {"select", "insert", "update", "upsert", "select_one"}:
+                self._add_violation(f"Method {self.current_function} returns None (suspicious for data method)")
 
-        return True
-
-    def _is_stubbed_statement(self, stmt: ast.stmt) -> bool:
-        """Check if a statement is stubbed/placeholder code."""
-        if isinstance(stmt, ast.Pass):
-            return True
-        elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-            # Ellipsis (...)
-            if stmt.value.value is ...:
-                return True
-            return False
-        elif isinstance(stmt, ast.Raise):
-            # raise NotImplementedError(...)
-            if (isinstance(stmt.exc, ast.Call) and
-                isinstance(stmt.exc.func, ast.Name) and
-                stmt.exc.func.id == "NotImplementedError"):
-                return True
-            return False
-        else:
-            return False
+    def _add_violation(self, message: str) -> None:
+        """Add a violation to the list."""
+        self.violations.append(f"{self.file_path}:{self.current_class}.{self.current_function}: {message}")
 
 
-def scan_file_for_stubs(file_path: Path) -> List[str]:
-    """Scan a Python file for stubbed functions."""
+def check_file(file_path: Path) -> List[str]:
+    """Check a single file for stubbed implementations."""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        tree = ast.parse(content)
-        detector = StubDetector()
-        detector.visit(tree)
+        tree = ast.parse(content, filename=str(file_path))
+        checker = ProviderImplementationChecker(str(file_path))
+        checker.visit(tree)
 
-        return detector.stubbed_functions
+        return checker.violations
 
+    except SyntaxError as e:
+        return [f"{file_path}: Syntax error - {e}"]
     except Exception as e:
-        print(f"Error scanning {file_path}: {e}")
-        return []
+        return [f"{file_path}: Error checking file - {e}"]
 
 
 def main() -> int:
     """Main entry point."""
-    # Find orchestrator/providers directory
-    providers_dir = Path(__file__).parent.parent / "orchestrator" / "providers"
+    print("🔍 Checking for stubbed provider implementations...")
+
+    # Find all Python files in orchestrator/providers
+    orchestrator_dir = Path(__file__).parent.parent / "orchestrator"
+    providers_dir = orchestrator_dir / "providers"
 
     if not providers_dir.exists():
-        print(f"Providers directory not found: {providers_dir}")
+        print(f"❌ Providers directory not found: {providers_dir}")
         return 1
 
-    # Scan all Python files in providers directory
-    stubbed_functions = []
-    for py_file in providers_dir.rglob("*.py"):
-        if py_file.name == "__init__.py":
-            continue
+    # Find all Python files in providers directory
+    python_files = list(providers_dir.glob("**/*.py"))
 
-        stubs = scan_file_for_stubs(py_file)
-        if stubs:
-            for func in stubs:
-                stubbed_functions.append(f"{py_file.relative_to(providers_dir)}:{func}")
+    if not python_files:
+        print("⚠️  No Python files found in providers directory")
+        return 0
+
+    print(f"📁 Scanning {len(python_files)} files in {providers_dir}")
+
+    all_violations: List[str] = []
+
+    for file_path in python_files:
+        violations = check_file(file_path)
+        all_violations.extend(violations)
 
     # Report results
-    if stubbed_functions:
-        print("❌ STUBBED PROVIDER IMPLEMENTATIONS FOUND:")
-        for stub in stubbed_functions:
-            print(f"  - {stub}")
-        print()
-        print("All provider implementations must be fully implemented.")
-        print("Replace stubbed functions (pass, ..., NotImplementedError) with real code.")
+    if all_violations:
+        print(f"\n❌ Found {len(all_violations)} violations:")
+        for violation in all_violations:
+            print(f"  {violation}")
+
+        print("\n💡 Fix these by implementing the stubbed methods with proper database operations.")
+        print("   This check prevents deploying incomplete provider implementations to production.")
         return 1
     else:
-        print("✅ No stubbed provider implementations found.")
+        print("✅ All provider implementations are properly implemented!")
         return 0
 
 

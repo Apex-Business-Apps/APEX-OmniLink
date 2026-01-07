@@ -70,6 +70,10 @@ jobs:
         run: |
           python scripts/ci/assert_no_stubbed_provider_impls.py
 
+      - name: Check for forbidden SDK imports
+        run: |
+          python scripts/ci/assert_no_forbidden_sdk_imports.py
+
       - name: Run type checker
         working-directory: orchestrator
         run: |

@@ -337,6 +337,10 @@ DEFAULT_MAN_POLICY = ManPolicy()
 # Global policy engine instance (initialized with default policy)
 _policy_engine = ManPolicyEngine(DEFAULT_MAN_POLICY)
 
+# Policy cache for performance
+_policy_cache: Dict[str, Dict[str, Any]] = {}
+_POLICY_CACHE_TTL_SECONDS = 30  # 30 second cache
+
 
 def get_policy_engine(policy: Optional[ManPolicy] = None) -> ManPolicyEngine:
     """Get the global policy engine instance."""
@@ -344,3 +348,178 @@ def get_policy_engine(policy: Optional[ManPolicy] = None) -> ManPolicyEngine:
     if policy:
         _policy_engine = ManPolicyEngine(policy)
     return _policy_engine
+
+
+def get_cached_policy(tenant_id: Optional[str], workflow_key: Optional[str]) -> Optional[Dict[str, Any]]:
+    """
+    Get cached policy for tenant/workflow combination.
+
+    Returns cached policy if available and not expired, None otherwise.
+    """
+    import time
+
+    cache_key = f"{tenant_id or 'global'}:{workflow_key or 'default'}"
+
+    if cache_key in _policy_cache:
+        cached_entry = _policy_cache[cache_key]
+        if time.time() - cached_entry["timestamp"] < _POLICY_CACHE_TTL_SECONDS:
+            return cached_entry["policy"]
+        else:
+            # Expired, remove from cache
+            del _policy_cache[cache_key]
+
+    return None
+
+
+def set_cached_policy(tenant_id: Optional[str], workflow_key: Optional[str], policy: Dict[str, Any]) -> None:
+    """
+    Cache policy for tenant/workflow combination.
+    """
+    import time
+
+    cache_key = f"{tenant_id or 'global'}:{workflow_key or 'default'}"
+    _policy_cache[cache_key] = {
+        "policy": policy,
+        "timestamp": time.time()
+    }
+
+
+async def load_policy_with_cache(tenant_id: Optional[str], workflow_key: Optional[str]) -> ManPolicy:
+    """
+    Load policy with caching for performance.
+
+    Checks cache first, then database if needed.
+    """
+    # Check cache first
+    cached_policy = get_cached_policy(tenant_id, workflow_key)
+    if cached_policy:
+        return ManPolicy(**cached_policy)
+
+    # Load from database
+    from providers.database.factory import get_database_provider
+    db = get_database_provider()
+
+    # Try specific policy first (workflow > tenant > global)
+    policies_to_try = [
+        {"tenant_id": tenant_id, "workflow_key": workflow_key},  # Specific
+        {"tenant_id": tenant_id, "workflow_key": None},         # Tenant-wide
+        {"tenant_id": None, "workflow_key": None},              # Global
+    ]
+
+    for policy_filters in policies_to_try:
+        policy_record = await db.select_one(
+            table="man_policies",
+            filters={k: v for k, v in policy_filters.items() if v is not None}
+        )
+
+        if policy_record:
+            policy_data = policy_record["policy_json"]
+            # Cache the policy
+            set_cached_policy(tenant_id, workflow_key, policy_data)
+            return ManPolicy(**policy_data)
+
+    # Fallback to default policy
+    default_policy = DEFAULT_MAN_POLICY
+    set_cached_policy(tenant_id, workflow_key, default_policy.model_dump())
+    return default_policy
+
+
+# Overload protection utilities
+async def check_tenant_overload(tenant_id: str) -> Dict[str, Any]:
+    """
+    Check if tenant is overloaded and what action to take.
+
+    Returns:
+        {
+            "overloaded": bool,
+            "pending_count": int,
+            "action": str or None,
+            "max_pending": int
+        }
+    """
+    # Load tenant policy
+    policy = await load_policy_with_cache(tenant_id, None)
+    max_pending = policy.max_pending_per_tenant
+
+    # Count pending tasks
+    from providers.database.factory import get_database_provider
+    db = get_database_provider()
+
+    pending_tasks = await db.select(
+        table="man_tasks",
+        filters={"tenant_id": tenant_id, "status": "PENDING"}
+    )
+
+    pending_count = len(pending_tasks)
+    overloaded = pending_count >= max_pending
+
+    return {
+        "overloaded": overloaded,
+        "pending_count": pending_count,
+        "max_pending": max_pending,
+        "action": policy.degrade_behavior if overloaded else None,
+    }
+
+
+async def cleanup_expired_tasks() -> int:
+    """
+    Clean up expired MAN tasks.
+
+    Returns number of tasks expired.
+    """
+    import time
+
+    # Get database provider
+    from providers.database.factory import get_database_provider
+    db = get_database_provider()
+
+    # Load all policies to check TTL settings
+    policies = await db.select(table="man_policies")
+    tenant_ttls = {}
+
+    # Build tenant -> TTL mapping
+    for policy_record in policies:
+        tenant_id = policy_record["tenant_id"]
+        policy_data = policy_record["policy_json"]
+        ttl_minutes = policy_data.get("task_ttl_minutes", 1440)  # Default 24 hours
+        tenant_ttls[tenant_id] = ttl_minutes
+
+    # Default TTL for tenants without specific policy
+    default_ttl = DEFAULT_MAN_POLICY.task_ttl_minutes
+
+    # Find expired tasks
+    all_pending_tasks = await db.select(
+        table="man_tasks",
+        filters={"status": "PENDING"}
+    )
+
+    expired_tasks = []
+    current_time = time.time()
+
+    for task in all_pending_tasks:
+        tenant_id = task["tenant_id"]
+        ttl_minutes = tenant_ttls.get(tenant_id, default_ttl)
+        ttl_seconds = ttl_minutes * 60
+
+        created_timestamp = task["created_at"]
+        if isinstance(created_timestamp, str):
+            # Assume ISO format, convert to timestamp
+            from datetime import datetime
+            created_time = datetime.fromisoformat(created_timestamp.replace('Z', '+00:00')).timestamp()
+        else:
+            created_time = created_timestamp
+
+        if current_time - created_time > ttl_seconds:
+            expired_tasks.append(task["id"])
+
+    # Mark expired tasks
+    expired_count = 0
+    for task_id in expired_tasks:
+        await db.update(
+            table="man_tasks",
+            filters={"id": task_id, "status": "PENDING"},
+            updates={"status": "EXPIRED"}
+        )
+        expired_count += 1
+
+    return expired_count
