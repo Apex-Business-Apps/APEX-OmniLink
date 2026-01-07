@@ -11,11 +11,13 @@ from typing import Any, Dict, List, Optional, Protocol
 
 class DatabaseError(Exception):
     """Base exception for database operations."""
+
     pass
 
 
 class NotFoundError(DatabaseError):
     """Raised when a requested record is not found."""
+
     pass
 
 
@@ -30,7 +32,7 @@ class DatabaseProvider(Protocol):
         self,
         table: str,
         filters: Optional[Dict[str, Any]] = None,
-        select_fields: Optional[str] = None
+        select_fields: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Select records from a table with optional filtering.
@@ -82,10 +84,7 @@ class DatabaseProvider(Protocol):
         ...
 
     async def upsert(
-        self,
-        table: str,
-        record: Dict[str, Any],
-        conflict_columns: List[str]
+        self, table: str, record: Dict[str, Any], conflict_columns: List[str]
     ) -> Dict[str, Any]:
         """
         Insert or update a record (upsert) based on conflict resolution.
@@ -104,10 +103,7 @@ class DatabaseProvider(Protocol):
         ...
 
     async def update(
-        self,
-        table: str,
-        filters: Dict[str, Any],
-        updates: Dict[str, Any]
+        self, table: str, filters: Dict[str, Any], updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """
         Update records matching the filters.
@@ -126,10 +122,7 @@ class DatabaseProvider(Protocol):
         ...
 
     async def select_one(
-        self,
-        table: str,
-        filters: Dict[str, Any],
-        select_fields: Optional[str] = None
+        self, table: str, filters: Dict[str, Any], select_fields: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Select a single record from a table with filtering.
