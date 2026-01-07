@@ -514,6 +514,67 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          trial_start: string | null
+          trial_end: string | null
+          canceled_at: string | null
+          cancel_at_period_end: boolean
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          trial_start?: string | null
+          trial_end?: string | null
+          canceled_at?: string | null
+          cancel_at_period_end?: boolean
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          trial_start?: string | null
+          trial_end?: string | null
+          canceled_at?: string | null
+          cancel_at_period_end?: boolean
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -523,11 +584,21 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      is_paid_user: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      get_user_tier: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["subscription_tier"]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
       omnidash_incident_severity: "sev1" | "sev2" | "sev3"
       omnidash_incident_status: "open" | "monitoring" | "resolved"
+      subscription_tier: "free" | "starter" | "pro" | "enterprise"
+      subscription_status: "active" | "trialing" | "past_due" | "canceled" | "expired" | "paused"
       omnidash_pipeline_stage:
         | "lead"
         | "contacted"
@@ -667,6 +738,8 @@ export const Constants = {
       app_role: ["admin", "user"],
       omnidash_incident_severity: ["sev1", "sev2", "sev3"],
       omnidash_incident_status: ["open", "monitoring", "resolved"],
+      subscription_tier: ["free", "starter", "pro", "enterprise"],
+      subscription_status: ["active", "trialing", "past_due", "canceled", "expired", "paused"],
       omnidash_pipeline_stage: [
         "lead",
         "contacted",
