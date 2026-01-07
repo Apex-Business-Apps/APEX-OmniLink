@@ -101,8 +101,10 @@ async def health_check():
 # MAN MODE OPERATOR API ENDPOINTS
 # ============================================================================
 
+
 class ManTaskFilter(BaseModel):
     """Query parameters for filtering MAN tasks."""
+
     tenant_id: str | None = None
     status: str | None = None
     workflow_id: str | None = None
@@ -120,6 +122,7 @@ async def list_man_tasks(filters: ManTaskFilter = None):
     try:
         # Get database provider
         from providers.database.factory import get_database_provider
+
         db = get_database_provider()
 
         # Build filters
@@ -132,22 +135,18 @@ async def list_man_tasks(filters: ManTaskFilter = None):
             query_filters["workflow_id"] = filters.workflow_id
 
         # Query tasks with pagination
-        tasks = await db.select(
-            table="man_tasks",
-            filters=query_filters,
-            select_fields="*"
-        )
+        tasks = await db.select(table="man_tasks", filters=query_filters, select_fields="*")
 
         # Apply offset/limit (simple implementation)
         start_idx = filters.offset if filters else 0
         limit_count = filters.limit if filters else 50
-        paginated_tasks = tasks[start_idx:start_idx + limit_count]
+        paginated_tasks = tasks[start_idx : start_idx + limit_count]
 
         return {
             "tasks": paginated_tasks,
             "total": len(tasks),
             "offset": start_idx,
-            "limit": limit_count
+            "limit": limit_count,
         }
 
     except Exception as e:
@@ -165,26 +164,18 @@ async def get_man_task(task_id: str):
     try:
         # Get database provider
         from providers.database.factory import get_database_provider
+
         db = get_database_provider()
 
-        task = await db.select_one(
-            table="man_tasks",
-            filters={"id": task_id}
-        )
+        task = await db.select_one(table="man_tasks", filters={"id": task_id})
 
         if not task:
             raise HTTPException(status_code=404, detail="MAN task not found")
 
         # Also fetch decision events for audit trail
-        decision_events = await db.select(
-            table="man_decision_events",
-            filters={"task_id": task_id}
-        )
+        decision_events = await db.select(table="man_decision_events", filters={"task_id": task_id})
 
-        return {
-            "task": task,
-            "decision_events": decision_events
-        }
+        return {"task": task, "decision_events": decision_events}
 
     except HTTPException:
         raise
@@ -209,12 +200,11 @@ async def submit_man_decision(task_id: str, decision: ManDecisionPayload):
 
         # Get task details to find workflow ID
         from providers.database.factory import get_database_provider
+
         db = get_database_provider()
 
         task = await db.select_one(
-            table="man_tasks",
-            filters={"id": task_id},
-            select_fields="workflow_id,tenant_id"
+            table="man_tasks", filters={"id": task_id}, select_fields="workflow_id,tenant_id"
         )
 
         if not task:
@@ -225,8 +215,7 @@ async def submit_man_decision(task_id: str, decision: ManDecisionPayload):
         # Submit decision via Temporal update
         handle = client.get_workflow_handle(workflow_id)
         await handle.execute_update(
-            AgentWorkflow.submit_man_decision,
-            args=[task_id, decision.model_dump()]
+            AgentWorkflow.submit_man_decision, args=[task_id, decision.model_dump()]
         )
 
         # Also call resolve_man_task activity to update database
@@ -234,7 +223,9 @@ async def submit_man_decision(task_id: str, decision: ManDecisionPayload):
         try:
             await resolve_man_task(task_id, decision.model_dump())
         except Exception as activity_error:
-            logger.warning(f"Activity resolve_man_task failed, but workflow updated: {activity_error}")
+            logger.warning(
+                f"Activity resolve_man_task failed, but workflow updated: {activity_error}"
+            )
 
         return {"status": "decision_submitted", "task_id": task_id}
 
@@ -255,6 +246,7 @@ async def list_man_policies(tenant_id: str | None = None, workflow_key: str | No
     try:
         # Get database provider
         from providers.database.factory import get_database_provider
+
         db = get_database_provider()
 
         # Build filters
@@ -264,10 +256,7 @@ async def list_man_policies(tenant_id: str | None = None, workflow_key: str | No
         if workflow_key:
             query_filters["workflow_key"] = workflow_key
 
-        policies = await db.select(
-            table="man_policies",
-            filters=query_filters
-        )
+        policies = await db.select(table="man_policies", filters=query_filters)
 
         return {"policies": policies}
 
@@ -281,7 +270,7 @@ async def upsert_man_policy(
     tenant_id: str | None = None,
     workflow_key: str | None = None,
     policy: ManPolicy = None,
-    updated_by: str | None = None
+    updated_by: str | None = None,
 ):
     """
     Create or update a MAN Mode policy.
@@ -294,6 +283,7 @@ async def upsert_man_policy(
 
         # Get database provider
         from providers.database.factory import get_database_provider
+
         db = get_database_provider()
 
         # Prepare policy record
@@ -309,7 +299,7 @@ async def upsert_man_policy(
         result = await db.upsert(
             table="man_policies",
             record=policy_record,
-            conflict_columns=["tenant_id", "workflow_key"]
+            conflict_columns=["tenant_id", "workflow_key"],
         )
 
         logger.info(f"✓ MAN policy upserted: tenant={tenant_id}, workflow={workflow_key}")
@@ -327,8 +317,10 @@ async def upsert_man_policy(
 # WORKFLOW CONTROL ENDPOINTS
 # ============================================================================
 
+
 class WorkflowSignal(BaseModel):
     """Base model for workflow signals."""
+
     workflow_id: str
     reason: str | None = None
 
@@ -349,7 +341,9 @@ async def pause_workflow(workflow_id: str, signal: WorkflowSignal):
 
         # Send pause signal
         handle = client.get_workflow_handle(workflow_id)
-        await handle.signal(AgentWorkflow.pause_workflow, signal.reason or "Operator requested pause")
+        await handle.signal(
+            AgentWorkflow.pause_workflow, signal.reason or "Operator requested pause"
+        )
 
         return {"status": "signal_sent", "signal": "pause", "workflow_id": workflow_id}
 
@@ -399,7 +393,9 @@ async def cancel_workflow(workflow_id: str, signal: WorkflowSignal):
 
         # Send cancel signal
         handle = client.get_workflow_handle(workflow_id)
-        await handle.signal(AgentWorkflow.cancel_workflow, signal.reason or "Operator requested cancellation")
+        await handle.signal(
+            AgentWorkflow.cancel_workflow, signal.reason or "Operator requested cancellation"
+        )
 
         return {"status": "signal_sent", "signal": "cancel", "workflow_id": workflow_id}
 
@@ -410,6 +406,7 @@ async def cancel_workflow(workflow_id: str, signal: WorkflowSignal):
 
 class ForceManModeRequest(BaseModel):
     """Request model for forcing MAN Mode."""
+
     scope: str  # "ALL" or "STEPS"
     step_ids: list[str] | None = None
 
@@ -437,7 +434,7 @@ async def force_man_mode(workflow_id: str, request: ForceManModeRequest):
             "signal": "force_man_mode",
             "workflow_id": workflow_id,
             "scope": request.scope,
-            "step_ids": request.step_ids
+            "step_ids": request.step_ids,
         }
 
     except Exception as e:
