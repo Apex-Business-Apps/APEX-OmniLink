@@ -110,6 +110,13 @@ export const OMNIDASH_ADMIN_ALLOWLIST = (() => {
     .filter(Boolean);
 })();
 
+export const OMNIDASH_NAV_ITEMS = [
+  { key: "home", label: "OmniDash", to: "/omnidash", icon: "O" },
+  { key: "pipeline", label: "Pipeline", to: "/omnidash/pipeline", icon: "P" },
+  { key: "kpis", label: "KPIs", to: "/omnidash/kpis", icon: "K" },
+  { key: "ops", label: "Ops", to: "/omnidash/ops", icon: "!" },
+];
+
 export const OMNIDASH_SAFE_ENABLE_NOTE =
   'Enable OMNIDASH_ENABLED only for internal admins until stability is confirmed.';
 

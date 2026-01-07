@@ -58,7 +58,8 @@ describe('OmniDash routes', () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText(/OmniDash/i)).toBeInTheDocument();
+    expect(await screen.findByText(/APEX OmniHub/i)).toBeInTheDocument();
+    expect(await screen.findByTestId('omnidash-nav-o')).toBeInTheDocument();
     expect(await screen.findByText(/Today/)).toBeInTheDocument();
   });
 });
