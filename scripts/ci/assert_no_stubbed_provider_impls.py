@@ -109,8 +109,10 @@ def main() -> int:
     print("🔍 Checking for stubbed provider implementations...")
 
     # Find all Python files in orchestrator/providers
-    orchestrator_dir = Path(__file__).parent.parent / "orchestrator"
-    providers_dir = orchestrator_dir / "providers"
+    # Script is at scripts/ci/assert_no_stubbed_provider_impls.py
+    # Need to go up to root, then into orchestrator/providers
+    root_dir = Path(__file__).parent.parent.parent
+    providers_dir = root_dir / "orchestrator" / "providers"
 
     if not providers_dir.exists():
         print(f"❌ Providers directory not found: {providers_dir}")

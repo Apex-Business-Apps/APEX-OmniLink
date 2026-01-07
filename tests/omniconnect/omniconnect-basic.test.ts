@@ -3,18 +3,18 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { OmniConnect } from '@/omniconnect/core/omniconnect';
-import { MetaBusinessConnector } from '@/omniconnect/connectors/meta-business';
-import { registerConnector } from '@/omniconnect/core/registry';
+import { OmniConnect } from '../../src/omniconnect/core/omniconnect';
+import { MetaBusinessConnector } from '../../src/omniconnect/connectors/meta-business';
+import { registerConnector } from '../../src/omniconnect/core/registry';
 
-// Mock the storage and other services
-vi.mock('@/omniconnect/storage/encrypted-storage', () => ({
-  EncryptedTokenStorage: vi.fn().mockImplementation(() => ({
-    store: vi.fn(),
-    get: vi.fn(),
-    listActive: vi.fn().mockResolvedValue([]),
-    delete: vi.fn(),
-  }))
+// Mock the storage and other services as class constructors
+vi.mock('../../src/omniconnect/storage/encrypted-storage', () => ({
+  EncryptedTokenStorage: class {
+    store = vi.fn();
+    get = vi.fn();
+    listActive = vi.fn().mockResolvedValue([]);
+    delete = vi.fn();
+  }
 }));
 
 vi.mock('@/omniconnect/policy/policy-engine', () => ({

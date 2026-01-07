@@ -117,7 +117,10 @@ def main() -> int:
     print("🚫 Checking for forbidden SDK imports in activities/workflows...")
 
     # Find all Python files in activities and workflows directories
-    orchestrator_dir = Path(__file__).parent.parent / "orchestrator"
+    # Script is at scripts/ci/assert_no_forbidden_sdk_imports.py
+    # Need to go up to root, then into orchestrator
+    root_dir = Path(__file__).parent.parent.parent
+    orchestrator_dir = root_dir / "orchestrator"
 
     check_dirs = [
         orchestrator_dir / "activities",
