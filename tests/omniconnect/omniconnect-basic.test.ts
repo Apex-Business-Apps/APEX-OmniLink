@@ -7,38 +7,41 @@ import { OmniConnect } from '@/omniconnect/core/omniconnect';
 import { MetaBusinessConnector } from '@/omniconnect/connectors/meta-business';
 import { registerConnector } from '@/omniconnect/core/registry';
 
-// Mock the storage and other services
+// Mock the storage and other services using proper class constructors
 vi.mock('@/omniconnect/storage/encrypted-storage', () => ({
-  EncryptedTokenStorage: vi.fn().mockImplementation(() => ({
-    store: vi.fn(),
-    get: vi.fn(),
-    listActive: vi.fn().mockResolvedValue([]),
-    delete: vi.fn(),
-  }))
+  EncryptedTokenStorage: class {
+    store = vi.fn();
+    get = vi.fn();
+    listActive = vi.fn().mockResolvedValue([]);
+    delete = vi.fn();
+    listByProvider = vi.fn().mockResolvedValue([]);
+    getLastSync = vi.fn().mockResolvedValue(new Date(0));
+    updateLastSync = vi.fn();
+  }
 }));
 
 vi.mock('@/omniconnect/policy/policy-engine', () => ({
-  PolicyEngine: vi.fn().mockImplementation(() => ({
-    filter: vi.fn().mockResolvedValue([])
-  }))
+  PolicyEngine: class {
+    filter = vi.fn().mockResolvedValue([]);
+  }
 }));
 
 vi.mock('@/omniconnect/translation/translator', () => ({
-  SemanticTranslator: vi.fn().mockImplementation(() => ({
-    translate: vi.fn().mockResolvedValue([])
-  }))
+  SemanticTranslator: class {
+    translate = vi.fn().mockResolvedValue([]);
+  }
 }));
 
 vi.mock('@/omniconnect/entitlements/entitlements-service', () => ({
-  EntitlementsService: vi.fn().mockImplementation(() => ({
-    checkEntitlement: vi.fn().mockResolvedValue(true)
-  }))
+  EntitlementsService: class {
+    checkEntitlement = vi.fn().mockResolvedValue(true);
+  }
 }));
 
 vi.mock('@/omniconnect/delivery/omnilink-delivery', () => ({
-  OmniLinkDelivery: vi.fn().mockImplementation(() => ({
-    deliverBatch: vi.fn().mockResolvedValue(0)
-  }))
+  OmniLinkDelivery: class {
+    deliverBatch = vi.fn().mockResolvedValue(0);
+  }
 }));
 
 describe('OmniConnect Basic Functionality', () => {
