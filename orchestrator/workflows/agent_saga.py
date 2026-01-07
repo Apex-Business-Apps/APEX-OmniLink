@@ -58,6 +58,7 @@ with workflow.unsafe.imports_passed_through():
         WorkflowCompleted,
         WorkflowFailed,
     )
+    from models.man_mode import ManLane, ManTaskStatus
 
 
 # ============================================================================
@@ -284,6 +285,7 @@ class AgentWorkflow:
         self.plan_steps: list[dict[str, Any]] = []
         self.step_results: dict[str, Any] = {}
         self.failed_step_id: str = ""
+        self.pending_man_decisions: dict[str, asyncio.Future] = {}
 
         # Continue-as-new threshold
         self.MAX_HISTORY_SIZE = 1000
@@ -368,6 +370,14 @@ class AgentWorkflow:
                 non_retryable=True,
                 details=workflow_result,
             ) from e
+
+    @workflow.signal
+    def submit_man_decision(self, decision_payload: dict[str, Any]) -> None:
+        """Signal to receive human decision for a specific MAN task."""
+        task_id = decision_payload.get("task_id")
+        if task_id in self.pending_man_decisions:
+            if not self.pending_man_decisions[task_id].done():
+                self.pending_man_decisions[task_id].set_result(decision_payload)
 
     async def _check_semantic_cache(self, goal: str) -> Optional[dict[str, Any]]:
         """
@@ -514,14 +524,69 @@ class AgentWorkflow:
             ActivityError: If step fails after retries
         """
         step_name = step.get("name", step_id)
+        tool_name = step["tool"]
+        tool_input = step.get("input", {})
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
+
+        # --- MAN MODE GATING START ---
+        triage_data = await self._execute_activity(
+            "risk_triage",
+            {"tool_name": tool_name, "tool_input": tool_input},
+            step_id=f"{step_id}-triage",
+        )
+
+        lane = triage_data.get("lane")
+        workflow.logger.info(f"  🛡️ MAN Mode Triage: {tool_name} -> {lane}")
+
+        if lane == ManLane.RED.value:
+            workflow_info = workflow.info()
+            man_task = await self._execute_activity(
+                "create_man_task",
+                {
+                    "workflow_id": workflow_info.workflow_id,
+                    "run_id": workflow_info.run_id,
+                    "step_id": step_id,
+                    "tool_name": tool_name,
+                    "tool_input": tool_input,
+                    "triage_result": triage_data,
+                },
+                step_id=f"{step_id}-creation",
+            )
+            task_id = man_task["id"]
+
+            workflow.logger.warning(
+                f"  ⛔ Step BLOCKED by MAN Mode. Task ID: {task_id}. "
+                "Waiting for approval..."
+            )
+
+            decision_future = asyncio.Future()
+            self.pending_man_decisions[task_id] = decision_future
+
+            # Wait for decision via signal
+            decision = await decision_future
+            del self.pending_man_decisions[task_id]
+
+            status = decision.get("status")
+            if status == ManTaskStatus.DENIED.value:
+                error_msg = (
+                    f"Step {step_id} was DENIED by operator. "
+                    f"Reason: {decision.get('reason')}"
+                )
+                raise ApplicationError(error_msg, non_retryable=True)
+
+            elif status == ManTaskStatus.MODIFIED.value:
+                workflow.logger.info("  ✏️ Input MODIFIED by operator.")
+                tool_input = decision.get("modified_input", tool_input)
+
+            workflow.logger.info("  ✅ Step APPROVED. Proceeding...")
+        # --- MAN MODE GATING END ---
 
         # Record tool call request
         await self._append_event(
             ToolCallRequested(
                 correlation_id=workflow.info().workflow_id,
-                tool_name=step["tool"],
-                tool_input=step.get("input", {}),
+                tool_name=tool_name,
+                tool_input=tool_input,
                 step_id=step_id,
                 compensation_activity=step.get("compensation"),
             )
@@ -529,8 +594,8 @@ class AgentWorkflow:
 
         try:
             result = await self.saga.execute_with_compensation(
-                activity_name=step["tool"],
-                activity_input=step.get("input", {}),
+                activity_name=tool_name,
+                activity_input=tool_input,
                 compensation_activity=step.get("compensation"),
                 compensation_input=step.get("compensation_input"),
                 step_id=step_id,
@@ -540,7 +605,7 @@ class AgentWorkflow:
             await self._append_event(
                 ToolResultReceived(
                     correlation_id=workflow.info().workflow_id,
-                    tool_name=step["tool"],
+                    tool_name=tool_name,
                     step_id=step_id,
                     success=True,
                     result=result,
@@ -555,7 +620,7 @@ class AgentWorkflow:
             await self._append_event(
                 ToolResultReceived(
                     correlation_id=workflow.info().workflow_id,
-                    tool_name=step["tool"],
+                    tool_name=tool_name,
                     step_id=step_id,
                     success=False,
                     error=str(e),

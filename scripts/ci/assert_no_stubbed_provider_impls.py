@@ -10,10 +10,9 @@ implemented, leading to runtime failures.
 """
 
 import ast
-import os
 import sys
 from pathlib import Path
-from typing import List, Set
+from typing import List
 
 
 class StubDetector(ast.NodeVisitor):

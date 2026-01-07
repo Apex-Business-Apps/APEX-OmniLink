@@ -15,7 +15,11 @@ from .supabase_provider import SupabaseDatabaseProvider
 _db_provider: Optional[DatabaseProvider] = None
 
 
-def get_database_provider() -> DatabaseProvider:
+def get_database_provider(
+    provider_type: Optional[str] = None,
+    supabase_url: Optional[str] = None,
+    supabase_key: Optional[str] = None,
+) -> DatabaseProvider:
     """
     Get the configured database provider instance.
 
@@ -34,16 +38,17 @@ def get_database_provider() -> DatabaseProvider:
         return _db_provider
 
     # Read configuration
-    provider_type = os.getenv("DB_PROVIDER", "supabase").lower()
+    provider_type = (provider_type or os.getenv("DB_PROVIDER", "supabase")).lower()
 
     if provider_type == "supabase":
         # Get Supabase configuration
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        supabase_url = supabase_url or os.getenv("SUPABASE_URL")
+        supabase_key = supabase_key or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
         if not supabase_url or not supabase_key:
             raise ValueError(
-                "Supabase database provider requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables"
+                "Supabase database provider requires SUPABASE_URL and "
+                "SUPABASE_SERVICE_ROLE_KEY environment variables"
             )
 
         _db_provider = SupabaseDatabaseProvider(

@@ -21,6 +21,7 @@ import asyncio
 import logging
 import os
 import sys
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -42,16 +43,33 @@ from activities.tools import (
     setup_activities,
 )
 from config import settings
+from models.man_mode import ManTaskStatus
+from providers.database.factory import get_database_provider
 from workflows.agent_saga import AgentWorkflow
 
 # FastAPI app for HTTP API
 app = FastAPI(title="APEX Orchestrator API", version="1.0.0")
+
+# Initialize DB provider
+db_provider = get_database_provider(
+    settings.database_provider,
+    settings.supabase_url,
+    settings.supabase_service_role_key,
+)
 
 
 class GoalRequest(BaseModel):
     user_id: str
     user_intent: str
     trace_id: str
+
+
+# --- API Models ---
+class DecisionRequest(BaseModel):
+    status: ManTaskStatus
+    reason: Optional[str] = None
+    modified_input: Optional[Dict[str, Any]] = None
+    operator_id: str = "api-user"
 
 
 @app.post("/api/v1/goals")
@@ -93,6 +111,93 @@ async def create_goal(request: GoalRequest):
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+# --- Endpoints ---
+@app.get("/api/v1/man/tasks")
+async def list_pending_tasks(tenant_id: str = "default"):
+    """List all pending manual intervention tasks."""
+    try:
+        # Access raw client for query capabilities
+        response = (
+            db_provider.client.table("man_tasks")
+            .select("*")
+            .eq("status", "PENDING")
+            .eq("tenant_id", tenant_id)
+            .execute()
+        )
+        return {"tasks": response.data}
+    except Exception as e:
+        # Use print if logger not configured in main
+        print(f"Failed to list MAN tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/api/v1/man/tasks/{task_id}/decision")
+async def submit_decision(task_id: str, request: DecisionRequest):
+    """Submit decision and signal workflow."""
+    try:
+        # 1. Update DB (Supabase is real)
+        decision_payload = {
+            "status": request.status.value,
+            "reason": request.reason,
+            "modified_input": request.modified_input,
+            "operator_id": request.operator_id,
+        }
+
+        await db_provider.update(
+            table="man_tasks",
+            record={
+                "status": request.status.value,
+                "decision": decision_payload
+            },
+            filters={"id": task_id}
+        )
+
+        # 2. Fetch Task (Supabase is real)
+        task_res = (
+            db_provider.client.table("man_tasks")
+            .select("*")
+            .eq("id", task_id)
+            .single()
+            .execute()
+        )
+
+        if not task_res.data:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task = task_res.data
+
+        # 3. Signal Workflow (MOCKED if secret missing)
+        if not getattr(settings, "temporal_host", None):
+            # MOCK MODE: Log only
+            print(f"[MOCK] Signal sent to {task['workflow_id']}: {request.status}")
+            return {"status": "success", "decision": request.status, "mock": True}
+
+        # REAL MODE
+        client = await Client.connect(
+            settings.temporal_host,
+            namespace=settings.temporal_namespace,
+        )
+
+        signal_payload = {
+            "task_id": task_id,
+            "status": request.status.value,
+            "modified_input": request.modified_input,
+            "reason": request.reason,
+        }
+
+        handle = client.get_workflow_handle(
+            workflow_id=task["workflow_id"],
+            run_id=task["run_id"]
+        )
+
+        await handle.signal("submit_man_decision", signal_payload)
+        return {"status": "success", "decision": request.status}
+
+    except Exception as e:
+        logger.error(f"Failed to submit decision: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # Configure logging

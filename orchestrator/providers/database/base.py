@@ -6,7 +6,7 @@ This enables portability between different database backends (Supabase, PostgreS
 while maintaining consistent behavior and error handling.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any, Dict, List, Optional, Protocol
 
 
@@ -15,7 +15,7 @@ class DatabaseError(Exception):
     pass
 
 
-class NotFound(DatabaseError):
+class NotFound(DatabaseError):  # noqa: N818
     """Raised when a requested record is not found."""
     pass
 
@@ -65,6 +65,26 @@ class DatabaseProvider(Protocol):
             DatabaseError: For database errors
         """
         ...
+
+    @abstractmethod
+    async def upsert(
+        self,
+        table: str,
+        record: Dict[str, Any],
+        on_conflict: str = "id"
+    ) -> Dict[str, Any]:
+        """Upsert a record (Insert or Update on conflict)."""
+        pass
+
+    @abstractmethod
+    async def update(
+        self,
+        table: str,
+        record: Dict[str, Any],
+        filters: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update specific fields of records matching filters."""
+        pass
 
     async def delete(self, table: str, filters: Dict[str, Any]) -> int:
         """
