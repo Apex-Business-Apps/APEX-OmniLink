@@ -45,7 +45,7 @@ def get_database_provider() -> DatabaseProvider:
             raise ValueError(
                 "Supabase database provider requires SUPABASE_URL and "
                 "SUPABASE_SERVICE_ROLE_KEY environment variables to "
-                "function properly"
+                "function properly",
             )
 
         _db_provider = SupabaseDatabaseProvider(
