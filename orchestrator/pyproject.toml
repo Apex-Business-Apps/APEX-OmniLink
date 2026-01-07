@@ -56,12 +56,13 @@ include = ["models*", "infrastructure*", "workflows*", "activities*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
+# FIX: Add current directory to sys.path to resolve "ModuleNotFoundError"
+pythonpath = ["."]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v"
+addopts = "--import-mode=importlib"
 
 [tool.mypy]
 python_version = "3.11"

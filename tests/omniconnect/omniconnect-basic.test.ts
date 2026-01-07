@@ -2,32 +2,39 @@
  * Basic OmniConnect functionality tests
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OmniConnect } from '../../src/omniconnect/core/omniconnect';
 import { MetaBusinessConnector } from '../../src/omniconnect/connectors/meta-business';
 import { registerConnector } from '../../src/omniconnect/core/registry';
 
-// Mock the storage and other services as class constructors
-vi.mock('../../src/omniconnect/storage/encrypted-storage', () => ({
-  EncryptedTokenStorage: class {
-    store = vi.fn();
-    get = vi.fn();
-    listActive = vi.fn().mockResolvedValue([]);
-    delete = vi.fn();
-  }
-}));
+// REMEDIATION: Use Class syntax for mocks to support 'new' instantiation
+vi.mock('../../src/omniconnect/storage/encrypted-storage', () => {
+  return {
+    EncryptedTokenStorage: class MockEncryptedTokenStorage {
+      store = vi.fn().mockResolvedValue(true);
+      get = vi.fn().mockResolvedValue('mock-encrypted-token');
+      remove = vi.fn().mockResolvedValue(true);
+    }
+  };
+});
 
-vi.mock('../../src/omniconnect/policy/policy-engine', () => ({
-  PolicyEngine: class {
-    filter = vi.fn().mockResolvedValue([]);
-  }
-}));
+vi.mock('../../src/omniconnect/policy/policy-engine', () => {
+  return {
+    PolicyEngine: class MockPolicyEngine {
+      evaluate = vi.fn().mockReturnValue(true);
+      loadRules = vi.fn().mockResolvedValue(undefined);
+      validateEvent = vi.fn().mockReturnValue({ valid: true });
+    }
+  };
+});
 
-vi.mock('../../src/omniconnect/translation/translator', () => ({
-  SemanticTranslator: class {
-    translate = vi.fn().mockResolvedValue([]);
-  }
-}));
+vi.mock('../../src/omniconnect/translation/translator', () => {
+  return {
+    SemanticTranslator: class MockSemanticTranslator {
+      translate = vi.fn().mockImplementation((event) => ({...event, translated: true }));
+    }
+  };
+});
 
 vi.mock('../../src/omniconnect/entitlements/entitlements-service', () => ({
   EntitlementsService: class {
@@ -42,6 +49,14 @@ vi.mock('../../src/omniconnect/delivery/omnilink-delivery', () => ({
 }));
 
 describe('OmniConnect Basic Functionality', () => {
+  let omniConnect: OmniConnect;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Ensure we create a fresh instance for every test
+    omniConnect = new OmniConnect();
+  });
+
   it('should create OmniConnect instance', () => {
     const config = {
       tenantId: 'test-tenant',
