@@ -74,6 +74,11 @@ jobs:
         run: |
           python scripts/ci/assert_no_forbidden_sdk_imports.py
 
+      - name: Run orchestrator tests
+        working-directory: orchestrator
+        run: |
+          python -m pytest tests/ -v --tb=short
+
       - name: Run type checker
         working-directory: orchestrator
         run: |
