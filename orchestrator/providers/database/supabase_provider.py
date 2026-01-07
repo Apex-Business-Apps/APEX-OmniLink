@@ -33,7 +33,7 @@ class SupabaseDatabaseProvider(DatabaseProvider):
         self,
         table: str,
         filters: Optional[Dict[str, Any]] = None,
-        select_fields: Optional[str] = None
+        select_fields: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Select records from Supabase table with optional filtering.
@@ -110,10 +110,7 @@ class SupabaseDatabaseProvider(DatabaseProvider):
             raise DatabaseError(f"Database delete failed: {str(e)}") from e
 
     async def upsert(
-        self,
-        table: str,
-        record: Dict[str, Any],
-        conflict_columns: List[str]
+        self, table: str, record: Dict[str, Any], conflict_columns: List[str]
     ) -> Dict[str, Any]:
         """
         Insert or update a record (upsert) in Supabase table.
@@ -137,10 +134,7 @@ class SupabaseDatabaseProvider(DatabaseProvider):
             raise DatabaseError(f"Database upsert failed: {str(e)}") from e
 
     async def update(
-        self,
-        table: str,
-        filters: Dict[str, Any],
-        updates: Dict[str, Any]
+        self, table: str, filters: Dict[str, Any], updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """
         Update records in Supabase table matching filters.
@@ -172,10 +166,7 @@ class SupabaseDatabaseProvider(DatabaseProvider):
             raise DatabaseError(f"Database update failed: {str(e)}") from e
 
     async def select_one(
-        self,
-        table: str,
-        filters: Dict[str, Any],
-        select_fields: Optional[str] = None
+        self, table: str, filters: Dict[str, Any], select_fields: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Select a single record from Supabase table with filtering.

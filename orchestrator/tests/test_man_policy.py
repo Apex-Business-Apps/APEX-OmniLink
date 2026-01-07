@@ -54,7 +54,7 @@ class TestActionIntent:
                 "url": "https://api.example.com",
                 "api_key": "secret123",
                 "password": "pass123",
-                "normal_param": "value"
+                "normal_param": "value",
             },
         )
 
@@ -97,7 +97,7 @@ class TestManPolicyEngine:
             step_id="step1",
             tool_name="search_database",
             tool_params={"table": "users", "filters": {"id": "123"}},
-            flags={"contains_sensitive_data": True}
+            flags={"contains_sensitive_data": True},
         )
 
         result = engine.triage_intent(intent)
@@ -118,7 +118,7 @@ class TestManPolicyEngine:
             step_id="step1",
             tool_name="update_user",
             tool_params={"user_id": "123", "role": "admin"},
-            flags={"affects_rights": True}
+            flags={"affects_rights": True},
         )
 
         result = engine.triage_intent(intent)
@@ -139,7 +139,7 @@ class TestManPolicyEngine:
             step_id="step1",
             tool_name="delete_user",
             tool_params={"user_id": "123"},
-            flags={"irreversible": True}
+            flags={"irreversible": True},
         )
 
         result = engine.triage_intent(intent)
@@ -190,9 +190,7 @@ class TestManPolicyEngine:
 
     def test_tool_minimum_lane_escalation(self):
         """Test tool minimum lanes escalate risk."""
-        policy = ManPolicy(
-            tool_minimum_lanes={"send_email": ManLane.RED}
-        )
+        policy = ManPolicy(tool_minimum_lanes={"send_email": ManLane.RED})
         engine = ManPolicyEngine(policy)
 
         intent = ActionIntent(
@@ -215,7 +213,7 @@ class TestManPolicyEngine:
             hard_triggers={
                 "tools": ["delete_user"],
                 "params": {"amount": ["1000000"]},
-                "workflows": ["finance_workflow"]
+                "workflows": ["finance_workflow"],
             }
         )
         engine = ManPolicyEngine(policy)
@@ -255,9 +253,9 @@ class TestManPolicyEngine:
             per_workflow_overrides={
                 "critical_workflow": {
                     "thresholds": {"red": 0.3, "yellow": 0.1},
-                    "tool_minimum_lanes": {"send_email": ManLane.YELLOW}
+                    "tool_minimum_lanes": {"send_email": ManLane.YELLOW},
                 }
-            }
+            },
         )
         engine = ManPolicyEngine(policy)
 
@@ -268,7 +266,7 @@ class TestManPolicyEngine:
             step_id="step1",
             tool_name="send_email",
             tool_params={"to": "test@example.com", "subject": "Test"},
-            flags={"irreversible": True}  # This would normally be RED (0.8)
+            flags={"irreversible": True},  # This would normally be RED (0.8)
         )
 
         # Without workflow override - should be RED
@@ -325,9 +323,7 @@ class TestManPolicy:
         """Test effective thresholds with overrides."""
         policy = ManPolicy(
             global_thresholds={"red": 0.8, "yellow": 0.5},
-            per_workflow_overrides={
-                "special": {"thresholds": {"red": 0.3}}
-            }
+            per_workflow_overrides={"special": {"thresholds": {"red": 0.3}}},
         )
 
         # Global
@@ -342,9 +338,7 @@ class TestManPolicy:
         """Test minimum lane lookup."""
         policy = ManPolicy(
             tool_minimum_lanes={"email": ManLane.YELLOW},
-            per_workflow_overrides={
-                "special": {"tool_minimum_lanes": {"email": ManLane.RED}}
-            }
+            per_workflow_overrides={"special": {"tool_minimum_lanes": {"email": ManLane.RED}}},
         )
 
         # Global

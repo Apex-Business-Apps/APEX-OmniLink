@@ -38,7 +38,7 @@ from ..providers.database.factory import get_database_provider
 async def risk_triage(
     intent_data: Dict[str, Any],
     workflow_key: Optional[str] = None,
-    free_text_signals: Optional[list[str]] = None
+    free_text_signals: Optional[list[str]] = None,
 ) -> Dict[str, Any]:
     """
     Triage an action intent for risk assessment.
@@ -71,11 +71,7 @@ async def risk_triage(
         # Perform deterministic triage
         result = engine.triage_intent(intent, workflow_key, free_text_signals)
 
-
-
-        activity.logger.info(
-            f"✓ Triage complete: {result.lane} (score: {result.risk_score:.2f})"
-        )
+        activity.logger.info(f"✓ Triage complete: {result.lane} (score: {result.risk_score:.2f})")
 
         # Audit the triage decision
         await log_audit_event(
@@ -117,8 +113,7 @@ async def risk_triage(
 
 @activity.defn(name="create_man_task")
 async def create_man_task(
-    intent_data: Dict[str, Any],
-    triage_result_data: Dict[str, Any]
+    intent_data: Dict[str, Any], triage_result_data: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Create a pending MAN task (idempotent).
@@ -139,9 +134,7 @@ async def create_man_task(
     intent = ActionIntent(**intent_data)
     triage_result = RiskTriageResult(**triage_result_data)
 
-    activity.logger.info(
-        f"Creating MAN task for {intent.tool_name} (lane: {triage_result.lane})"
-    )
+    activity.logger.info(f"Creating MAN task for {intent.tool_name} (lane: {triage_result.lane})")
 
     # Only create task for RED lane
     if triage_result.lane != ManLane.RED:
@@ -183,7 +176,7 @@ async def create_man_task(
         created_task = await db.upsert(
             table="man_tasks",
             record=task.model_dump(exclude_unset=True),
-            conflict_columns=["idempotency_key"]
+            conflict_columns=["idempotency_key"],
         )
 
         task_id = created_task["id"]
@@ -229,10 +222,7 @@ async def create_man_task(
 
 
 @activity.defn(name="resolve_man_task")
-async def resolve_man_task(
-    task_id: str,
-    decision_payload_data: Dict[str, Any]
-) -> Dict[str, Any]:
+async def resolve_man_task(task_id: str, decision_payload_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Resolve a MAN task with a decision (idempotent).
 
@@ -250,9 +240,7 @@ async def resolve_man_task(
     """
     decision_payload = ManDecisionPayload(**decision_payload_data)
 
-    activity.logger.info(
-        f"Resolving MAN task {task_id} with decision: {decision_payload.decision}"
-    )
+    activity.logger.info(f"Resolving MAN task {task_id} with decision: {decision_payload.decision}")
 
     error_msg = None
 
@@ -264,7 +252,7 @@ async def resolve_man_task(
         existing_task = await db.select_one(
             table="man_tasks",
             filters={"id": task_id},
-            select_fields="id,status,reviewer_id,decision"
+            select_fields="id,status,reviewer_id,decision",
         )
 
         if not existing_task:
@@ -272,8 +260,9 @@ async def resolve_man_task(
 
         # If already resolved, return existing state
         if existing_task["status"] != "PENDING":
-            activity.logger.info(f"Task {task_id} already resolved with status: "
-                                f"{existing_task['status']}")
+            activity.logger.info(
+                f"Task {task_id} already resolved with status: {existing_task['status']}"
+            )
             # Return full task data
             full_task = await db.select_one(table="man_tasks", filters={"id": task_id})
             return full_task
@@ -288,10 +277,13 @@ async def resolve_man_task(
 
         # Update task
         updates = {
-            "status": "APPROVED" if decision_payload.decision == ManDecision.APPROVE else
-                     "DENIED" if decision_payload.decision == ManDecision.DENY else
-                     "MODIFIED" if decision_payload.decision == ManDecision.MODIFY else
-                     "CANCELLED",
+            "status": "APPROVED"
+            if decision_payload.decision == ManDecision.APPROVE
+            else "DENIED"
+            if decision_payload.decision == ManDecision.DENY
+            else "MODIFIED"
+            if decision_payload.decision == ManDecision.MODIFY
+            else "CANCELLED",
             "reviewer_id": decision_payload.reviewer_id,
             "decision": decision_data,
         }
@@ -299,7 +291,7 @@ async def resolve_man_task(
         updated_task = await db.update(
             table="man_tasks",
             filters={"id": task_id, "status": "PENDING"},  # Only update if still pending
-            updates=updates
+            updates=updates,
         )
 
         if not updated_task:
@@ -307,7 +299,6 @@ async def resolve_man_task(
             activity.logger.info(f"Task {task_id} was already resolved")
             full_task = await db.select_one(table="man_tasks", filters={"id": task_id})
             return full_task
-
 
         activity.logger.info(f"✓ MAN task {task_id} resolved: {decision_payload.decision}")
 
@@ -344,8 +335,9 @@ async def resolve_man_task(
             metadata={"error": error_msg},
         )
 
-        raise ApplicationError(f"MAN task resolution failed: {error_msg}",
-                               non_retryable=False) from e
+        raise ApplicationError(
+            f"MAN task resolution failed: {error_msg}", non_retryable=False
+        ) from e
 
 
 @activity.defn(name="backlog_check")
@@ -382,8 +374,7 @@ async def backlog_check(tenant_id: str) -> Dict[str, Any]:
 
         # Count pending tasks for tenant
         pending_tasks = await db.select(
-            table="man_tasks",
-            filters={"tenant_id": tenant_id, "status": "PENDING"}
+            table="man_tasks", filters={"tenant_id": tenant_id, "status": "PENDING"}
         )
 
         pending_count = len(pending_tasks)
@@ -397,7 +388,6 @@ async def backlog_check(tenant_id: str) -> Dict[str, Any]:
             "max_pending": max_pending,
             "action": policy.degrade_behavior if overloaded else None,
         }
-
 
         if overloaded:
             activity.logger.warning(

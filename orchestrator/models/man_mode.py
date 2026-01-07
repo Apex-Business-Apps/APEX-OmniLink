@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class ManLane(str, Enum):
@@ -36,8 +36,9 @@ class ActionIntent(BaseModel):
     tool_params: Dict[str, Any] = Field(default_factory=dict, description="Tool parameters")
     flags: Dict[str, Any] = Field(default_factory=dict, description="Additional flags and metadata")
 
-    @validator("tool_params")
-    def redact_sensitive_params(self, v):
+    @field_validator("tool_params")
+    @classmethod
+    def redact_sensitive_params(cls, v):
         """Redact sensitive parameters for audit logging."""
         # Redact common sensitive fields
         sensitive_keys = {"password", "token", "secret", "key", "api_key", "auth"}
@@ -164,8 +165,9 @@ class ManPolicy(BaseModel):
         default="BLOCK_NEW", description="Behavior when backlog exceeds limit"
     )
 
-    @validator("degrade_behavior")
-    def validate_degrade_behavior(self, v):
+    @field_validator("degrade_behavior")
+    @classmethod
+    def validate_degrade_behavior(cls, v):
         """Validate degrade behavior options."""
         allowed = {"BLOCK_NEW", "FORCE_PAUSE", "AUTO_DENY"}
         if v not in allowed:

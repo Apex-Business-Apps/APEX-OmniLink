@@ -46,7 +46,7 @@ class TestManModeAPI:
         mock_get_db_provider.return_value = mock_db
         mock_db.select.return_value = [
             {"id": "task1", "status": "PENDING", "tool_name": "send_email"},
-            {"id": "task2", "status": "APPROVED", "tool_name": "delete_user"}
+            {"id": "task2", "status": "APPROVED", "tool_name": "delete_user"},
         ]
 
         response = client.get("/api/v1/man/tasks")
@@ -78,7 +78,7 @@ class TestManModeAPI:
         mock_db.select_one.return_value = {
             "id": "task1",
             "status": "PENDING",
-            "tool_name": "send_email"
+            "tool_name": "send_email",
         }
         mock_db.select.return_value = []  # No decision events
 
@@ -103,19 +103,24 @@ class TestManModeAPI:
     @patch("orchestrator.main.Client")
     @patch("orchestrator.main.get_database_provider")
     @patch("orchestrator.main.resolve_man_task")
-    def test_submit_man_decision_success(self, mock_resolve_task, mock_get_db_provider, mock_client_class, client, mock_db, mock_temporal_client):
+    def test_submit_man_decision_success(
+        self,
+        mock_resolve_task,
+        mock_get_db_provider,
+        mock_client_class,
+        client,
+        mock_db,
+        mock_temporal_client,
+    ):
         """Test successful submission of MAN decision."""
         mock_get_db_provider.return_value = mock_db
         mock_client_class.connect.return_value = mock_temporal_client
-        mock_db.select_one.return_value = {
-            "workflow_id": "wf-123",
-            "tenant_id": "tenant1"
-        }
+        mock_db.select_one.return_value = {"workflow_id": "wf-123", "tenant_id": "tenant1"}
 
         decision_data = {
             "decision": "APPROVE",
             "reason": "Safe operation",
-            "reviewer_id": "reviewer1"
+            "reviewer_id": "reviewer1",
         }
 
         response = client.post("/api/v1/man/tasks/task1/decision", json=decision_data)
@@ -139,7 +144,7 @@ class TestManModeAPI:
         decision_data = {
             "decision": "APPROVE",
             "reason": "Safe operation",
-            "reviewer_id": "reviewer1"
+            "reviewer_id": "reviewer1",
         }
 
         response = client.post("/api/v1/man/tasks/nonexistent/decision", json=decision_data)
@@ -157,7 +162,7 @@ class TestManModeAPI:
         mock_get_db_provider.return_value = mock_db
         mock_db.select.return_value = [
             {"id": "policy1", "tenant_id": None, "workflow_key": None},
-            {"id": "policy2", "tenant_id": "tenant1", "workflow_key": "special"}
+            {"id": "policy2", "tenant_id": "tenant1", "workflow_key": "special"},
         ]
 
         response = client.get("/api/v1/man/policies")
@@ -189,7 +194,7 @@ class TestManModeAPI:
             "tenant_id": "tenant1",
             "workflow_key": "special",
             "policy_json": {"global_thresholds": {"red": 0.8}},
-            "version": "1.0"
+            "version": "1.0",
         }
 
         policy_data = {
@@ -199,12 +204,12 @@ class TestManModeAPI:
             "per_workflow_overrides": {},
             "max_pending_per_tenant": 50,
             "task_ttl_minutes": 1440,
-            "degrade_behavior": "BLOCK_NEW"
+            "degrade_behavior": "BLOCK_NEW",
         }
 
         response = client.put(
             "/api/v1/man/policies?tenant_id=tenant1&workflow_key=special&updated_by=admin",
-            json=policy_data
+            json=policy_data,
         )
 
         assert response.status_code == 200
@@ -283,10 +288,7 @@ class TestManModeAPI:
         """Test successful force MAN mode."""
         mock_client_class.connect.return_value = mock_temporal_client
 
-        request_data = {
-            "scope": "STEPS",
-            "step_ids": ["step1", "step2"]
-        }
+        request_data = {"scope": "STEPS", "step_ids": ["step1", "step2"]}
 
         response = client.post("/api/v1/workflows/wf-123/force-man-mode", json=request_data)
 
