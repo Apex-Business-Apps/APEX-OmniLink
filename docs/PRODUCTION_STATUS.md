@@ -414,6 +414,16 @@ npm run ci:runtime-gates
 - [x] React singleton: **Single version (18.3.1)**
 - [x] CI runtime gates: **Configured** (`.github/workflows/ci-runtime-gates.yml`)
 
+### OmniDash v2 Navigation UI
+- [x] Icon-based navigation: **O/P/K/! icons implemented**
+- [x] Zero-overlap flexbox layout: **Brand text never truncates**
+- [x] Mobile bottom tab bar: **Safe padding, 40px touch targets**
+- [x] Tooltip integration: **Hover + keyboard focus support**
+- [x] Accessibility: **ARIA labels, sr-only text, keyboard navigation**
+- [x] Feature-flag gated: **`OMNIDASH_ENABLED` for safe rollouts**
+- [x] Visual verification: **Playwright screenshots automated**
+- [x] Test coverage: **Navigation, responsiveness, accessibility**
+
 ### Web3 Blockchain Integration
 - [x] Web3 dependencies: **viem@2.43.4, wagmi@2.19.5** (513 packages)
 - [x] Blockchain config docs: **BLOCKCHAIN_CONFIG.md** (11KB)

@@ -8,6 +8,7 @@
 - Observability: Local monitoring hooks, guardian heartbeats, audit logging, DR/backup tooling.
 
 ## Key Modules
+- **OmniDash v2 Navigation UI**: Revolutionary icon-based navigation (`src/components/OmniDashNavIconButton.tsx`, `src/pages/OmniDash/OmniDashLayout.tsx`) with zero-overlap flexbox layout, mobile bottom tabs, and tooltip integration.
 - Auth/session: `src/contexts/AuthContext.tsx` (supabase session, device registration, audit logging on login/logout).
 - Guardian heartbeats: `src/guardian/heartbeat.ts`, loops in `src/guardian/loops.ts`, CLI `npm run guardian:status`.
 - Prompt defense: Config `src/security/promptDefenseConfig.ts`, evaluator `src/security/promptDefense.ts`, tests `tests/prompt-defense`.
