@@ -43,7 +43,8 @@ def get_database_provider() -> DatabaseProvider:
 
         if not supabase_url or not supabase_key:
             raise ValueError(
-                "Supabase database provider requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables"
+                "Supabase database provider requires SUPABASE_URL and "
+                "SUPABASE_SERVICE_ROLE_KEY environment variables"
             )
 
         _db_provider = SupabaseDatabaseProvider(

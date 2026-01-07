@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from supabase import Client, create_client
 
-from .base import DatabaseError, DatabaseProvider, NotFound
+from .base import DatabaseError, DatabaseProvider, NotFoundError
 
 
 class SupabaseDatabaseProvider(DatabaseProvider):
@@ -64,7 +64,7 @@ class SupabaseDatabaseProvider(DatabaseProvider):
         except Exception as e:
             # Convert Supabase exceptions to our interface exceptions
             if "not found" in str(e).lower() or "no rows" in str(e).lower():
-                raise NotFound(f"No records found in {table} with filters {filters}") from e
+                raise NotFoundError(f"No records found in {table} with filters {filters}") from e
             else:
                 raise DatabaseError(f"Database select failed: {str(e)}") from e
 
