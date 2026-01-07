@@ -118,7 +118,7 @@ def scan_file_for_stubs(file_path: Path) -> List[str]:
 def main() -> int:
     """Main entry point."""
     # Find orchestrator/providers directory
-    providers_dir = Path(__file__).parent.parent / "orchestrator" / "providers"
+    providers_dir = Path(__file__).parent.parent.parent / "orchestrator" / "providers"
 
     if not providers_dir.exists():
         print(f"Providers directory not found: {providers_dir}")
