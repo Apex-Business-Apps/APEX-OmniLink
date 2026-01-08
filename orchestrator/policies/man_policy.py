@@ -18,9 +18,7 @@ class ManPolicy:
 
     def __init__(self):
         """Initialize policy with default sensitive tools list."""
-        self.sensitive_tools = {
-            "transfer_funds", "delete_record", "send_email"
-        }
+        self.sensitive_tools = {"transfer_funds", "delete_record", "send_email"}
 
     def triage_intent(self, intent: ActionIntent) -> RiskTriageResult:
         """
@@ -34,27 +32,16 @@ class ManPolicy:
         """
         # Check for irreversible actions first
         if intent.irreversible:
-            return RiskTriageResult(
-                lane=ManLane.RED,
-                reason="irreversible action"
-            )
+            return RiskTriageResult(lane=ManLane.RED, reason="irreversible action")
 
         # Check for sensitive tools
         if intent.tool_name in self.sensitive_tools:
-            return RiskTriageResult(
-                lane=ManLane.RED,
-                reason=f"sensitive tool: {intent.tool_name}"
-            )
+            return RiskTriageResult(lane=ManLane.RED, reason=f"sensitive tool: {intent.tool_name}")
 
         # Default to green for low-risk actions
-        return RiskTriageResult(
-            lane=ManLane.GREEN,
-            reason="low risk action"
-        )
+        return RiskTriageResult(lane=ManLane.GREEN, reason="low risk action")
 
-    def triage_intent_payload(
-        self, payload: dict[str, Any]
-    ) -> dict[str, Any]:
+    def triage_intent_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         """
         Triage an action intent from a plain dict payload.
 
