@@ -612,14 +612,14 @@ class AgentWorkflow:
                     lambda: step_id in self.pending_decisions,
                     timeout=timedelta(hours=24),
                 )
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as e:
                 workflow.logger.error(
                     f"  ⏰ MAN Mode timeout: No decision received for {step['tool']}"
                 )
                 raise ApplicationError(
                     f"MAN Mode approval timeout for step '{step_id}'",
                     non_retryable=True,
-                )
+                ) from e
 
             # Check decision
             decision = self.pending_decisions[step_id]

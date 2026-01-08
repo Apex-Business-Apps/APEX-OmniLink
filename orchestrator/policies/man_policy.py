@@ -15,7 +15,6 @@ from typing import Any
 
 from ..models.man_mode import ActionIntent, ManLane, RiskTriageResult
 
-
 # ============================================================================
 # SENSITIVE TOOLS CONFIGURATION
 # ============================================================================
