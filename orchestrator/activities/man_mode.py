@@ -24,14 +24,14 @@ from typing import Any
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
-from ..models.man_mode import (
+from models.man_mode import (
     ActionIntent,
     ManTaskDecision,
     ManTaskStatus,
     create_idempotency_key,
 )
-from ..policies.man_policy import ManPolicy
-from ..providers.database.factory import get_database_provider
+from policies.man_policy import ManPolicy
+from providers.database.factory import get_database_provider
 
 # ============================================================================
 # RISK TRIAGE ACTIVITY
