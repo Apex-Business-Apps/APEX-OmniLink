@@ -762,9 +762,10 @@ class AgentWorkflow:
 
                 # 5. Create MAN task if RED lane
                 if triage_result["lane"] == "RED":
+                    task_params = {"intent": intent.model_dump(), "triage_result": triage_result}
                     task_result = await workflow.execute_activity(
                         "create_man_task",
-                        args=[intent.model_dump(), triage_result],
+                        args=[task_params],
                         start_to_close_timeout=timedelta(seconds=10),
                     )
 
@@ -776,6 +777,15 @@ class AgentWorkflow:
 
                         # 6. Wait for decision
                         await self._wait_for_man_decision(task_id, step_id)
+
+                        # 7. Resolve MAN task
+                        decision = self.pending_man_decisions[task_id]
+                        resolve_params = {"task_id": task_id, "decision": decision}
+                        await workflow.execute_activity(
+                            "resolve_man_task",
+                            args=[resolve_params],
+                            start_to_close_timeout=timedelta(seconds=10),
+                        )
 
                         workflow.logger.info(
                             f"  ✅ Step {step_id} approved - proceeding with execution"
