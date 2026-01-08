@@ -285,8 +285,40 @@ class AgentWorkflow:
         self.step_results: dict[str, Any] = {}
         self.failed_step_id: str = ""
 
+        # MAN Mode: pending human decisions (step_id -> decision)
+        self.pending_decisions: dict[str, dict[str, Any]] = {}
+
         # Continue-as-new threshold
         self.MAX_HISTORY_SIZE = 1000
+
+    # =========================================================================
+    # MAN MODE SIGNAL HANDLER
+    # =========================================================================
+
+    @workflow.signal
+    async def submit_man_decision(self, decision: dict[str, Any]) -> None:
+        """
+        Receive human approval/denial for MAN task.
+
+        Called by external system (API endpoint) when human makes a decision.
+        Unblocks the workflow step waiting on this decision.
+
+        Args:
+            decision: Dict with keys:
+                - step_id: str (identifies which step to unblock)
+                - status: "APPROVED"|"DENIED"
+                - reason: str (optional)
+                - decided_by: str (user who made decision)
+        """
+        step_id = decision.get("step_id", "")
+        status = decision.get("status", "UNKNOWN")
+
+        workflow.logger.info(
+            f"📥 Received MAN decision for step '{step_id}': {status}"
+        )
+
+        # Store decision - workflow.wait_condition will pick this up
+        self.pending_decisions[step_id] = decision
 
     @workflow.run
     async def run(
@@ -503,6 +535,9 @@ class AgentWorkflow:
         """
         Execute a single step with event logging and compensation registration.
 
+        Includes MAN Mode safety gate: high-risk actions (RED lane) require
+        human approval before execution.
+
         Args:
             step: Step definition from plan
             step_id: Unique step identifier
@@ -512,9 +547,99 @@ class AgentWorkflow:
 
         Raises:
             ActivityError: If step fails after retries
+            ApplicationError: If MAN Mode approval denied or blocked
         """
         step_name = step.get("name", step_id)
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
+
+        # =====================================================================
+        # MAN MODE: Risk Triage
+        # =====================================================================
+        triage_result = await workflow.execute_activity(
+            "risk_triage",
+            args=[{
+                "tool_name": step["tool"],
+                "params": step.get("input", {}),
+                "workflow_id": workflow.info().workflow_id,
+                "step_id": step_id,
+                "irreversible": step.get("irreversible", False),
+            }],
+            start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=RetryPolicy(maximum_attempts=2),
+        )
+
+        lane = triage_result.get("lane", "GREEN")
+
+        # BLOCKED lane: never execute
+        if lane == "BLOCKED":
+            workflow.logger.error(
+                f"  🚫 BLOCKED: {step['tool']} - {triage_result.get('reason')}"
+            )
+            raise ApplicationError(
+                f"Action blocked by policy: {triage_result.get('reason')}",
+                non_retryable=True,
+            )
+
+        # RED lane: require human approval
+        if lane == "RED":
+            workflow.logger.warning(
+                f"  🛑 MAN Mode: Awaiting approval for {step['tool']}"
+            )
+
+            # Create MAN task in database
+            await workflow.execute_activity(
+                "create_man_task",
+                args=[{
+                    "workflow_id": workflow.info().workflow_id,
+                    "step_id": step_id,
+                    "intent": {
+                        "tool_name": step["tool"],
+                        "params": step.get("input", {}),
+                        "workflow_id": workflow.info().workflow_id,
+                        "step_id": step_id,
+                        "irreversible": step.get("irreversible", False),
+                    },
+                    "triage_result": triage_result,
+                    "timeout_hours": triage_result.get("suggested_timeout_hours", 24),
+                }],
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=RetryPolicy(maximum_attempts=3),
+            )
+
+            # Block until human decides (signal or timeout)
+            try:
+                await workflow.wait_condition(
+                    lambda: step_id in self.pending_decisions,
+                    timeout=timedelta(hours=24),
+                )
+            except asyncio.TimeoutError:
+                workflow.logger.error(
+                    f"  ⏰ MAN Mode timeout: No decision received for {step['tool']}"
+                )
+                raise ApplicationError(
+                    f"MAN Mode approval timeout for step '{step_id}'",
+                    non_retryable=True,
+                )
+
+            # Check decision
+            decision = self.pending_decisions[step_id]
+            if decision.get("status") != "APPROVED":
+                reason = decision.get("reason", "No reason provided")
+                workflow.logger.warning(
+                    f"  ❌ MAN Mode denied: {step['tool']} - {reason}"
+                )
+                raise ApplicationError(
+                    f"MAN Mode denied: {reason}",
+                    non_retryable=True,
+                )
+
+            workflow.logger.info(
+                f"  ✅ MAN Mode approved: {step['tool']} by {decision.get('decided_by')}"
+            )
+
+        # =====================================================================
+        # Execute the tool (GREEN, YELLOW, or approved RED)
+        # =====================================================================
 
         # Record tool call request
         await self._append_event(
