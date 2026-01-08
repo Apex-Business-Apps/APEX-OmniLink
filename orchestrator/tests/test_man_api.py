@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from orchestrator.main import app
+from main import app
 
 
 class TestManModeAPI:
@@ -40,7 +40,7 @@ class TestManModeAPI:
     # MAN TASK ENDPOINTS
     # ============================================================================
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_list_man_tasks_success(self, mock_get_db_provider, client, mock_db):
         """Test successful listing of MAN tasks."""
         mock_get_db_provider.return_value = mock_db
@@ -57,7 +57,7 @@ class TestManModeAPI:
         assert data["total"] == 2
         assert data["tasks"][0]["tool_name"] == "send_email"
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_list_man_tasks_with_filters(self, mock_get_db_provider, client, mock_db):
         """Test listing MAN tasks with filters."""
         mock_get_db_provider.return_value = mock_db
@@ -71,7 +71,7 @@ class TestManModeAPI:
         assert call_args[1]["filters"]["tenant_id"] == "tenant1"
         assert call_args[1]["filters"]["status"] == "PENDING"
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_get_man_task_success(self, mock_get_db_provider, client, mock_db):
         """Test successful retrieval of a MAN task."""
         mock_get_db_provider.return_value = mock_db
@@ -89,7 +89,7 @@ class TestManModeAPI:
         assert data["task"]["id"] == "task1"
         assert data["decision_events"] == []
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_get_man_task_not_found(self, mock_get_db_provider, client, mock_db):
         """Test retrieval of non-existent MAN task."""
         mock_get_db_provider.return_value = mock_db
@@ -100,9 +100,9 @@ class TestManModeAPI:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
 
-    @patch("orchestrator.main.Client")
-    @patch("orchestrator.main.get_database_provider")
-    @patch("orchestrator.main.resolve_man_task")
+    @patch("main.Client")
+    @patch("main.get_database_provider")
+    @patch("main.resolve_man_task")
     def test_submit_man_decision_success(
         self,
         mock_resolve_task,
@@ -135,7 +135,7 @@ class TestManModeAPI:
         handle = mock_temporal_client.get_workflow_handle.return_value
         handle.execute_update.assert_called_once()
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_submit_man_decision_task_not_found(self, mock_get_db_provider, client, mock_db):
         """Test submission of decision for non-existent task."""
         mock_get_db_provider.return_value = mock_db
@@ -156,7 +156,7 @@ class TestManModeAPI:
     # POLICY ENDPOINTS
     # ============================================================================
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_list_man_policies_success(self, mock_get_db_provider, client, mock_db):
         """Test successful listing of MAN policies."""
         mock_get_db_provider.return_value = mock_db
@@ -171,7 +171,7 @@ class TestManModeAPI:
         data = response.json()
         assert len(data["policies"]) == 2
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_list_man_policies_with_filters(self, mock_get_db_provider, client, mock_db):
         """Test listing MAN policies with filters."""
         mock_get_db_provider.return_value = mock_db
@@ -185,7 +185,7 @@ class TestManModeAPI:
         assert call_args[1]["filters"]["tenant_id"] == "tenant1"
         assert call_args[1]["filters"]["workflow_key"] == "special"
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_upsert_man_policy_success(self, mock_get_db_provider, client, mock_db):
         """Test successful upsert of MAN policy."""
         mock_get_db_provider.return_value = mock_db
@@ -228,7 +228,7 @@ class TestManModeAPI:
     # WORKFLOW CONTROL ENDPOINTS
     # ============================================================================
 
-    @patch("orchestrator.main.Client")
+    @patch("main.Client")
     def test_pause_workflow_success(self, mock_client_class, client, mock_temporal_client):
         """Test successful workflow pause."""
         mock_client_class.connect.return_value = mock_temporal_client
@@ -248,7 +248,7 @@ class TestManModeAPI:
         handle = mock_temporal_client.get_workflow_handle.return_value
         handle.signal.assert_called_once_with("pause_workflow", "Operator requested pause")
 
-    @patch("orchestrator.main.Client")
+    @patch("main.Client")
     def test_resume_workflow_success(self, mock_client_class, client, mock_temporal_client):
         """Test successful workflow resume."""
         mock_client_class.connect.return_value = mock_temporal_client
@@ -265,7 +265,7 @@ class TestManModeAPI:
         handle = mock_temporal_client.get_workflow_handle.return_value
         handle.signal.assert_called_once_with("resume_workflow")
 
-    @patch("orchestrator.main.Client")
+    @patch("main.Client")
     def test_cancel_workflow_success(self, mock_client_class, client, mock_temporal_client):
         """Test successful workflow cancellation."""
         mock_client_class.connect.return_value = mock_temporal_client
@@ -283,7 +283,7 @@ class TestManModeAPI:
         handle = mock_temporal_client.get_workflow_handle.return_value
         handle.signal.assert_called_once_with("cancel_workflow", "Operator requested cancellation")
 
-    @patch("orchestrator.main.Client")
+    @patch("main.Client")
     def test_force_man_mode_success(self, mock_client_class, client, mock_temporal_client):
         """Test successful force MAN mode."""
         mock_client_class.connect.return_value = mock_temporal_client
@@ -307,7 +307,7 @@ class TestManModeAPI:
     # ERROR HANDLING
     # ============================================================================
 
-    @patch("orchestrator.main.get_database_provider")
+    @patch("main.get_database_provider")
     def test_api_error_handling(self, mock_get_db_provider, client, mock_db):
         """Test API error handling."""
         mock_get_db_provider.return_value = mock_db
@@ -318,7 +318,7 @@ class TestManModeAPI:
         assert response.status_code == 500
         assert "Database connection failed" in response.json()["detail"]
 
-    @patch("orchestrator.main.Client")
+    @patch("main.Client")
     def test_temporal_error_handling(self, mock_client_class, client):
         """Test Temporal client error handling."""
         mock_client_class.connect.side_effect = Exception("Temporal connection failed")

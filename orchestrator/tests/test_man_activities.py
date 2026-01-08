@@ -7,13 +7,13 @@ Tests the activities for risk triage, task creation, resolution, and backlog che
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orchestrator.activities.man_mode import (
+from activities.man_mode import (
     backlog_check,
     create_man_task,
     resolve_man_task,
     risk_triage,
 )
-from orchestrator.models.man_mode import (
+from models.man_mode import (
     ManLane,
     RiskTriageResult,
 )
@@ -35,7 +35,7 @@ class TestRiskTriageActivity:
             "flags": {"irreversible": True},
         }
 
-        with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine:
+        with patch("activities.man_mode.get_policy_engine") as mock_get_engine:
             mock_engine = MagicMock()
             mock_result = RiskTriageResult(
                 lane=ManLane.RED, risk_score=0.85, reasons=["irreversible: 0.80"]
@@ -66,7 +66,7 @@ class TestRiskTriageActivity:
         workflow_key = "special_workflow"
         free_text_signals = ["urgent", "critical"]
 
-        with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine:
+        with patch("activities.man_mode.get_policy_engine") as mock_get_engine:
             mock_engine = MagicMock()
             mock_result = RiskTriageResult(lane=ManLane.GREEN, risk_score=0.1, reasons=[])
             mock_engine.triage_intent.return_value = mock_result
@@ -114,7 +114,7 @@ class TestCreateManTaskActivity:
             "risk_reasons": ["irreversible: 0.80", "affects_rights: 1.00"],
         }
 
-        with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
+        with patch("activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.upsert.return_value = expected_task
             mock_get_db.return_value = mock_db
@@ -161,7 +161,7 @@ class TestCreateManTaskActivity:
         triage_data = {"lane": "RED", "risk_score": 0.8, "reasons": []}
 
         # Create two tasks with identical inputs
-        with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
+        with patch("activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.upsert.return_value = {"id": "task-123"}
             mock_get_db.return_value = mock_db
@@ -203,7 +203,7 @@ class TestResolveManTaskActivity:
             "decision": decision_data,
         }
 
-        with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
+        with patch("activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.select_one.side_effect = [
                 existing_task,
@@ -236,7 +236,7 @@ class TestResolveManTaskActivity:
             "decision": {"decision": "APPROVE"},
         }
 
-        with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
+        with patch("activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.select_one.return_value = resolved_task
             mock_get_db.return_value = mock_db
@@ -257,7 +257,7 @@ class TestResolveManTaskActivity:
             "reviewer_id": "reviewer1",
         }
 
-        with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
+        with patch("activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.select_one.return_value = None
             mock_get_db.return_value = mock_db
@@ -278,7 +278,7 @@ class TestResolveManTaskActivity:
         existing_task = {"id": task_id, "status": "PENDING"}
         resolved_task = {"id": task_id, "status": "APPROVED"}  # Already resolved by another process
 
-        with patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db:
+        with patch("activities.man_mode.get_database_provider") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.select_one.side_effect = [existing_task, resolved_task]
             mock_db.update.return_value = None  # Update returns None (no rows affected)
@@ -299,8 +299,8 @@ class TestBacklogCheckActivity:
         tenant_id = "tenant1"
 
         with (
-            patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine,
-            patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db,
+            patch("activities.man_mode.get_policy_engine") as mock_get_engine,
+            patch("activities.man_mode.get_database_provider") as mock_get_db,
         ):
             # Mock policy
             mock_policy = MagicMock()
@@ -329,8 +329,8 @@ class TestBacklogCheckActivity:
         tenant_id = "tenant1"
 
         with (
-            patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine,
-            patch("orchestrator.activities.man_mode.get_database_provider") as mock_get_db,
+            patch("activities.man_mode.get_policy_engine") as mock_get_engine,
+            patch("activities.man_mode.get_database_provider") as mock_get_db,
         ):
             # Mock policy
             mock_policy = MagicMock()
@@ -358,7 +358,7 @@ class TestBacklogCheckActivity:
         """Test that backlog check failures return safe defaults."""
         tenant_id = "tenant1"
 
-        with patch("orchestrator.activities.man_mode.get_policy_engine") as mock_get_engine:
+        with patch("activities.man_mode.get_policy_engine") as mock_get_engine:
             mock_get_engine.side_effect = Exception("Policy engine error")
 
             result = await backlog_check(tenant_id)

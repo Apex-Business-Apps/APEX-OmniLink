@@ -5,7 +5,7 @@ Tests the deterministic triage logic, risk assessment, and policy evaluation.
 """
 
 import pytest
-from orchestrator.models.man_mode import (
+from models.man_mode import (
     ActionIntent,
     ManDecision,
     ManLane,
