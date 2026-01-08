@@ -103,7 +103,9 @@ class SupabaseProvider(DatabaseProvider):
             if not response.data:
                 # Check if it was because no record matched
                 # Note: Supabase update returns empty list if no match found.
-                raise NotFound(f"No records found to update in {table} with filters {filters}")
+                raise NotFound(
+                    f"No records found to update in {table} with filters {filters}"
+                )
 
             return response.data[0]
         except Exception as e:

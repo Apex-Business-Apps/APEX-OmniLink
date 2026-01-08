@@ -1,36 +1,31 @@
 """
-MAN Mode Data Models - Type-safe contracts for human approval safety gate.
+MAN Mode (Manual Assistance Needed) data models.
 
-MAN = Manual Approval Node. When an agent action is classified as high-risk
-(RED lane), execution pauses and a ManTask is created for human review.
-
-Design Principles:
-1. All models are immutable (frozen=True)
-2. All IDs are strings (UUIDs formatted as strings)
-3. Strict validation with Pydantic
-4. JSON-serializable for workflow persistence
+This module defines the core data structures for the human-in-the-loop
+safety system that gates high-risk agent actions.
 """
-
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
-from uuid import uuid4
+from typing import Any, Dict, Optional
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-# ============================================================================
-# ENUMS
-# ============================================================================
-
 
 class ManLane(str, Enum):
-    """
-    Risk classification lanes for agent actions.
+    """Risk classification lanes for action triage.
 
-    GREEN: Auto-execute (safe operations like reads)
-    YELLOW: Execute with logging (moderate risk, audit trail)
-    RED: Block for human approval (high-risk, irreversible)
-    BLOCKED: Never execute (prohibited operations)
+    Inherits from str to ensure proper serialization:
+    - str(ManLane.GREEN) returns "GREEN" (not "ManLane.GREEN")
+    - JSON serialization returns "GREEN"
+    - Pydantic validation accepts string literals
+    - Database JSONB stores clean string values
+
+    Lanes:
+        GREEN: Auto-approve, no human review required
+        YELLOW: Log and proceed, monitoring recommended
+        RED: Block until human approval received
+        BLOCKED: Never allow, immediate denial
     """
 
     GREEN = "GREEN"
@@ -40,130 +35,156 @@ class ManLane(str, Enum):
 
 
 class ManTaskStatus(str, Enum):
-    """
-    Status of a MAN approval task.
+    """Status values for approval tasks.
 
-    PENDING: Awaiting human decision
-    APPROVED: Human approved the action
-    DENIED: Human denied the action
-    EXPIRED: Task timed out without decision
+    Inherits from str for consistent serialization behavior.
     """
 
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     DENIED = "DENIED"
-    EXPIRED = "EXPIRED"
-
-
-# ============================================================================
-# DATA MODELS
-# ============================================================================
 
 
 class ActionIntent(BaseModel):
-    """
-    Describes an agent action that requires risk evaluation.
+    """Action proposed by agent requiring risk evaluation.
 
-    Captures the tool name, parameters, and context needed for risk triage.
-    This is the input to the ManPolicy.triage() method.
+    Attributes:
+        tool_name: Identifier of the tool to execute
+        params: Parameters to pass to the tool
+        workflow_id: Parent workflow identifier for tracing
+        step_id: Unique step identifier within workflow
+        irreversible: Flag indicating action cannot be undone
+        metadata: Additional context for risk evaluation
     """
 
-    tool_name: str = Field(..., description="Name of the tool to execute")
-    params: dict[str, Any] = Field(default_factory=dict, description="Tool parameters")
+    tool_name: str = Field(..., description="Tool identifier")
+    params: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Tool execution parameters"
+    )
     workflow_id: str = Field(..., description="Parent workflow ID")
-    step_id: str = Field(default="", description="Step ID within the plan")
+    step_id: str = Field(..., description="Unique step identifier")
     irreversible: bool = Field(
-        default=False, description="Explicitly marked as irreversible by planner"
+        default=False,
+        description="Action cannot be reversed"
     )
-    context: Optional[dict[str, Any]] = Field(
-        default=None, description="Additional context (user_id, resource_id, etc.)"
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional context"
     )
 
-    model_config = {"frozen": True}
+    class Config:
+        frozen = True  # Immutable
 
 
 class RiskTriageResult(BaseModel):
-    """
-    Result of risk classification for an action.
+    """Output from risk policy evaluation.
 
-    Returned by ManPolicy.triage() to indicate how the action should be handled.
+    Attributes:
+        lane: Risk classification (GREEN/YELLOW/RED/BLOCKED)
+        reason: Human-readable explanation of classification
+        requires_approval: Whether human gate is needed
+        timeout_seconds: Max wait time for approval (default 86400 = 24h)
+        metadata: Additional policy evaluation context
     """
 
     lane: ManLane = Field(..., description="Risk classification lane")
-    reason: str = Field(..., description="Human-readable reason for classification")
-    requires_approval: bool = Field(..., description="True if action requires human approval")
-    risk_factors: list[str] = Field(
-        default_factory=list, description="List of factors that contributed to classification"
+    reason: str = Field(..., description="Classification rationale")
+    requires_approval: bool = Field(
+        ...,
+        description="Human approval required"
     )
-    suggested_timeout_hours: int = Field(
-        default=24, description="Suggested timeout for approval task"
+    timeout_seconds: int = Field(
+        default=86400,
+        description="Approval timeout (default 24h)",
+        ge=60,
+        le=604800  # Max 7 days
     )
-
-    model_config = {"frozen": True}
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Policy evaluation details"
+    )
 
 
 class ManTaskDecision(BaseModel):
+    """Human decision on approval task.
+
+    Attributes:
+        status: Approval decision (APPROVED/DENIED)
+        reason: Human-provided rationale
+        decided_by: Identity of decision maker
+        decided_at: Timestamp of decision
+        metadata: Additional decision context
     """
-    Human decision on a MAN approval task.
 
-    Captures the approval/denial decision along with metadata.
-    """
-
-    status: ManTaskStatus = Field(..., description="Decision status")
-    reason: Optional[str] = Field(default=None, description="Human-provided reason for decision")
-    decided_by: str = Field(..., description="User ID who made the decision")
-    decided_at: str = Field(
-        default_factory=lambda: datetime.utcnow().isoformat() + "Z",
-        description="ISO 8601 timestamp of decision",
+    status: ManTaskStatus = Field(
+        ...,
+        description="Decision outcome"
     )
-    metadata: Optional[dict[str, Any]] = Field(
-        default=None, description="Additional decision metadata"
+    reason: str = Field(
+        default="",
+        description="Decision rationale"
     )
-
-    model_config = {"frozen": True}
+    decided_by: str = Field(..., description="Decision maker identity")
+    decided_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Decision timestamp"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional context"
+    )
 
 
 class ManTask(BaseModel):
-    """
-    A MAN approval task persisted to the database.
+    """Durable approval task record.
 
-    Created when an agent action is classified as RED lane.
-    Workflow pauses until this task is resolved by a human.
+    Represents a single action awaiting human review.
+    Stored in man_tasks database table.
+
+    Attributes:
+        id: Unique task identifier
+        idempotency_key: Prevents duplicate task creation
+        workflow_id: Parent workflow identifier
+        status: Current task state (PENDING/APPROVED/DENIED)
+        intent: Original action requiring approval
+        decision: Human decision (null until decided)
+        created_at: Task creation timestamp
     """
 
-    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique task identifier")
-    idempotency_key: str = Field(..., description="Idempotency key: {workflow_id}:{step_id}")
+    id: UUID = Field(default_factory=uuid4, description="Task ID")
+    idempotency_key: str = Field(
+        ...,
+        description="Unique key for idempotent creation"
+    )
     workflow_id: str = Field(..., description="Parent workflow ID")
-    step_id: str = Field(default="", description="Step ID within the plan")
-    status: ManTaskStatus = Field(default=ManTaskStatus.PENDING, description="Current task status")
-    intent: ActionIntent = Field(..., description="The action requiring approval")
-    triage_result: RiskTriageResult = Field(..., description="Risk classification result")
+    status: ManTaskStatus = Field(
+        default=ManTaskStatus.PENDING,
+        description="Task status"
+    )
+    intent: ActionIntent = Field(..., description="Proposed action")
     decision: Optional[ManTaskDecision] = Field(
-        default=None, description="Human decision (null if pending)"
+        default=None,
+        description="Human decision (null until decided)"
     )
-    created_at: str = Field(
-        default_factory=lambda: datetime.utcnow().isoformat() + "Z",
-        description="ISO 8601 timestamp of creation",
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Creation timestamp"
     )
-    expires_at: Optional[str] = Field(
-        default=None, description="ISO 8601 timestamp when task expires"
-    )
-
-    model_config = {"frozen": True}
-
-
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
 
 
 def create_idempotency_key(workflow_id: str, step_id: str) -> str:
-    """
-    Create a deterministic idempotency key for a MAN task.
+    """Generate idempotency key for task creation.
 
-    Format: {workflow_id}:{step_id}
+    Args:
+        workflow_id: Parent workflow identifier
+        step_id: Step identifier within workflow
 
-    This ensures that re-execution of the same workflow step
-    doesn't create duplicate approval tasks.
+    Returns:
+        Idempotency key in format "{workflow_id}:{step_id}"
+
+    Example:
+        >>> create_idempotency_key("wf-123", "step-5")
+        'wf-123:step-5'
     """
     return f"{workflow_id}:{step_id}"
