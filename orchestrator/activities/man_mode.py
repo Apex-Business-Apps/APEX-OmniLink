@@ -48,7 +48,6 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
     """
     try:
         intent_data = params["intent"]
-        triage_data = params["triage_result"]
 
         # Build idempotency key
         key_parts = [
@@ -81,7 +80,7 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
 
     except Exception as e:
         activity.logger.error(f"Create MAN task failed: {str(e)}")
-        raise ApplicationError(f"MAN task operation failed: create failed",
+        raise ApplicationError("MAN task operation failed: create failed",
                                non_retryable=False) from e
 
 
@@ -119,5 +118,5 @@ async def resolve_man_task(params: dict[str, Any]) -> dict[str, Any]:
 
     except Exception as e:
         activity.logger.error(f"Resolve MAN task failed: {str(e)}")
-        raise ApplicationError(f"MAN task operation failed: resolve failed",
+        raise ApplicationError("MAN task operation failed: resolve failed",
                                non_retryable=False) from e
