@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict, List, Optional
 
 from supabase import Client, create_client
@@ -51,7 +50,7 @@ class SupabaseProvider(DatabaseProvider):
         """
         try:
             query = self.client.table(table).upsert(record)
-            
+
             # If specific conflict columns are needed (depending on supabase-py version support)
             # strictly speaking, standard upsert relies on PK constraints.
             response = query.execute()
@@ -67,7 +66,7 @@ class SupabaseProvider(DatabaseProvider):
             query = self.client.table(table).select("*")
             for key, value in query_params.items():
                 query = query.eq(key, value)
-            
+
             response = query.execute()
             return response.data
         except Exception as e:
@@ -95,7 +94,7 @@ class SupabaseProvider(DatabaseProvider):
                 raise DatabaseError("Update requires at least one filter")
 
             query = self.client.table(table).update(updates)
-            
+
             for key, value in filters.items():
                 query = query.eq(key, value)
 
@@ -107,7 +106,7 @@ class SupabaseProvider(DatabaseProvider):
                 raise NotFound(
                     f"No records found to update in {table} with filters {filters}"
                 )
-            
+
             return response.data[0]
         except Exception as e:
             if isinstance(e, NotFound):
@@ -124,7 +123,7 @@ class SupabaseProvider(DatabaseProvider):
                 query = query.eq(key, value)
 
             response = query.execute()
-            
+
             # response.data usually contains the deleted rows
             return len(response.data) > 0
         except Exception as e:
