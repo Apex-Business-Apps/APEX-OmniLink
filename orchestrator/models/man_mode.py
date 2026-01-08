@@ -4,6 +4,7 @@ MAN Mode (Manual Assistance Needed) data models.
 This module defines the core data structures for the human-in-the-loop
 safety system that gates high-risk agent actions.
 """
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
@@ -58,20 +59,11 @@ class ActionIntent(BaseModel):
     """
 
     tool_name: str = Field(..., description="Tool identifier")
-    params: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Tool execution parameters"
-    )
+    params: Dict[str, Any] = Field(default_factory=dict, description="Tool execution parameters")
     workflow_id: str = Field(..., description="Parent workflow ID")
     step_id: str = Field(..., description="Unique step identifier")
-    irreversible: bool = Field(
-        default=False,
-        description="Action cannot be reversed"
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional context"
-    )
+    irreversible: bool = Field(default=False, description="Action cannot be reversed")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
 
     class Config:
         frozen = True  # Immutable
@@ -90,20 +82,14 @@ class RiskTriageResult(BaseModel):
 
     lane: ManLane = Field(..., description="Risk classification lane")
     reason: str = Field(..., description="Classification rationale")
-    requires_approval: bool = Field(
-        ...,
-        description="Human approval required"
-    )
+    requires_approval: bool = Field(..., description="Human approval required")
     timeout_seconds: int = Field(
         default=86400,
         description="Approval timeout (default 24h)",
         ge=60,
-        le=604800  # Max 7 days
+        le=604800,  # Max 7 days
     )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Policy evaluation details"
-    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Policy evaluation details")
 
 
 class ManTaskDecision(BaseModel):
@@ -117,23 +103,11 @@ class ManTaskDecision(BaseModel):
         metadata: Additional decision context
     """
 
-    status: ManTaskStatus = Field(
-        ...,
-        description="Decision outcome"
-    )
-    reason: str = Field(
-        default="",
-        description="Decision rationale"
-    )
+    status: ManTaskStatus = Field(..., description="Decision outcome")
+    reason: str = Field(default="", description="Decision rationale")
     decided_by: str = Field(..., description="Decision maker identity")
-    decided_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="Decision timestamp"
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional context"
-    )
+    decided_at: datetime = Field(default_factory=datetime.utcnow, description="Decision timestamp")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
 
 
 class ManTask(BaseModel):
@@ -153,24 +127,14 @@ class ManTask(BaseModel):
     """
 
     id: UUID = Field(default_factory=uuid4, description="Task ID")
-    idempotency_key: str = Field(
-        ...,
-        description="Unique key for idempotent creation"
-    )
+    idempotency_key: str = Field(..., description="Unique key for idempotent creation")
     workflow_id: str = Field(..., description="Parent workflow ID")
-    status: ManTaskStatus = Field(
-        default=ManTaskStatus.PENDING,
-        description="Task status"
-    )
+    status: ManTaskStatus = Field(default=ManTaskStatus.PENDING, description="Task status")
     intent: ActionIntent = Field(..., description="Proposed action")
     decision: Optional[ManTaskDecision] = Field(
-        default=None,
-        description="Human decision (null until decided)"
+        default=None, description="Human decision (null until decided)"
     )
-    created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="Creation timestamp"
-    )
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
 
 
 def create_idempotency_key(workflow_id: str, step_id: str) -> str:
