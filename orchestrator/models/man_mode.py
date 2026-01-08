@@ -82,6 +82,4 @@ class IdempotencyKey(BaseModel):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, IdempotencyKey):
             return False
-        return (
-            self.workflow_id == other.workflow_id and self.step_id == other.step_id
-        )
+        return self.workflow_id == other.workflow_id and self.step_id == other.step_id
