@@ -1,5 +1,4 @@
-"""
-MAN Mode (Manual Assistance Needed) data models.
+"""MAN Mode (Manual-Authorization-Needed) domain models."""
 
 This module defines the core data structures for the human-in-the-loop
 safety system that gates high-risk agent actions.
@@ -7,27 +6,14 @@ safety system that gates high-risk agent actions.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
 
 class ManLane(str, Enum):
-    """Risk classification lanes for action triage.
-
-    Inherits from str to ensure proper serialization:
-    - str(ManLane.GREEN) returns "GREEN" (not "ManLane.GREEN")
-    - JSON serialization returns "GREEN"
-    - Pydantic validation accepts string literals
-    - Database JSONB stores clean string values
-
-    Lanes:
-        GREEN: Auto-approve, no human review required
-        YELLOW: Log and proceed, monitoring recommended
-        RED: Block until human approval received
-        BLOCKED: Never allow, immediate denial
-    """
+    """Traffic-light lanes for action risk."""
 
     GREEN = "GREEN"
     YELLOW = "YELLOW"
@@ -36,14 +22,13 @@ class ManLane(str, Enum):
 
 
 class ManTaskStatus(str, Enum):
-    """Status values for approval tasks.
-
-    Inherits from str for consistent serialization behavior.
-    """
+    """Lifecycle of a MAN task."""
 
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     DENIED = "DENIED"
+    EXPIRED = "EXPIRED"
+    ESCALATED = "ESCALATED"
 
 
 class ActionIntent(BaseModel):
@@ -66,7 +51,7 @@ class ActionIntent(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
 
     class Config:
-        frozen = True  # Immutable
+        frozen = True
 
 
 class RiskTriageResult(BaseModel):
