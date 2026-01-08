@@ -59,7 +59,7 @@ with workflow.unsafe.imports_passed_through():
         WorkflowFailed,
     )
 
-    from orchestrator.models.man_mode import ManLane
+
 
 
 # ============================================================================
@@ -538,7 +538,7 @@ class AgentWorkflow:
 
         if triage_result["lane"] == "RED":
             task_params = {"intent": intent, "triage_result": triage_result}
-            task_result = await workflow.execute_activity(
+            await workflow.execute_activity(
                 "create_man_task",
                 args=[task_params],
                 start_to_close_timeout=timedelta(seconds=10),
