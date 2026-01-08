@@ -10,7 +10,7 @@ from typing import Any, Dict
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
-from ..models.man_mode import ActionIntent, ManTask, RiskTriageResult
+from ..models.man_mode import ActionIntent, RiskTriageResult
 from ..policies.man_policy import ManPolicy
 from ..providers.database.factory import get_database_provider
 
