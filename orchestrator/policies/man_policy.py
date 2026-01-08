@@ -17,11 +17,7 @@ class ManPolicy:
     def __init__(self):
         """Initialize policy with default sensitive tools list."""
         self.sensitive_tools = {
-            "delete_record",
-            "send_email",
-            "update_user",
-            "create_user",
-            "delete_user",
+            "transfer_funds", "delete_record", "send_email"
         }
 
     def triage_intent(self, intent: ActionIntent) -> RiskTriageResult:
@@ -32,28 +28,40 @@ class ManPolicy:
             intent: The action intent to evaluate
 
         Returns:
-            RiskTriageResult with lane, score, and reasons
+            RiskTriageResult with lane and reason
         """
-        reasons = []
-
-        # Check for irreversible actions
-        if intent.flags.get("irreversible"):
-            reasons.append("irreversible_action")
+        # Check for irreversible actions first
+        if intent.irreversible:
+            return RiskTriageResult(
+                lane=ManLane.RED,
+                reason="irreversible action"
+            )
 
         # Check for sensitive tools
         if intent.tool_name in self.sensitive_tools:
-            reasons.append(f"sensitive_tool: {intent.tool_name}")
+            return RiskTriageResult(
+                lane=ManLane.RED,
+                reason=f"sensitive tool: {intent.tool_name}"
+            )
 
-        # Determine lane based on rules
-        if intent.flags.get("irreversible") or intent.tool_name in self.sensitive_tools:
-            lane = ManLane.RED
-            risk_score = 0.9
-        else:
-            lane = ManLane.GREEN
-            risk_score = 0.1
-
+        # Default to green for low-risk actions
         return RiskTriageResult(
-            lane=lane,
-            risk_score=risk_score,
-            reasons=reasons
+            lane=ManLane.GREEN,
+            reason="low risk action"
         )
+
+    def triage_intent_payload(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Triage an action intent from a plain dict payload.
+
+        Args:
+            payload: Dict containing ActionIntent fields
+
+        Returns:
+            Dict with RiskTriageResult fields
+        """
+        intent = ActionIntent(**payload)
+        result = self.triage_intent(intent)
+        return result.model_dump()
