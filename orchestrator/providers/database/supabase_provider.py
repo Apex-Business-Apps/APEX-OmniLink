@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict, List, Optional
 
 from supabase import Client, create_client
@@ -21,8 +20,6 @@ class SupabaseProvider(DatabaseProvider):
         """
         if not self.client:
             raise DatabaseError("Supabase client not initialized")
-        # Optional: Make a lightweight call to verify connection if strict mode needed.
-        pass
 
     async def disconnect(self) -> None:
         """
@@ -51,9 +48,6 @@ class SupabaseProvider(DatabaseProvider):
         """
         try:
             query = self.client.table(table).upsert(record)
-            
-            # If specific conflict columns are needed (depending on supabase-py version support)
-            # strictly speaking, standard upsert relies on PK constraints.
             response = query.execute()
 
             if not response.data:
@@ -62,24 +56,27 @@ class SupabaseProvider(DatabaseProvider):
         except Exception as e:
             raise DatabaseError(f"Database upsert failed: {str(e)}") from e
 
-    async def get(self, table: str, query_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def get(
+        self, table: str, query_params: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         try:
             query = self.client.table(table).select("*")
             for key, value in query_params.items():
                 query = query.eq(key, value)
-            
+
             response = query.execute()
             return response.data
         except Exception as e:
             raise DatabaseError(f"Database get failed: {str(e)}") from e
 
-    async def select_one(self, table: str, query_params: Dict[str, Any]) -> Dict[str, Any]:
+    async def select_one(
+        self, table: str, query_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Retrieve a single record. Raises NotFound if not found.
         """
         results = await self.get(table, query_params)
         if not results:
-            # Format params for cleaner error log
             params_str = ", ".join(f"{k}={v}" for k, v in query_params.items())
             raise NotFound(f"Record not found in {table} matching: {params_str}")
         return results[0]
@@ -95,19 +92,17 @@ class SupabaseProvider(DatabaseProvider):
                 raise DatabaseError("Update requires at least one filter")
 
             query = self.client.table(table).update(updates)
-            
+
             for key, value in filters.items():
                 query = query.eq(key, value)
 
             response = query.execute()
 
             if not response.data:
-                # Check if it was because no record matched
-                # Note: Supabase update returns empty list if no match found.
                 raise NotFound(
                     f"No records found to update in {table} with filters {filters}"
                 )
-            
+
             return response.data[0]
         except Exception as e:
             if isinstance(e, NotFound):
@@ -124,8 +119,7 @@ class SupabaseProvider(DatabaseProvider):
                 query = query.eq(key, value)
 
             response = query.execute()
-            
-            # response.data usually contains the deleted rows
+
             return len(response.data) > 0
         except Exception as e:
             raise DatabaseError(f"Database delete failed: {str(e)}") from e
