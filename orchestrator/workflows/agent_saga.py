@@ -313,9 +313,7 @@ class AgentWorkflow:
         step_id = decision.get("step_id", "")
         status = decision.get("status", "UNKNOWN")
 
-        workflow.logger.info(
-            f"📥 Received MAN decision for step '{step_id}': {status}"
-        )
+        workflow.logger.info(f"📥 Received MAN decision for step '{step_id}': {status}")
 
         # Store decision - workflow.wait_condition will pick this up
         self.pending_decisions[step_id] = decision
@@ -557,13 +555,15 @@ class AgentWorkflow:
         # =====================================================================
         triage_result = await workflow.execute_activity(
             "risk_triage",
-            args=[{
-                "tool_name": step["tool"],
-                "params": step.get("input", {}),
-                "workflow_id": workflow.info().workflow_id,
-                "step_id": step_id,
-                "irreversible": step.get("irreversible", False),
-            }],
+            args=[
+                {
+                    "tool_name": step["tool"],
+                    "params": step.get("input", {}),
+                    "workflow_id": workflow.info().workflow_id,
+                    "step_id": step_id,
+                    "irreversible": step.get("irreversible", False),
+                }
+            ],
             start_to_close_timeout=timedelta(seconds=30),
             retry_policy=RetryPolicy(maximum_attempts=2),
         )
@@ -572,9 +572,7 @@ class AgentWorkflow:
 
         # BLOCKED lane: never execute
         if lane == "BLOCKED":
-            workflow.logger.error(
-                f"  🚫 BLOCKED: {step['tool']} - {triage_result.get('reason')}"
-            )
+            workflow.logger.error(f"  🚫 BLOCKED: {step['tool']} - {triage_result.get('reason')}")
             raise ApplicationError(
                 f"Action blocked by policy: {triage_result.get('reason')}",
                 non_retryable=True,
@@ -582,26 +580,26 @@ class AgentWorkflow:
 
         # RED lane: require human approval
         if lane == "RED":
-            workflow.logger.warning(
-                f"  🛑 MAN Mode: Awaiting approval for {step['tool']}"
-            )
+            workflow.logger.warning(f"  🛑 MAN Mode: Awaiting approval for {step['tool']}")
 
             # Create MAN task in database
             await workflow.execute_activity(
                 "create_man_task",
-                args=[{
-                    "workflow_id": workflow.info().workflow_id,
-                    "step_id": step_id,
-                    "intent": {
-                        "tool_name": step["tool"],
-                        "params": step.get("input", {}),
+                args=[
+                    {
                         "workflow_id": workflow.info().workflow_id,
                         "step_id": step_id,
-                        "irreversible": step.get("irreversible", False),
-                    },
-                    "triage_result": triage_result,
-                    "timeout_hours": triage_result.get("suggested_timeout_hours", 24),
-                }],
+                        "intent": {
+                            "tool_name": step["tool"],
+                            "params": step.get("input", {}),
+                            "workflow_id": workflow.info().workflow_id,
+                            "step_id": step_id,
+                            "irreversible": step.get("irreversible", False),
+                        },
+                        "triage_result": triage_result,
+                        "timeout_hours": triage_result.get("suggested_timeout_hours", 24),
+                    }
+                ],
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
@@ -625,9 +623,7 @@ class AgentWorkflow:
             decision = self.pending_decisions[step_id]
             if decision.get("status") != "APPROVED":
                 reason = decision.get("reason", "No reason provided")
-                workflow.logger.warning(
-                    f"  ❌ MAN Mode denied: {step['tool']} - {reason}"
-                )
+                workflow.logger.warning(f"  ❌ MAN Mode denied: {step['tool']} - {reason}")
                 raise ApplicationError(
                     f"MAN Mode denied: {reason}",
                     non_retryable=True,

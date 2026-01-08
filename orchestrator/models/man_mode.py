@@ -69,19 +69,14 @@ class ActionIntent(BaseModel):
     """
 
     tool_name: str = Field(..., description="Name of the tool to execute")
-    params: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Tool parameters"
-    )
+    params: dict[str, Any] = Field(default_factory=dict, description="Tool parameters")
     workflow_id: str = Field(..., description="Parent workflow ID")
     step_id: str = Field(default="", description="Step ID within the plan")
     irreversible: bool = Field(
-        default=False,
-        description="Explicitly marked as irreversible by planner"
+        default=False, description="Explicitly marked as irreversible by planner"
     )
     context: Optional[dict[str, Any]] = Field(
-        default=None,
-        description="Additional context (user_id, resource_id, etc.)"
+        default=None, description="Additional context (user_id, resource_id, etc.)"
     )
 
     model_config = {"frozen": True}
@@ -96,17 +91,12 @@ class RiskTriageResult(BaseModel):
 
     lane: ManLane = Field(..., description="Risk classification lane")
     reason: str = Field(..., description="Human-readable reason for classification")
-    requires_approval: bool = Field(
-        ...,
-        description="True if action requires human approval"
-    )
+    requires_approval: bool = Field(..., description="True if action requires human approval")
     risk_factors: list[str] = Field(
-        default_factory=list,
-        description="List of factors that contributed to classification"
+        default_factory=list, description="List of factors that contributed to classification"
     )
     suggested_timeout_hours: int = Field(
-        default=24,
-        description="Suggested timeout for approval task"
+        default=24, description="Suggested timeout for approval task"
     )
 
     model_config = {"frozen": True}
@@ -120,18 +110,14 @@ class ManTaskDecision(BaseModel):
     """
 
     status: ManTaskStatus = Field(..., description="Decision status")
-    reason: Optional[str] = Field(
-        default=None,
-        description="Human-provided reason for decision"
-    )
+    reason: Optional[str] = Field(default=None, description="Human-provided reason for decision")
     decided_by: str = Field(..., description="User ID who made the decision")
     decided_at: str = Field(
         default_factory=lambda: datetime.utcnow().isoformat() + "Z",
-        description="ISO 8601 timestamp of decision"
+        description="ISO 8601 timestamp of decision",
     )
     metadata: Optional[dict[str, Any]] = Field(
-        default=None,
-        description="Additional decision metadata"
+        default=None, description="Additional decision metadata"
     )
 
     model_config = {"frozen": True}
@@ -145,36 +131,22 @@ class ManTask(BaseModel):
     Workflow pauses until this task is resolved by a human.
     """
 
-    id: str = Field(
-        default_factory=lambda: str(uuid4()),
-        description="Unique task identifier"
-    )
-    idempotency_key: str = Field(
-        ...,
-        description="Idempotency key: {workflow_id}:{step_id}"
-    )
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique task identifier")
+    idempotency_key: str = Field(..., description="Idempotency key: {workflow_id}:{step_id}")
     workflow_id: str = Field(..., description="Parent workflow ID")
     step_id: str = Field(default="", description="Step ID within the plan")
-    status: ManTaskStatus = Field(
-        default=ManTaskStatus.PENDING,
-        description="Current task status"
-    )
+    status: ManTaskStatus = Field(default=ManTaskStatus.PENDING, description="Current task status")
     intent: ActionIntent = Field(..., description="The action requiring approval")
-    triage_result: RiskTriageResult = Field(
-        ...,
-        description="Risk classification result"
-    )
+    triage_result: RiskTriageResult = Field(..., description="Risk classification result")
     decision: Optional[ManTaskDecision] = Field(
-        default=None,
-        description="Human decision (null if pending)"
+        default=None, description="Human decision (null if pending)"
     )
     created_at: str = Field(
         default_factory=lambda: datetime.utcnow().isoformat() + "Z",
-        description="ISO 8601 timestamp of creation"
+        description="ISO 8601 timestamp of creation",
     )
     expires_at: Optional[str] = Field(
-        default=None,
-        description="ISO 8601 timestamp when task expires"
+        default=None, description="ISO 8601 timestamp when task expires"
     )
 
     model_config = {"frozen": True}

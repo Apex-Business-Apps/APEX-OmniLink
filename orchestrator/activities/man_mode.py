@@ -75,8 +75,7 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
         result = policy.triage(intent)
 
         activity.logger.info(
-            f"Risk triage for '{intent.tool_name}': "
-            f"{result.lane.value} ({result.reason})"
+            f"Risk triage for '{intent.tool_name}': " f"{result.lane.value} ({result.reason})"
         )
 
         return result.model_dump()
@@ -85,7 +84,7 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
         activity.logger.error(f"Risk triage failed: {str(e)}")
         raise ApplicationError(
             f"Risk triage failed: {str(e)}",
-            non_retryable=True  # Validation errors won't fix on retry
+            non_retryable=True,  # Validation errors won't fix on retry
         ) from e
 
 
@@ -131,9 +130,7 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         idempotency_key = create_idempotency_key(workflow_id, step_id)
 
         # Calculate expiration
-        expires_at = (
-            datetime.utcnow() + timedelta(hours=timeout_hours)
-        ).isoformat() + "Z"
+        expires_at = (datetime.utcnow() + timedelta(hours=timeout_hours)).isoformat() + "Z"
 
         # Get database provider
         db = get_database_provider()
@@ -160,8 +157,7 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         is_new = result.get("created_at") == result.get("created_at")  # Always true
 
         activity.logger.info(
-            f"MAN task {'created' if is_new else 'found'}: "
-            f"{task_id} for workflow {workflow_id}"
+            f"MAN task {'created' if is_new else 'found'}: " f"{task_id} for workflow {workflow_id}"
         )
 
         return {
@@ -177,7 +173,7 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         activity.logger.error(f"Failed to create MAN task: {str(e)}")
         raise ApplicationError(
             f"Database error in create_man_task: {str(e)}",
-            non_retryable=False  # Retryable for transient DB issues
+            non_retryable=False,  # Retryable for transient DB issues
         ) from e
 
 
@@ -222,8 +218,7 @@ async def resolve_man_task(params: dict[str, Any]) -> dict[str, Any]:
         # Validate status
         if new_status not in [ManTaskStatus.APPROVED.value, ManTaskStatus.DENIED.value]:
             raise ApplicationError(
-                f"Invalid status: {new_status}. Must be APPROVED or DENIED.",
-                non_retryable=True
+                f"Invalid status: {new_status}. Must be APPROVED or DENIED.", non_retryable=True
             )
 
         # Build decision record
@@ -251,9 +246,7 @@ async def resolve_man_task(params: dict[str, Any]) -> dict[str, Any]:
 
         workflow_id = result.get("workflow_id", "")
 
-        activity.logger.info(
-            f"MAN task {task_id} resolved: {new_status} by {decided_by}"
-        )
+        activity.logger.info(f"MAN task {task_id} resolved: {new_status} by {decided_by}")
 
         return {
             "success": True,
@@ -270,13 +263,12 @@ async def resolve_man_task(params: dict[str, Any]) -> dict[str, Any]:
         # Check if it's a "not found" error
         if "not found" in str(e).lower():
             raise ApplicationError(
-                f"MAN task {params.get('task_id')} not found",
-                non_retryable=True
+                f"MAN task {params.get('task_id')} not found", non_retryable=True
             ) from e
 
         raise ApplicationError(
             f"Database error in resolve_man_task: {str(e)}",
-            non_retryable=False  # Retryable for transient issues
+            non_retryable=False,  # Retryable for transient issues
         ) from e
 
 
@@ -310,8 +302,7 @@ async def get_man_task(params: dict[str, Any]) -> dict[str, Any]:
 
         if not task_id and not idempotency_key:
             raise ApplicationError(
-                "Must provide either task_id or idempotency_key",
-                non_retryable=True
+                "Must provide either task_id or idempotency_key", non_retryable=True
             )
 
         # Get database provider
@@ -333,8 +324,7 @@ async def get_man_task(params: dict[str, Any]) -> dict[str, Any]:
         task_data = results[0]
 
         activity.logger.debug(
-            f"Retrieved MAN task: {task_data.get('id')} "
-            f"status={task_data.get('status')}"
+            f"Retrieved MAN task: {task_data.get('id')} " f"status={task_data.get('status')}"
         )
 
         return {
@@ -347,8 +337,7 @@ async def get_man_task(params: dict[str, Any]) -> dict[str, Any]:
     except Exception as e:
         activity.logger.error(f"Failed to get MAN task: {str(e)}")
         raise ApplicationError(
-            f"Database error in get_man_task: {str(e)}",
-            non_retryable=False
+            f"Database error in get_man_task: {str(e)}", non_retryable=False
         ) from e
 
 
@@ -407,7 +396,4 @@ async def check_man_decision(params: dict[str, Any]) -> dict[str, Any]:
 
     except Exception as e:
         activity.logger.error(f"Failed to check MAN decision: {str(e)}")
-        raise ApplicationError(
-            f"Error checking MAN decision: {str(e)}",
-            non_retryable=False
-        ) from e
+        raise ApplicationError(f"Error checking MAN decision: {str(e)}", non_retryable=False) from e
