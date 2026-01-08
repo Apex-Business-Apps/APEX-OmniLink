@@ -15,9 +15,9 @@ from pydantic import BaseModel, Field, field_validator
 class ManLane(Enum):
     """Risk levels for action triage."""
 
-    GREEN = "green"      # Low risk - auto-approve
-    YELLOW = "yellow"    # Medium risk - review optional
-    RED = "red"          # High risk - manual approval required
+    GREEN = "green"  # Low risk - auto-approve
+    YELLOW = "yellow"  # Medium risk - review optional
+    RED = "red"  # High risk - manual approval required
     BLOCKED = "blocked"  # Critical risk - always blocked
 
 
@@ -73,9 +73,7 @@ class RiskTriageResult(BaseModel):
 class ManPolicy(BaseModel):
     """Policy configuration for MAN mode risk assessment."""
 
-    global_thresholds: Dict[str, float] = Field(
-        default_factory=lambda: {"red": 0.8, "yellow": 0.5}
-    )
+    global_thresholds: Dict[str, float] = Field(default_factory=lambda: {"red": 0.8, "yellow": 0.5})
     tool_minimum_lanes: Dict[str, ManLane] = Field(default_factory=dict)
     hard_triggers: Dict[str, List[str]] = Field(
         default_factory=lambda: {"tools": [], "params": {}, "workflows": []}
@@ -83,9 +81,7 @@ class ManPolicy(BaseModel):
     per_workflow_overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     max_pending_per_tenant: int = 50
     task_ttl_minutes: int = 1440  # 24 hours
-    degrade_behavior: str = Field(
-        default="BLOCK_NEW", pattern="^(BLOCK_NEW|ALLOW_ALL)$"
-    )
+    degrade_behavior: str = Field(default="BLOCK_NEW", pattern="^(BLOCK_NEW|ALLOW_ALL)$")
 
     def get_effective_thresholds(self, workflow_key: Optional[str] = None) -> Dict[str, float]:
         """Get thresholds for a workflow, with overrides applied."""
@@ -126,9 +122,7 @@ class ManPolicyEngine:
         # Check hard triggers first
         if self._check_hard_triggers(intent, workflow_key):
             return RiskTriageResult(
-                lane=ManLane.RED,
-                risk_score=1.0,
-                reasons=["Hard trigger activated"]
+                lane=ManLane.RED, risk_score=1.0, reasons=["Hard trigger activated"]
             )
 
         # Assess risk factors

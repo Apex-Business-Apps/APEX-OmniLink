@@ -52,8 +52,4 @@ class ManPolicy:
             lane = ManLane.GREEN
             risk_score = 0.1
 
-        return RiskTriageResult(
-            lane=lane,
-            risk_score=risk_score,
-            reasons=reasons
-        )
+        return RiskTriageResult(lane=lane, risk_score=risk_score, reasons=reasons)
