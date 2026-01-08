@@ -6,7 +6,7 @@ safety system that gates high-risk agent actions.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -45,10 +45,17 @@ class ActionIntent(BaseModel):
         tool_name: Identifier of the tool to execute
         params: Parameters to pass to the tool
         workflow_id: Parent workflow identifier for tracing
-        step_id: Unique step identifier within workflow (optional, defaults to empty)
+        step_id: Unique step identifier within workflow
         irreversible: Flag indicating action cannot be undone
-        context: Additional context for risk evaluation
+        metadata: Additional context for risk evaluation
     """
+
+    tool_name: str = Field(..., description="Tool identifier")
+    params: Dict[str, Any] = Field(default_factory=dict, description="Tool execution parameters")
+    workflow_id: str = Field(..., description="Parent workflow ID")
+    step_id: str = Field(..., description="Unique step identifier")
+    irreversible: bool = Field(default=False, description="Action cannot be reversed")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
 
     tool_name: str = Field(..., description="Tool identifier")
     params: dict[str, Any] = Field(default_factory=dict, description="Tool execution parameters")
@@ -67,15 +74,20 @@ class RiskTriageResult(BaseModel):
         lane: Risk classification (GREEN/YELLOW/RED/BLOCKED)
         reason: Human-readable explanation of classification
         requires_approval: Whether human gate is needed
-        risk_factors: List of factors that contributed to classification
-        suggested_timeout_hours: Suggested timeout for approval in hours
+        timeout_seconds: Max wait time for approval (default 86400 = 24h)
+        metadata: Additional policy evaluation context
     """
 
     lane: ManLane = Field(..., description="Risk classification lane")
     reason: str = Field(..., description="Classification rationale")
     requires_approval: bool = Field(..., description="Human approval required")
-    risk_factors: list[str] = Field(default_factory=list, description="Contributing risk factors")
-    suggested_timeout_hours: int = Field(default=24, description="Approval timeout in hours")
+    timeout_seconds: int = Field(
+        default=86400,
+        description="Approval timeout (default 24h)",
+        ge=60,
+        le=604800,  # Max 7 days
+    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Policy evaluation details")
 
 
 class ManTaskDecision(BaseModel):
@@ -90,10 +102,10 @@ class ManTaskDecision(BaseModel):
     """
 
     status: ManTaskStatus = Field(..., description="Decision outcome")
-    reason: Optional[str] = Field(default=None, description="Decision rationale")
-    decided_by: str = Field(default="unknown", description="Decision maker identity")
+    reason: str = Field(default="", description="Decision rationale")
+    decided_by: str = Field(..., description="Decision maker identity")
     decided_at: datetime = Field(default_factory=datetime.utcnow, description="Decision timestamp")
-    metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional context")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
 
 
 class ManTask(BaseModel):
@@ -106,10 +118,8 @@ class ManTask(BaseModel):
         id: Unique task identifier
         idempotency_key: Prevents duplicate task creation
         workflow_id: Parent workflow identifier
-        step_id: Step identifier within workflow
         status: Current task state (PENDING/APPROVED/DENIED)
         intent: Original action requiring approval
-        triage_result: Risk triage result
         decision: Human decision (null until decided)
         created_at: Task creation timestamp
     """
@@ -117,12 +127,8 @@ class ManTask(BaseModel):
     id: UUID = Field(default_factory=uuid4, description="Task ID")
     idempotency_key: str = Field(..., description="Unique key for idempotent creation")
     workflow_id: str = Field(..., description="Parent workflow ID")
-    step_id: str = Field(default="", description="Step identifier")
     status: ManTaskStatus = Field(default=ManTaskStatus.PENDING, description="Task status")
     intent: ActionIntent = Field(..., description="Proposed action")
-    triage_result: Optional[RiskTriageResult] = Field(
-        default=None, description="Risk triage result"
-    )
     decision: Optional[ManTaskDecision] = Field(
         default=None, description="Human decision (null until decided)"
     )
