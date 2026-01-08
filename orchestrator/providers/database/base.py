@@ -6,17 +6,18 @@ This enables portability between different database backends (Supabase, PostgreS
 while maintaining consistent behavior and error handling.
 """
 
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Protocol
 
 
 class DatabaseError(Exception):
     """Base exception for database operations."""
+
     pass
 
 
-class NotFound(DatabaseError):
+class NotFoundError(DatabaseError):
     """Raised when a requested record is not found."""
+
     pass
 
 
@@ -31,7 +32,7 @@ class DatabaseProvider(Protocol):
         self,
         table: str,
         filters: Optional[Dict[str, Any]] = None,
-        select_fields: Optional[str] = None
+        select_fields: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Select records from a table with optional filtering.
@@ -45,7 +46,7 @@ class DatabaseProvider(Protocol):
             List of matching records as dictionaries
 
         Raises:
-            NotFound: If no records match the filters
+            NotFoundError: If no records match the filters
             DatabaseError: For other database errors
         """
         ...
@@ -76,6 +77,48 @@ class DatabaseProvider(Protocol):
 
         Returns:
             Number of records deleted
+
+        Raises:
+            DatabaseError: For database errors
+        """
+
+    async def upsert(
+        self,
+        table: str,
+        record: Dict[str, Any],
+        on_conflict: str = "id",
+    ) -> Dict[str, Any]:
+        """
+        Upsert a record (Insert or Update on conflict).
+
+        Args:
+            table: Table name to upsert into
+            record: Record data as a dictionary
+            on_conflict: Column name to check for conflicts (default: "id")
+
+        Returns:
+            The upserted record (including any generated fields like IDs)
+
+        Raises:
+            DatabaseError: For database errors
+        """
+
+    async def update(
+        self,
+        table: str,
+        record: Dict[str, Any],
+        filters: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Update specific fields of records matching filters.
+
+        Args:
+            table: Table name to update
+            record: Fields to update as a dictionary
+            filters: Dictionary of field-value pairs to match (equality only)
+
+        Returns:
+            The updated record
 
         Raises:
             DatabaseError: For database errors
