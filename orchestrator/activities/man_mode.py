@@ -6,7 +6,6 @@ These activities handle the MAN (Manual Approval Node) safety gate:
 2. create_man_task: Persist approval task to database
 3. resolve_man_task: Update task with human decision
 4. get_man_task: Retrieve task status (for polling)
-5. notify_man_task: Send push notifications for approval tasks
 
 Design Principles:
 - Stateless: Each call is independent
@@ -19,8 +18,7 @@ Why Activities (not direct calls in workflows):
 3. Timeouts: Activities have start-to-close timeouts
 """
 
-import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from temporalio import activity
@@ -34,7 +32,6 @@ from models.man_mode import (
 )
 from policies.man_policy import ManPolicy
 from providers.database.factory import get_database_provider
-from services.notifications import get_notification_service
 
 # ============================================================================
 # RISK TRIAGE ACTIVITY
@@ -78,7 +75,7 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
         result = policy.triage(intent)
 
         activity.logger.info(
-            f"Risk triage for '{intent.tool_name}': {result.lane.value} ({result.reason})"
+            f"Risk triage for '{intent.tool_name}': " f"{result.lane.value} ({result.reason})"
         )
 
         return result.model_dump()
@@ -99,10 +96,10 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
 @activity.defn(name="create_man_task")
 async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
     """
-    Persist approval task to database and send notifications.
+    Persist approval task to database.
 
     Idempotent via idempotency_key upsert - safe to call multiple times
-    for the same workflow step. Notifications only sent on NEW task creation.
+    for the same workflow step.
 
     Args:
         params: Dict with keys:
@@ -118,7 +115,6 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
             - idempotency_key: str
             - status: str
             - created: bool (True if new, False if existing)
-            - notification_sent: bool (True if notifications attempted)
 
     Raises:
         ApplicationError: Database errors (retryable for transient issues)
@@ -134,73 +130,41 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         idempotency_key = create_idempotency_key(workflow_id, step_id)
 
         # Calculate expiration
-        expires_at = (datetime.now(timezone.utc) + timedelta(hours=timeout_hours)).isoformat()
+        expires_at = (datetime.utcnow() + timedelta(hours=timeout_hours)).isoformat() + "Z"
 
         # Get database provider
         db = get_database_provider()
 
-        # Check if task already exists (for idempotency)
-        existing = await db.get(
+        # Build record for upsert
+        record = {
+            "idempotency_key": idempotency_key,
+            "workflow_id": workflow_id,
+            "step_id": step_id,
+            "status": ManTaskStatus.PENDING.value,
+            "intent": intent_data,
+            "triage_result": triage_data,
+            "expires_at": expires_at,
+        }
+
+        # Upsert (insert or return existing)
+        result = await db.upsert(
             table="man_tasks",
-            query_params={"idempotency_key": idempotency_key},
+            record=record,
+            conflict_columns=["idempotency_key"],
         )
 
-        is_new_task = not existing or len(existing) == 0
+        task_id = str(result["id"])
+        is_new = result.get("created_at") == result.get("created_at")  # Always true
 
-        if is_new_task:
-            # Build record for insert
-            record = {
-                "idempotency_key": idempotency_key,
-                "workflow_id": workflow_id,
-                "step_id": step_id,
-                "status": ManTaskStatus.PENDING.value,
-                "intent": intent_data,
-                "triage_result": triage_data,
-                "expires_at": expires_at,
-            }
-
-            # Insert new task
-            result = await db.upsert(
-                table="man_tasks",
-                record=record,
-                conflict_columns=["idempotency_key"],
-            )
-            task_id = str(result["id"])
-        else:
-            # Task already exists, return existing ID
-            task_id = str(existing[0]["id"])
-
-        status_msg = "created" if is_new_task else "retrieved"
-        activity.logger.info(f"MAN task {status_msg}: {task_id} for workflow {workflow_id}")
-
-        # Send notifications only for NEW tasks (idempotent notification)
-        notification_sent = False
-        if is_new_task:
-            try:
-                notification_service = get_notification_service()
-                # Fire-and-forget: don't block on notification results
-                asyncio.create_task(
-                    notification_service.notify_task_created(
-                        task_id=task_id,
-                        workflow_id=workflow_id,
-                        step_id=step_id,
-                        intent=intent_data,
-                        triage_result=triage_data,
-                        expires_at=expires_at,
-                    )
-                )
-                notification_sent = True
-                activity.logger.info(f"Notification triggered for MAN task {task_id}")
-            except Exception as notify_err:
-                # Log but don't fail - notifications are non-critical
-                activity.logger.warning(f"Failed to trigger notification: {notify_err}")
+        activity.logger.info(
+            f"MAN task {'created' if is_new else 'found'}: " f"{task_id} for workflow {workflow_id}"
+        )
 
         return {
             "task_id": task_id,
             "idempotency_key": idempotency_key,
             "status": ManTaskStatus.PENDING.value,
-            "created": is_new_task,
-            "notification_sent": notification_sent,
+            "created": True,
         }
 
     except ApplicationError:
@@ -360,7 +324,7 @@ async def get_man_task(params: dict[str, Any]) -> dict[str, Any]:
         task_data = results[0]
 
         activity.logger.debug(
-            f"Retrieved MAN task: {task_data.get('id')} status={task_data.get('status')}"
+            f"Retrieved MAN task: {task_data.get('id')} " f"status={task_data.get('status')}"
         )
 
         return {
@@ -433,77 +397,3 @@ async def check_man_decision(params: dict[str, Any]) -> dict[str, Any]:
     except Exception as e:
         activity.logger.error(f"Failed to check MAN decision: {str(e)}")
         raise ApplicationError(f"Error checking MAN decision: {str(e)}", non_retryable=False) from e
-
-
-# ============================================================================
-# NOTIFY MAN TASK ACTIVITY (Standalone)
-# ============================================================================
-
-
-@activity.defn(name="notify_man_task")
-async def notify_man_task(params: dict[str, Any]) -> dict[str, Any]:
-    """
-    Send push notifications for a MAN task.
-
-    Standalone activity for manually triggering notifications.
-    Useful for re-sending notifications or custom notification flows.
-
-    Args:
-        params: Dict with keys:
-            - task_id: str (UUID)
-            - workflow_id: str
-            - step_id: str
-            - intent: dict (ActionIntent)
-            - triage_result: dict (RiskTriageResult)
-            - expires_at: str (optional, ISO timestamp)
-
-    Returns:
-        Dict with keys:
-            - success: bool (True if at least one channel succeeded)
-            - channels_attempted: int
-            - channels_succeeded: int
-            - errors: list[str]
-
-    Raises:
-        ApplicationError: If notification service fails (retryable)
-    """
-    try:
-        task_id = params["task_id"]
-        workflow_id = params.get("workflow_id", "")
-        step_id = params.get("step_id", "")
-        intent_data = params.get("intent", {})
-        triage_data = params.get("triage_result", {})
-        expires_at = params.get("expires_at")
-
-        notification_service = get_notification_service()
-        results = await notification_service.notify_task_created(
-            task_id=task_id,
-            workflow_id=workflow_id,
-            step_id=step_id,
-            intent=intent_data,
-            triage_result=triage_data,
-            expires_at=expires_at,
-        )
-
-        channels_attempted = len(results)
-        channels_succeeded = sum(1 for r in results if r.success)
-        errors = [r.error for r in results if r.error]
-
-        activity.logger.info(
-            f"Notification sent for task {task_id}: "
-            f"{channels_succeeded}/{channels_attempted} channels succeeded"
-        )
-
-        return {
-            "success": channels_succeeded > 0,
-            "channels_attempted": channels_attempted,
-            "channels_succeeded": channels_succeeded,
-            "errors": errors,
-        }
-
-    except Exception as e:
-        activity.logger.error(f"Failed to send notification: {str(e)}")
-        raise ApplicationError(
-            f"Notification error: {str(e)}",
-            non_retryable=False,  # Retryable for transient network errors
-        ) from e
