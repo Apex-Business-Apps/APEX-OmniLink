@@ -253,9 +253,12 @@ Slack notifications use Block Kit with:
 | `orchestrator/models/man_mode.py` | Pydantic data models |
 | `orchestrator/policies/man_policy.py` | Stateless risk classification |
 | `orchestrator/activities/man_mode.py` | Temporal activities |
+| `orchestrator/services/notifications.py` | Push notification service |
 | `orchestrator/workflows/agent_saga.py` | Workflow integration |
 | `orchestrator/tests/test_man_mode.py` | Unit tests (38 tests) |
+| `orchestrator/tests/test_notifications.py` | Notification tests (25 tests) |
 | `supabase/migrations/20260108120000_man_mode.sql` | Database schema |
+| `docs/MAN_MODE_WORKFLOW_DIAGRAMS.md` | Visual architecture diagrams |
 
 ## Future Considerations
 
@@ -271,3 +274,4 @@ Slack notifications use Block Kit with:
 
 - **v1.0.0**: Initial implementation with non-blocking isolation pattern
 - **v1.0.1**: Performance optimization (cached lowercase sets), deprecated datetime.utcnow fix, additional GIN indexes
+- **v1.1.0**: Push notification service (Slack, webhook, email, console), 25 additional unit tests, workflow diagrams
