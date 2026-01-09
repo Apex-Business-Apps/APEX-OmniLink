@@ -10,7 +10,6 @@
 import { createConfig, http } from 'wagmi';
 import { mainnet, polygon, optimism, arbitrum } from 'wagmi/chains';
 import { injected, walletConnect } from 'wagmi/connectors';
-import { QueryClient } from '@tanstack/react-query';
 
 // WalletConnect project ID (should be set via environment variable)
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
