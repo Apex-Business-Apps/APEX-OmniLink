@@ -47,7 +47,7 @@ verify_jwt = false
 verify_jwt = false  # Public endpoint to generate nonce for wallet signature
 
 [functions.web3-verify]
-verify_jwt = false  # Public endpoint to verify wallet signature and create session
+verify_jwt = true  # Requires JWT for wallet signature verification
 
 [functions.verify-nft]
 verify_jwt = true  # Requires authenticated user to check NFT ownership

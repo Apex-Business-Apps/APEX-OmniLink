@@ -22,15 +22,33 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { createSiweMessage } from 'https://esm.sh/viem@2.43.4/siwe';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 import { encodeHex } from 'https://deno.land/std@0.177.0/encoding/hex.ts';
 
-// CORS headers for cross-origin requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+const DEMO_MODE = Deno.env.get('DEMO_MODE')?.toLowerCase() === 'true';
+const ALLOWED_ORIGINS = (Deno.env.get('SIWE_ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ''));
+
+function isOriginAllowed(origin: string | null): boolean {
+  if (DEMO_MODE) return true;
+  if (!origin) return false;
+  const normalized = origin.replace(/\/$/, '');
+  return ALLOWED_ORIGINS.includes(normalized);
+}
+
+function buildCorsHeaders(origin: string | null): HeadersInit {
+  if (!origin) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
+}
 
 // Rate limiting in-memory store (resets on cold start)
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -54,6 +72,22 @@ function generateSecureNonce(): string {
  */
 function isValidWalletAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+function parseChainId(value: unknown): number {
+  if (value === undefined || value === null) {
+    return 1;
+  }
+
+  const numeric = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  if (!Number.isInteger(numeric) || numeric <= 0) {
+    throw new Error('Invalid chain_id');
+  }
+  return numeric;
+}
+
+function resolveOriginFromUri(uri: string): string {
+  return new URL(uri).origin.replace(/\/$/, '');
 }
 
 /**
@@ -86,23 +120,40 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
 /**
  * Create verification message for wallet signing
  */
-function createVerificationMessage(walletAddress: string, nonce: string): string {
-  return `Welcome to OmniLink APEX!
-
-Sign this message to verify your wallet ownership.
-
-Wallet: ${walletAddress}
-Nonce: ${nonce}
-
-This request will not trigger a blockchain transaction or cost any gas fees.`;
+function createVerificationMessage(
+  walletAddress: string,
+  nonce: string,
+  chainId: number,
+  domain: string,
+  uri: string,
+  expiresAt: Date
+): string {
+  return createSiweMessage({
+    address: walletAddress as `0x${string}`,
+    chainId,
+    domain,
+    nonce,
+    uri,
+    version: '1',
+    statement: 'Sign in to OmniLink APEX.',
+    issuedAt: new Date(),
+    expirationTime: expiresAt,
+  });
 }
 
 /**
  * Main request handler
  */
 Deno.serve(async (req) => {
+  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
+  const corsHeaders = buildCorsHeaders(requestOrigin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    if (!isOriginAllowed(requestOrigin)) {
+      return new Response(null, { status: 403 });
+    }
+
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
@@ -115,6 +166,13 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (!DEMO_MODE && ALLOWED_ORIGINS.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'configuration_error', message: 'SIWE_ALLOWED_ORIGINS not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get client IP for rate limiting
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] ||
                      req.headers.get('x-real-ip') ||
@@ -145,7 +203,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { wallet_address } = body;
+    const { wallet_address, chain_id, domain, uri } = body;
 
     // Validate wallet address
     if (!wallet_address || typeof wallet_address !== 'string') {
@@ -164,6 +222,57 @@ Deno.serve(async (req) => {
       );
     }
 
+    let resolvedChainId: number;
+    try {
+      resolvedChainId = parseChainId(chain_id);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'invalid_request', message: 'chain_id must be a positive integer' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const resolvedUri = uri ?? requestOrigin;
+    if (!resolvedUri) {
+      return new Response(
+        JSON.stringify({ error: 'invalid_request', message: 'uri is required for SIWE' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let resolvedOrigin: string;
+    let resolvedDomain: string;
+    try {
+      resolvedOrigin = resolveOriginFromUri(resolvedUri);
+      resolvedDomain = domain ?? new URL(resolvedUri).host;
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'invalid_request', message: 'uri must be a valid URL' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (domain && resolvedDomain !== domain) {
+      return new Response(
+        JSON.stringify({ error: 'invalid_request', message: 'domain must match uri host' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (requestOrigin && resolvedOrigin !== requestOrigin) {
+      return new Response(
+        JSON.stringify({ error: 'invalid_request', message: 'origin must match uri origin' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isOriginAllowed(resolvedOrigin)) {
+      return new Response(
+        JSON.stringify({ error: 'forbidden', message: 'Origin not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -174,6 +283,7 @@ Deno.serve(async (req) => {
       .from('wallet_nonces')
       .select('nonce, expires_at')
       .eq('wallet_address', normalizedAddress)
+      .eq('chain_id', resolvedChainId)
       .is('used_at', null)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
@@ -190,13 +300,21 @@ Deno.serve(async (req) => {
 
     // Return existing nonce if still valid
     if (existingNonce) {
-      const message = createVerificationMessage(normalizedAddress, existingNonce.nonce);
+      const message = createVerificationMessage(
+        normalizedAddress,
+        existingNonce.nonce,
+        resolvedChainId,
+        resolvedDomain,
+        resolvedUri,
+        new Date(existingNonce.expires_at)
+      );
       return new Response(
         JSON.stringify({
           nonce: existingNonce.nonce,
           expires_at: existingNonce.expires_at,
           message,
           wallet_address: normalizedAddress,
+          chain_id: resolvedChainId,
           reused: true,
         }),
         {
@@ -221,6 +339,7 @@ Deno.serve(async (req) => {
       .insert({
         nonce,
         wallet_address: normalizedAddress,
+        chain_id: resolvedChainId,
         expires_at: expiresAt.toISOString(),
       });
 
@@ -233,7 +352,14 @@ Deno.serve(async (req) => {
     }
 
     // Create verification message
-    const message = createVerificationMessage(normalizedAddress, nonce);
+    const message = createVerificationMessage(
+      normalizedAddress,
+      nonce,
+      resolvedChainId,
+      resolvedDomain,
+      resolvedUri,
+      expiresAt
+    );
 
     // Return success response
     return new Response(
@@ -242,6 +368,7 @@ Deno.serve(async (req) => {
         expires_at: expiresAt.toISOString(),
         message,
         wallet_address: normalizedAddress,
+        chain_id: resolvedChainId,
         reused: false,
       }),
       {

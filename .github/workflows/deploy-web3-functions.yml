@@ -33,9 +33,12 @@ jobs:
 
       - name: Deploy Edge Functions
         run: |
-          # Deploy all functions
-          supabase functions deploy omnilink-agent --no-verify-jwt
-          supabase functions deploy blockchain-verify --no-verify-jwt
+          # Deploy Web3-related functions
+          supabase functions deploy web3-nonce
+          supabase functions deploy web3-verify
+          supabase functions deploy alchemy-webhook
+          supabase functions deploy verify-nft
+          supabase functions deploy supabase_healthcheck
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -48,8 +51,11 @@ jobs:
             echo "✅ **Status:** All functions deployed successfully" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Deployed Functions:**" >> $GITHUB_STEP_SUMMARY
-            echo "- omnilink-agent" >> $GITHUB_STEP_SUMMARY
-            echo "- blockchain-verify" >> $GITHUB_STEP_SUMMARY
+            echo "- web3-nonce" >> $GITHUB_STEP_SUMMARY
+            echo "- web3-verify" >> $GITHUB_STEP_SUMMARY
+            echo "- alchemy-webhook" >> $GITHUB_STEP_SUMMARY
+            echo "- verify-nft" >> $GITHUB_STEP_SUMMARY
+            echo "- supabase_healthcheck" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status:** Deployment failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -63,15 +69,13 @@ jobs:
         if: success()
         run: |
           # Smoke test the deployed functions
-          echo "Testing omnilink-agent endpoint..."
+          echo "Testing supabase_healthcheck endpoint..."
           response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/omnilink-agent" \
-            -d '{"test": true}')
+            "https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/supabase_healthcheck")
 
           if [ $response -eq 200 ] || [ $response -eq 400 ]; then
-            echo "✅ omnilink-agent is healthy (HTTP $response)"
+            echo "✅ supabase_healthcheck is healthy (HTTP $response)"
           else
-            echo "⚠️ omnilink-agent returned HTTP $response"
+            echo "⚠️ supabase_healthcheck returned HTTP $response"
             exit 1
           fi

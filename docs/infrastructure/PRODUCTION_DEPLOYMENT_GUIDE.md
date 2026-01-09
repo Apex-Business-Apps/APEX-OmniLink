@@ -39,6 +39,35 @@ terraform validate
 
 ---
 
+## DEMO DEPLOY (NON-PRODUCTION ONLY)
+
+Use demo mode to run a safe, keyless demo. **Never enable demo mode in production.**
+
+### Demo Mode Environment Flags
+
+Frontend (`.env.local`):
+
+```env
+VITE_DEMO_MODE=true
+VITE_ENABLE_WEB3=true
+```
+
+Supabase Edge Functions (Supabase Dashboard → Project Settings → Edge Functions):
+
+```env
+DEMO_MODE=true
+SIWE_ALLOWED_ORIGINS=https://demo.omnihub.dev,http://localhost:5173
+```
+
+### Demo Mode Behavior
+
+- Webhook and blockchain secrets are optional; functions return safe responses when keys are absent.
+- `alchemy-webhook` ignores payloads and does **no** database writes in demo mode.
+
+**⚠️ Demo mode must be disabled for production deploys.**
+
+---
+
 ## WEEK 7: INFRASTRUCTURE SETUP
 
 ### Day 1: Create Production Terraform Config

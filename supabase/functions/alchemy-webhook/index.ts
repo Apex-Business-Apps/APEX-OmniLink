@@ -46,14 +46,8 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { createHmac } from 'node:crypto';
-
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'x-alchemy-signature, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { Buffer } from 'node:buffer';
 
 /**
  * Verify Alchemy webhook signature
@@ -69,21 +63,16 @@ async function verifyAlchemySignature(
     hmac.update(body);
     const expectedSignature = hmac.digest('hex');
 
-    // Constant-time comparison to prevent timing attacks
-    if (signature.length !== expectedSignature.length) {
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+
+    if (signatureBuffer.length !== expectedBuffer.length) {
       return false;
     }
 
-    let match = true;
-    for (let i = 0; i < signature.length; i++) {
-      if (signature[i] !== expectedSignature[i]) {
-        match = false;
-      }
-    }
-
-    return match;
+    return timingSafeEqual(signatureBuffer, expectedBuffer);
   } catch (error) {
-    console.error('Signature verification error:', error);
+    console.error('Signature verification error');
     return false;
   }
 }
@@ -242,20 +231,23 @@ async function processNFTTransfer(
  * Main request handler
  */
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 204 });
-  }
-
   // Only allow POST requests
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'method_not_allowed', message: 'Only POST requests are allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
   try {
+    const demoMode = Deno.env.get('DEMO_MODE')?.toLowerCase() === 'true';
+    if (demoMode) {
+      return new Response(
+        JSON.stringify({ demo: true, ignored: true }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get webhook signing key
     const signingKey = Deno.env.get('ALCHEMY_WEBHOOK_SIGNING_KEY');
     if (!signingKey) {
@@ -263,7 +255,7 @@ Deno.serve(async (req) => {
       // Return 200 to prevent Alchemy retries for configuration issues
       return new Response(
         JSON.stringify({ error: 'configuration_error', message: 'Webhook signing key not configured' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -273,7 +265,7 @@ Deno.serve(async (req) => {
       console.error('MEMBERSHIP_NFT_ADDRESS not configured');
       return new Response(
         JSON.stringify({ error: 'configuration_error', message: 'NFT contract address not configured' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -283,7 +275,7 @@ Deno.serve(async (req) => {
       console.error('Missing X-Alchemy-Signature header');
       return new Response(
         JSON.stringify({ error: 'unauthorized', message: 'Missing signature header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -296,7 +288,7 @@ Deno.serve(async (req) => {
       console.error('Invalid webhook signature');
       return new Response(
         JSON.stringify({ error: 'unauthorized', message: 'Invalid webhook signature' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -308,7 +300,7 @@ Deno.serve(async (req) => {
       console.error('Invalid JSON payload:', error);
       return new Response(
         JSON.stringify({ error: 'invalid_payload', message: 'Invalid JSON payload' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -317,7 +309,7 @@ Deno.serve(async (req) => {
       console.log(`Ignoring webhook type: ${payload.type}`);
       return new Response(
         JSON.stringify({ success: true, processed: 0, skipped: 1, reason: 'unsupported_type' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -354,7 +346,7 @@ Deno.serve(async (req) => {
         skipped,
         total: activities.length,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
@@ -366,7 +358,7 @@ Deno.serve(async (req) => {
         error: 'internal_error',
         message: 'An unexpected error occurred',
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   }
 });
