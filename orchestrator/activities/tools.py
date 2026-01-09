@@ -36,8 +36,8 @@ from litellm import acompletion
 from pydantic import BaseModel
 from temporalio import activity
 
-from ..models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
-from ..providers.database.factory import get_database_provider
+from models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
+from providers.database.factory import get_database_provider
 
 # Global service instances (initialized in setup_activities())
 _semantic_cache = None  # SemanticCacheService instance

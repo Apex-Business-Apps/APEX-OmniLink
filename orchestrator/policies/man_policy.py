@@ -6,7 +6,7 @@ Provides risk assessment and triage logic for actions requiring human review.
 
 from typing import Any
 
-from ..models.man_mode import ActionIntent, ManLane, RiskTriageResult
+from models.man_mode import ActionIntent, ManLane, RiskTriageResult
 
 
 class ManPolicy:
