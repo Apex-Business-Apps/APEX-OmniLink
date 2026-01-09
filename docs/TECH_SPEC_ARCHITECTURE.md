@@ -17,6 +17,43 @@
 - DR/Backup: Scripts under `scripts/dr/*` and `scripts/backup/verify_backup.ts`; runbook `docs/DR_RUNBOOK.md`, verification doc `docs/BACKUP_VERIFICATION.md`.
 - Dependency & security: `SECURITY_ADVISORIES.md`, `docs/dependency-scanning.md`, script `npm run security:audit`.
 
+## Temporal Orchestrator (Python Backend)
+
+The `orchestrator/` directory contains a Temporal.io-based workflow orchestration system for AI agent task execution.
+
+### Architecture
+- **Workflows**: Event-sourced workflows with Saga pattern for compensation (`orchestrator/workflows/agent_saga.py`)
+- **Activities**: Stateless, retryable activities for external I/O (`orchestrator/activities/`)
+- **Models**: Pydantic-based data models with strict validation (`orchestrator/models/`)
+- **Providers**: Database abstraction layer supporting Supabase (`orchestrator/providers/`)
+
+### MAN Mode (Manual Approval Node)
+Human-in-the-loop safety gate for high-risk agent actions. When an action is classified as high-risk (RED lane), the workflow pauses and awaits human approval via signal.
+
+**Risk Classification Lanes:**
+| Lane | Behavior | Example Tools |
+|------|----------|---------------|
+| GREEN | Auto-execute | `search_database`, `read_record`, `get_config` |
+| YELLOW | Execute with audit logging | Unknown tools, single high-risk param |
+| RED | Pause for human approval | `delete_record`, `transfer_funds`, `send_email` |
+| BLOCKED | Never execute | `execute_sql_raw`, `shell_execute` |
+
+**Key Files:**
+- Policy Engine: `orchestrator/policies/man_policy.py` (stateless risk classification)
+- Data Models: `orchestrator/models/man_mode.py` (`ActionIntent`, `ManTask`, `RiskTriageResult`)
+- Activities: `orchestrator/activities/man_mode.py` (`risk_triage`, `create_man_task`, `resolve_man_task`)
+- Workflow Integration: `orchestrator/workflows/agent_saga.py` (signal handler: `submit_man_decision`)
+- Database Schema: `supabase/migrations/20260108120000_man_mode.sql` (`man_tasks` table)
+
+**Flow:**
+```
+Agent Step → risk_triage() → Lane?
+   GREEN  → Execute immediately
+   YELLOW → Execute with audit log
+   RED    → Create MAN task → Pause → Wait for signal → Execute/Abort
+   BLOCKED → Reject with ApplicationError
+```
+
 ## Runtime & Ops
 - Build: Vite with SWC, terser minification, chunk splitting (`vite.config.ts`), console stripping in production.
 - Env: Requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Auth provider guards missing env and surfaces setup message.
