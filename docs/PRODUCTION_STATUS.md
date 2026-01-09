@@ -210,7 +210,7 @@ CREATE FUNCTION match_skills(
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│              🛡️ HUMAN-IN-THE-LOOP APPROVAL SYSTEM                  │
+│         🛡️ HUMAN-IN-THE-LOOP APPROVAL SYSTEM (NON-BLOCKING)        │
 ├────────────────────────────────────────────────────────────────────┤
 │                                                                    │
 │   Agent Step ──► risk_triage() ──► Lane Classification             │
@@ -218,25 +218,26 @@ CREATE FUNCTION match_skills(
 │       ┌────────────────┼────────────────┬────────────────┐         │
 │       ▼                ▼                ▼                ▼         │
 │    GREEN            YELLOW            RED             BLOCKED      │
-│   (execute)       (log+exec)        (pause)          (reject)      │
+│   (execute)       (log+exec)       (isolate)         (reject)      │
 │                                        │                           │
 │                         ┌──────────────┴──────────────┐            │
 │                         │ Create MAN Task (man_tasks) │            │
-│                         │ workflow.wait_condition()   │            │
+│                         │ Notify human for approval   │            │
 │                         └──────────────┬──────────────┘            │
 │                                        │                           │
-│                    ← submit_man_decision signal ←                  │
+│                    Return: {status: "isolated",                    │
+│                             awaiting_approval: true}               │
 │                                        │                           │
-│                    ┌───────────────────┴───────────────────┐       │
-│                    │  APPROVED ──► Execute Step            │       │
-│                    │  DENIED   ──► Abort with Saga Rollback│       │
-│                    └───────────────────────────────────────┘       │
+│                    ──► Workflow CONTINUES (no pause) ──►           │
+│                                                                    │
+│  Key Design: Efficiency first - workflow never blocks on RED       │
+│  Human approval triggers separate re-execution if approved         │
 │                                                                    │
 │  Files:                                                            │
 │    orchestrator/policies/man_policy.py    - Risk classification    │
 │    orchestrator/models/man_mode.py        - Data contracts         │
 │    orchestrator/activities/man_mode.py    - Temporal activities    │
-│    orchestrator/workflows/agent_saga.py   - Signal handler         │
+│    orchestrator/workflows/agent_saga.py   - Non-blocking isolation │
 │    supabase/migrations/20260108120000_man_mode.sql - DB schema     │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -247,7 +248,7 @@ CREATE FUNCTION match_skills(
 |------|-------------------|---------------|----------|
 | **GREEN** | Safe tools list | `search_database`, `read_record`, `get_config` | Auto-execute |
 | **YELLOW** | Unknown tools, single high-risk param | Custom tools, `force=true` | Execute + audit |
-| **RED** | Sensitive tools, `irreversible=true`, multiple risk params | `delete_record`, `transfer_funds`, `send_email` | Human approval required |
+| **RED** | Sensitive tools, `irreversible=true`, multiple risk params | `delete_record`, `transfer_funds`, `send_email` | Isolate + notify (non-blocking) |
 | **BLOCKED** | Prohibited tools | `execute_sql_raw`, `shell_execute` | Reject immediately |
 
 ### Sensitive Tools (RED Lane)
