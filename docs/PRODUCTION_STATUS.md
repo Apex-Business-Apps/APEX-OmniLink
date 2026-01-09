@@ -260,7 +260,7 @@ System:       modify_config, update_secrets, deploy_code, restart_service
 Comms:        send_email, send_sms, send_notification, broadcast_message
 ```
 
-### Test Coverage (31 tests)
+### Test Coverage (38 tests)
 ```
 File: orchestrator/tests/test_man_mode.py
 
@@ -272,6 +272,8 @@ File: orchestrator/tests/test_man_mode.py
 ✅ Large amount detection (≥$10,000)
 ✅ Custom policy configuration
 ✅ Tool set isolation verification
+✅ Performance optimizations (cached lowercase sets)
+✅ Edge cases (empty names, special chars, thresholds)
 ```
 
 ---

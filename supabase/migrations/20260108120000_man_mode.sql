@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS man_tasks (
 COMMENT ON TABLE man_tasks IS
     'MAN Mode approval tasks for high-risk agent actions. '
     'Created when an action is classified as RED lane. '
-    'Workflow pauses until human approves or denies.';
+    'Uses non-blocking isolation: workflow continues while action awaits approval.';
 
 -- Index for fetching pending tasks (most common query)
 -- Partial index only includes PENDING status for efficiency
@@ -81,6 +81,14 @@ CREATE INDEX IF NOT EXISTS idx_man_tasks_decided_by
 CREATE INDEX IF NOT EXISTS idx_man_tasks_expires
     ON man_tasks(expires_at)
     WHERE status = 'PENDING' AND expires_at IS NOT NULL;
+
+-- GIN index for JSONB search on intent (enables queries like intent->>'tool_name')
+CREATE INDEX IF NOT EXISTS idx_man_tasks_intent_gin
+    ON man_tasks USING GIN (intent jsonb_path_ops);
+
+-- Functional index for querying by tool_name within intent
+CREATE INDEX IF NOT EXISTS idx_man_tasks_tool_name
+    ON man_tasks ((intent->>'tool_name'));
 
 -- ============================================================================
 -- Row Level Security (RLS) - Optional, enable if using Supabase Auth

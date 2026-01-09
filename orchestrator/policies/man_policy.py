@@ -126,6 +126,11 @@ class ManPolicy:
         self.blocked_tools = blocked_tools or BLOCKED_TOOLS
         self.safe_tools = safe_tools or SAFE_TOOLS
 
+        # Pre-compute lowercase sets for O(1) lookups (performance optimization)
+        self._sensitive_lower: frozenset[str] = frozenset(t.lower() for t in self.sensitive_tools)
+        self._blocked_lower: frozenset[str] = frozenset(t.lower() for t in self.blocked_tools)
+        self._safe_lower: frozenset[str] = frozenset(t.lower() for t in self.safe_tools)
+
     def triage(self, intent: ActionIntent) -> RiskTriageResult:
         """
         Classify risk level of an agent action.
@@ -148,7 +153,7 @@ class ManPolicy:
         risk_factors: list[str] = []
 
         # 1. BLOCKED lane: prohibited tools
-        if tool_name in {t.lower() for t in self.blocked_tools}:
+        if tool_name in self._blocked_lower:
             return RiskTriageResult(
                 lane=ManLane.BLOCKED,
                 reason=f"Tool '{intent.tool_name}' is prohibited",
@@ -157,7 +162,7 @@ class ManPolicy:
             )
 
         # 2. RED lane: sensitive tools
-        if tool_name in {t.lower() for t in self.sensitive_tools}:
+        if tool_name in self._sensitive_lower:
             risk_factors.append("sensitive_tool")
             return RiskTriageResult(
                 lane=ManLane.RED,
@@ -201,7 +206,7 @@ class ManPolicy:
             )
 
         # 5. GREEN lane: explicitly safe tools
-        if tool_name in {t.lower() for t in self.safe_tools}:
+        if tool_name in self._safe_lower:
             return RiskTriageResult(
                 lane=ManLane.GREEN,
                 reason="Tool is classified as safe",
@@ -245,12 +250,12 @@ class ManPolicy:
 
     def is_sensitive(self, tool_name: str) -> bool:
         """Check if a tool is in the sensitive list."""
-        return tool_name.lower() in {t.lower() for t in self.sensitive_tools}
+        return tool_name.lower() in self._sensitive_lower
 
     def is_blocked(self, tool_name: str) -> bool:
         """Check if a tool is in the blocked list."""
-        return tool_name.lower() in {t.lower() for t in self.blocked_tools}
+        return tool_name.lower() in self._blocked_lower
 
     def is_safe(self, tool_name: str) -> bool:
         """Check if a tool is in the safe list."""
-        return tool_name.lower() in {t.lower() for t in self.safe_tools}
+        return tool_name.lower() in self._safe_lower

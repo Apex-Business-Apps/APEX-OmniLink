@@ -304,6 +304,80 @@ class TestManPolicy:
         assert policy.is_safe("custom_safe") is True
 
 
+class TestManPolicyPerformance:
+    """Test ManPolicy performance optimizations."""
+
+    def test_cached_lowercase_sets_exist(self):
+        """Policy should have cached lowercase sets."""
+        policy = ManPolicy()
+        assert hasattr(policy, "_sensitive_lower")
+        assert hasattr(policy, "_blocked_lower")
+        assert hasattr(policy, "_safe_lower")
+        assert isinstance(policy._sensitive_lower, frozenset)
+
+    def test_repeated_triage_consistent(self):
+        """Repeated triage calls should be consistent."""
+        policy = ManPolicy()
+        intent = ActionIntent(tool_name="delete_record", workflow_id="wf-1")
+        result1 = policy.triage(intent)
+        result2 = policy.triage(intent)
+        assert result1.lane == result2.lane
+        assert result1.reason == result2.reason
+
+
+class TestEdgeCases:
+    """Test edge cases and boundary conditions."""
+
+    def test_empty_tool_name(self):
+        """Should handle empty tool name gracefully."""
+        policy = ManPolicy()
+        intent = ActionIntent(tool_name="", workflow_id="wf-1")
+        result = policy.triage(intent)
+        # Empty tool name defaults to YELLOW (unknown)
+        assert result.lane == ManLane.YELLOW
+
+    def test_special_characters_in_tool_name(self):
+        """Should handle special characters in tool name."""
+        policy = ManPolicy()
+        intent = ActionIntent(tool_name="tool-with-dashes_and_underscores", workflow_id="wf-1")
+        result = policy.triage(intent)
+        assert result.lane == ManLane.YELLOW
+
+    def test_exact_high_risk_param_match(self):
+        """Should match exact high-risk param values."""
+        policy = ManPolicy()
+        # Exact match: amount=10000
+        intent = ActionIntent(
+            tool_name="some_tool",
+            params={"amount": "10000"},
+            workflow_id="wf-1",
+        )
+        result = policy.triage(intent)
+        assert any("high_risk_param" in f for f in result.risk_factors)
+
+    def test_near_threshold_amount(self):
+        """Should not trigger for amounts just below threshold."""
+        policy = ManPolicy()
+        intent = ActionIntent(
+            tool_name="some_tool",
+            params={"amount": 9999},
+            workflow_id="wf-1",
+        )
+        result = policy.triage(intent)
+        assert not any("large_amount" in f for f in result.risk_factors)
+
+    def test_negative_amount_safe(self):
+        """Negative amounts should not trigger risk."""
+        policy = ManPolicy()
+        intent = ActionIntent(
+            tool_name="some_tool",
+            params={"amount": -50000},
+            workflow_id="wf-1",
+        )
+        result = policy.triage(intent)
+        assert not any("large_amount" in f for f in result.risk_factors)
+
+
 class TestToolConfiguration:
     """Test tool configuration constants."""
 
