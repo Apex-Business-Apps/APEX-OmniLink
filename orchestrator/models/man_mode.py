@@ -1,4 +1,8 @@
-"""MAN Mode (Manual-Authorization-Needed) domain models."""
+"""MAN Mode (Manual-Authorization-Needed) domain models.
+
+This module defines the core data structures for the human-in-the-loop
+safety system that gates high-risk agent actions.
+"""
 
 This module defines the core data structures for the human-in-the-loop
 safety system that gates high-risk agent actions.
@@ -6,7 +10,7 @@ safety system that gates high-risk agent actions.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
