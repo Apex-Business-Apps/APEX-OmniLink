@@ -33,7 +33,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { verifyMessage, verifyTypedData } from 'https://esm.sh/viem@2.21.54';
+import { verifyMessage } from 'https://esm.sh/viem@2.21.54';
 
 // CORS headers
 const corsHeaders = {
@@ -187,25 +187,14 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { wallet_address, signature, message, typedData, domain, types, primaryType } = body;
+    const { wallet_address, signature, message } = body;
 
-    // Validate required fields - support both personal_sign and typedData
-    if (!wallet_address || !signature) {
+    // Validate required fields
+    if (!wallet_address || !signature || !message) {
       return new Response(
         JSON.stringify({
           error: 'invalid_request',
-          message: 'wallet_address and signature are required',
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Must have either message (personal_sign) or typedData (EIP-712)
-    if (!message && !typedData) {
-      return new Response(
-        JSON.stringify({
-          error: 'invalid_request',
-          message: 'Either message (personal_sign) or typedData (EIP-712) must be provided',
+          message: 'wallet_address, signature, and message are required',
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -285,48 +274,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify signature using viem - support both personal_sign and typedData
+    // Verify signature using viem
     let isValid = false;
     try {
-      if (typedData && domain && types && primaryType) {
-        // EIP-712 typedData verification
-        isValid = await verifyTypedData({
-          address: normalizedAddress as `0x${string}`,
-          domain,
-          types,
-          primaryType,
-          message: typedData,
-          signature: signature as `0x${string}`,
-        });
-        await logAuditEvent(supabase, user.id, 'wallet_verify_typed_data_attempt', normalizedAddress, {
-          verification_type: 'eip712',
-          primary_type: primaryType,
-        });
-      } else if (message) {
-        // Personal sign verification
-        isValid = await verifyMessage({
-          address: normalizedAddress as `0x${string}`,
-          message,
-          signature: signature as `0x${string}`,
-        });
-        await logAuditEvent(supabase, user.id, 'wallet_verify_personal_sign_attempt', normalizedAddress, {
-          verification_type: 'personal_sign',
-        });
-      } else {
-        await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
-          reason: 'no_verification_data',
-        });
-        return new Response(
-          JSON.stringify({ error: 'invalid_request', message: 'No verification data provided' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      isValid = await verifyMessage({
+        address: normalizedAddress as `0x${string}`,
+        message,
+        signature: signature as `0x${string}`,
+      });
     } catch (error) {
       console.error('Signature verification error:', error);
       await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'signature_verification_error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        verification_type: typedData ? 'eip712' : 'personal_sign',
+        error: error.message,
       });
 
       return new Response(
@@ -338,7 +298,6 @@ Deno.serve(async (req) => {
     if (!isValid) {
       await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'invalid_signature',
-        verification_type: typedData ? 'eip712' : 'personal_sign',
       });
 
       return new Response(
