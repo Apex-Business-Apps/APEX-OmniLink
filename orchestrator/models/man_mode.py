@@ -4,6 +4,10 @@ This module defines the core data structures for the human-in-the-loop
 safety system that gates high-risk agent actions.
 """
 
+This module defines the core data structures for the human-in-the-loop
+safety system that gates high-risk agent actions.
+"""
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
