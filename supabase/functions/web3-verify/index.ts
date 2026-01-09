@@ -33,14 +33,32 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { verifyMessage } from 'https://esm.sh/viem@2.21.54';
+import { verifyMessage } from 'https://esm.sh/viem@2.43.4';
+import { parseSiweMessage, validateSiweMessage } from 'https://esm.sh/viem@2.43.4/siwe';
 
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+const DEMO_MODE = Deno.env.get('DEMO_MODE')?.toLowerCase() === 'true';
+const ALLOWED_ORIGINS = (Deno.env.get('SIWE_ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ''));
+
+function isOriginAllowed(origin: string | null): boolean {
+  if (DEMO_MODE) return true;
+  if (!origin) return false;
+  const normalized = origin.replace(/\/$/, '');
+  return ALLOWED_ORIGINS.includes(normalized);
+}
+
+function buildCorsHeaders(origin: string | null): HeadersInit {
+  if (!origin) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
+}
 
 // Rate limiting configuration
 const VERIFY_RATE_LIMIT_MAX = 10;
@@ -59,6 +77,22 @@ function isValidWalletAddress(address: string): boolean {
  */
 function isValidSignature(signature: string): boolean {
   return /^0x[a-fA-F0-9]{130}$/.test(signature);
+}
+
+function parseChainId(value: unknown): number {
+  if (value === undefined || value === null) {
+    return 1;
+  }
+
+  const numeric = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  if (!Number.isInteger(numeric) || numeric <= 0) {
+    throw new Error('Invalid chain_id');
+  }
+  return numeric;
+}
+
+function resolveOriginFromUri(uri: string): string {
+  return new URL(uri).origin.replace(/\/$/, '');
 }
 
 /**
@@ -83,14 +117,6 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number; 
   rateLimitStore.set(key, record);
 
   return { allowed: true, remaining: VERIFY_RATE_LIMIT_MAX - record.count, resetIn: record.resetAt - now };
-}
-
-/**
- * Extract nonce from verification message
- */
-function extractNonceFromMessage(message: string): string | null {
-  const match = message.match(/Nonce:\s*([a-f0-9]+)/i);
-  return match ? match[1] : null;
 }
 
 /**
@@ -122,8 +148,15 @@ async function logAuditEvent(
  * Main request handler
  */
 Deno.serve(async (req) => {
+  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
+  const corsHeaders = buildCorsHeaders(requestOrigin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    if (!isOriginAllowed(requestOrigin)) {
+      return new Response(null, { status: 403 });
+    }
+
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
@@ -136,6 +169,13 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (!DEMO_MODE && ALLOWED_ORIGINS.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'configuration_error', message: 'SIWE_ALLOWED_ORIGINS not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -187,7 +227,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { wallet_address, signature, message } = body;
+    const { wallet_address, signature, message, chain_id } = body;
 
     // Validate required fields
     if (!wallet_address || !signature || !message) {
@@ -225,9 +265,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract and validate nonce from message
-    const nonce = extractNonceFromMessage(message);
-    if (!nonce) {
+    let resolvedChainId: number;
+    try {
+      resolvedChainId = parseChainId(chain_id);
+    } catch {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'invalid_chain_id',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_request', message: 'chain_id must be a positive integer' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let siweMessage;
+    try {
+      siweMessage = parseSiweMessage(message);
+    } catch {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'invalid_siwe_message',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'Invalid SIWE message format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const messageNonce = siweMessage.nonce;
+    if (!messageNonce) {
       await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'nonce_not_found_in_message',
       });
@@ -238,19 +305,92 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (!siweMessage.domain || !siweMessage.uri) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'missing_siwe_fields',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'Missing required SIWE fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let messageOrigin: string;
+    try {
+      messageOrigin = resolveOriginFromUri(siweMessage.uri);
+    } catch {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'invalid_siwe_uri',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'SIWE uri must be a valid URL' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const expectedDomain = new URL(siweMessage.uri).host;
+    if (siweMessage.domain !== expectedDomain) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'siwe_domain_mismatch',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'SIWE domain mismatch' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (requestOrigin && requestOrigin !== messageOrigin) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'origin_mismatch',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'Origin does not match SIWE uri' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isOriginAllowed(messageOrigin)) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'origin_not_allowed',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'forbidden', message: 'Origin not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!siweMessage.chainId || siweMessage.chainId !== resolvedChainId) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'chain_id_mismatch',
+        chain_id: resolvedChainId,
+        message_chain_id: siweMessage.chainId,
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'SIWE chainId mismatch' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verify nonce exists, is unused, and not expired
     const { data: nonceRecord, error: nonceError } = await supabase
       .from('wallet_nonces')
       .select('*')
-      .eq('nonce', nonce)
+      .eq('nonce', messageNonce)
       .eq('wallet_address', normalizedAddress)
+      .eq('chain_id', resolvedChainId)
       .is('used_at', null)
       .maybeSingle();
 
     if (nonceError || !nonceRecord) {
       await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'nonce_not_found',
-        nonce,
+        nonce: messageNonce,
       });
 
       return new Response(
@@ -264,12 +404,45 @@ Deno.serve(async (req) => {
     if (expiresAt < new Date()) {
       await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'nonce_expired',
-        nonce,
+        nonce: messageNonce,
         expires_at: nonceRecord.expires_at,
       });
 
       return new Response(
         JSON.stringify({ error: 'nonce_expired', message: 'Nonce has expired, please request a new one' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const expirationTime = siweMessage.expirationTime;
+    if (!expirationTime || expirationTime.getTime() !== expiresAt.getTime()) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'expiration_mismatch',
+        nonce: messageNonce,
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'SIWE expiration mismatch' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const isValidSiwe = validateSiweMessage({
+      message: siweMessage,
+      address: normalizedAddress as `0x${string}`,
+      domain: expectedDomain,
+      nonce: nonceRecord.nonce,
+      time: new Date(),
+    });
+
+    if (!isValidSiwe) {
+      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'siwe_validation_failed',
+        nonce: messageNonce,
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'invalid_message', message: 'SIWE validation failed' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -310,7 +483,8 @@ Deno.serve(async (req) => {
     await supabase
       .from('wallet_nonces')
       .update({ used_at: new Date().toISOString() })
-      .eq('nonce', nonce);
+      .eq('nonce', messageNonce)
+      .eq('chain_id', resolvedChainId);
 
     // Get client metadata
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -319,16 +493,13 @@ Deno.serve(async (req) => {
     const userAgent = req.headers.get('user-agent') || 'unknown';
 
     // Upsert wallet identity (idempotent)
-    // Assume chain_id = 1 (Ethereum mainnet) for Phase 1
-    const chainId = 1;
-
     const { data: walletIdentity, error: upsertError } = await supabase
       .from('wallet_identities')
       .upsert(
         {
           user_id: user.id,
           wallet_address: normalizedAddress,
-          chain_id: chainId,
+          chain_id: resolvedChainId,
           signature,
           message,
           verified_at: new Date().toISOString(),
@@ -363,7 +534,7 @@ Deno.serve(async (req) => {
     // Log successful verification
     await logAuditEvent(supabase, user.id, 'wallet_verified', normalizedAddress, {
       wallet_identity_id: walletIdentity.id,
-      chain_id: chainId,
+      chain_id: resolvedChainId,
       ip: clientIp,
     });
 
@@ -373,7 +544,7 @@ Deno.serve(async (req) => {
         success: true,
         wallet_identity_id: walletIdentity.id,
         wallet_address: normalizedAddress,
-        chain_id: chainId,
+        chain_id: resolvedChainId,
         verified_at: walletIdentity.verified_at,
       }),
       {

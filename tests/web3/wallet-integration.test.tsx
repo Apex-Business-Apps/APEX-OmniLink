@@ -153,6 +153,7 @@ describe('Wallet Integration Flow', () => {
                 expires_at: new Date(Date.now() + 300000).toISOString(),
                 message: 'Sign this message',
                 wallet_address: mockAddress.toLowerCase(),
+                chain_id: 1,
                 reused: false,
               }),
           });
@@ -230,6 +231,7 @@ describe('Wallet Integration Flow', () => {
             expires_at: new Date(Date.now() + 300000).toISOString(),
             message: 'Sign this message',
             wallet_address: mockAddress.toLowerCase(),
+            chain_id: 1,
           }),
       });
 
@@ -251,6 +253,13 @@ describe('Wallet Integration Flow', () => {
 
       const verifyButton = screen.getByText(/Verify Wallet/i);
       await user.click(verifyButton);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('web3-nonce'),
+        expect.objectContaining({
+          body: expect.stringContaining('"chain_id":1'),
+        })
+      );
 
       await waitFor(() => {
         expect(screen.getByText(/User rejected signature/i)).toBeInTheDocument();

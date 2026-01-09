@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { verifyMessage } from 'viem';
+import { createSiweMessage, parseSiweMessage, validateSiweMessage } from 'viem/siwe';
 
 // Mock viem
 vi.mock('viem', () => ({
@@ -19,7 +20,19 @@ describe('Web3 Signature Verification', () => {
   const mockWalletAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' as const;
   const mockSignature =
     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12' as const;
-  const mockMessage = 'Welcome to OmniLink APEX!\n\nSign this message to verify your wallet ownership.\n\nWallet: 0x742d35cc6634c0532925a3b844bc9e7595f0beb0\nNonce: abc123\n\nThis request will not trigger a blockchain transaction or cost any gas fees.';
+  const issuedAt = new Date('2026-01-01T00:00:00.000Z');
+  const expirationTime = new Date('2026-01-01T00:05:00.000Z');
+  const mockMessage = createSiweMessage({
+    address: mockWalletAddress,
+    chainId: 1,
+    domain: 'localhost:5173',
+    nonce: 'abc12345',
+    uri: 'http://localhost:5173',
+    version: '1',
+    statement: 'Sign in to OmniLink APEX.',
+    issuedAt,
+    expirationTime,
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,26 +138,23 @@ describe('Web3 Signature Verification', () => {
     });
   });
 
-  describe('Message Format Validation', () => {
-    it('should extract nonce from message', () => {
-      const extractNonce = (message: string): string | null => {
-        const match = message.match(/Nonce:\s*([a-f0-9]+)/i);
-        return match ? match[1] : null;
-      };
-
-      const nonce = extractNonce(mockMessage);
-      expect(nonce).toBe('abc123');
+  describe('SIWE Message Format Validation', () => {
+    it('should parse nonce from SIWE message', () => {
+      const parsed = parseSiweMessage(mockMessage);
+      expect(parsed.nonce).toBe('abc12345');
     });
 
-    it('should return null if nonce not found', () => {
-      const extractNonce = (message: string): string | null => {
-        const match = message.match(/Nonce:\s*([a-f0-9]+)/i);
-        return match ? match[1] : null;
-      };
+    it('should validate required SIWE fields', () => {
+      const parsed = parseSiweMessage(mockMessage);
+      const isValid = validateSiweMessage({
+        message: parsed,
+        address: mockWalletAddress,
+        domain: 'localhost:5173',
+        nonce: 'abc12345',
+        time: new Date('2026-01-01T00:01:00.000Z'),
+      });
 
-      const messageWithoutNonce = 'Welcome to OmniLink!';
-      const nonce = extractNonce(messageWithoutNonce);
-      expect(nonce).toBeNull();
+      expect(isValid).toBe(true);
     });
   });
 

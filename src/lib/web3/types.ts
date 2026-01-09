@@ -26,6 +26,7 @@ export interface NonceResponse {
   expires_at: string;
   message: string;
   wallet_address: string;
+  chain_id: number;
   reused: boolean;
 }
 

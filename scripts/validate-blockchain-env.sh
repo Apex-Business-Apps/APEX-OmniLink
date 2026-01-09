@@ -18,6 +18,13 @@ NC='\033[0m' # No Color
 ERRORS=0
 WARNINGS=0
 
+DEMO_MODE_ACTIVE=false
+if [ "${DEMO_MODE}" = "true" ] || [ "${VITE_DEMO_MODE}" = "true" ]; then
+    DEMO_MODE_ACTIVE=true
+    echo -e "${YELLOW}⚠${NC} Demo mode enabled: relaxing blockchain env requirements"
+    echo ""
+fi
+
 # Function to check if variable is set
 check_var() {
     local var_name=$1
@@ -76,11 +83,19 @@ validate_private_key() {
 
 echo "Required Variables:"
 echo "===================="
-check_var "WEB3_PRIVATE_KEY" "true"
-validate_private_key "WEB3_PRIVATE_KEY"
+if [ "$DEMO_MODE_ACTIVE" = "true" ]; then
+    check_var "WEB3_PRIVATE_KEY" "false"
+else
+    check_var "WEB3_PRIVATE_KEY" "true"
+    validate_private_key "WEB3_PRIVATE_KEY"
+fi
 
-check_var "MEMBERSHIP_NFT_ADDRESS" "true"
-validate_address "MEMBERSHIP_NFT_ADDRESS"
+if [ "$DEMO_MODE_ACTIVE" = "true" ]; then
+    check_var "MEMBERSHIP_NFT_ADDRESS" "false"
+else
+    check_var "MEMBERSHIP_NFT_ADDRESS" "true"
+    validate_address "MEMBERSHIP_NFT_ADDRESS"
+fi
 
 echo ""
 echo "RPC Configuration:"
@@ -90,8 +105,13 @@ check_var "ALCHEMY_API_KEY_POLYGON" "false"
 
 # At least one RPC key should be set
 if [ -z "$ALCHEMY_API_KEY_ETH" ] && [ -z "$ALCHEMY_API_KEY_POLYGON" ]; then
-    echo -e "${RED}✗${NC} ERROR: At least one RPC API key (ETH or Polygon) must be set"
-    ((ERRORS++))
+    if [ "$DEMO_MODE_ACTIVE" = "true" ]; then
+        echo -e "${YELLOW}⚠${NC} Demo mode: RPC API keys are optional"
+        ((WARNINGS++))
+    else
+        echo -e "${RED}✗${NC} ERROR: At least one RPC API key (ETH or Polygon) must be set"
+        ((ERRORS++))
+    fi
 fi
 
 echo ""
@@ -100,8 +120,13 @@ echo "======================"
 check_var "ALCHEMY_WEBHOOK_SIGNING_KEY" "false"
 
 if [ -z "$ALCHEMY_WEBHOOK_SIGNING_KEY" ]; then
-    echo -e "  ${YELLOW}⚠${NC} Webhook signature verification will be disabled"
-    echo -e "  ${YELLOW}⚠${NC} This is acceptable for local testing but REQUIRED for production"
+    if [ "$DEMO_MODE_ACTIVE" = "true" ]; then
+        echo -e "  ${YELLOW}⚠${NC} Demo mode: webhook signature verification is optional"
+        ((WARNINGS++))
+    else
+        echo -e "  ${YELLOW}⚠${NC} Webhook signature verification will be disabled"
+        echo -e "  ${YELLOW}⚠${NC} This is acceptable for local testing but REQUIRED for production"
+    fi
 fi
 
 echo ""

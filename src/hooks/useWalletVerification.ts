@@ -46,6 +46,7 @@ export function useWalletVerification() {
    * Check if wallet is already verified
    */
   const checkVerificationStatus = async (walletAddress: string) => {
+    const resolvedChainId = chainId ?? 1;
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session) {
@@ -57,6 +58,7 @@ export function useWalletVerification() {
         .from('wallet_identities')
         .select('*')
         .eq('wallet_address', walletAddress.toLowerCase())
+        .eq('chain_id', resolvedChainId)
         .eq('user_id', session.session.user.id)
         .maybeSingle();
 
@@ -65,7 +67,7 @@ export function useWalletVerification() {
         setWalletState({
           status: 'connected',
           address: walletAddress,
-          chainId,
+          chainId: resolvedChainId,
           isVerified: false,
         });
         return;
@@ -81,20 +83,20 @@ export function useWalletVerification() {
         setWalletState({
           status: 'verified',
           address: walletAddress,
-          chainId,
+          chainId: resolvedChainId,
           walletIdentityId: data.id,
           isVerified: true,
         });
 
         await logAnalyticsEvent('wallet_auto_verified', {
           wallet: walletAddress,
-          chainId,
+          chainId: resolvedChainId,
         });
       } else {
         setWalletState({
           status: 'connected',
           address: walletAddress,
-          chainId,
+          chainId: resolvedChainId,
           isVerified: false,
         });
       }
@@ -103,7 +105,7 @@ export function useWalletVerification() {
       setWalletState({
         status: 'connected',
         address: walletAddress,
-        chainId,
+        chainId: resolvedChainId,
         isVerified: false,
       });
     }
@@ -114,12 +116,18 @@ export function useWalletVerification() {
    */
   const requestNonce = async (walletAddress: string): Promise<NonceResponse> => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const resolvedChainId = chainId ?? 1;
     const response = await fetch(`${supabaseUrl}/functions/v1/web3-nonce`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ wallet_address: walletAddress }),
+      body: JSON.stringify({
+        wallet_address: walletAddress,
+        chain_id: resolvedChainId,
+        domain: window.location.host,
+        uri: window.location.origin,
+      }),
     });
 
     if (!response.ok) {
@@ -144,6 +152,7 @@ export function useWalletVerification() {
     }
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const resolvedChainId = chainId ?? 1;
     const response = await fetch(`${supabaseUrl}/functions/v1/web3-verify`, {
       method: 'POST',
       headers: {
@@ -154,6 +163,7 @@ export function useWalletVerification() {
         wallet_address: walletAddress,
         signature,
         message,
+        chain_id: resolvedChainId,
       }),
     });
 

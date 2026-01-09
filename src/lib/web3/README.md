@@ -75,6 +75,14 @@ VITE_ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
 VITE_WALLETCONNECT_PROJECT_ID=your-walletconnect-id
 ```
 
+SIWE origins allowlist (edge functions):
+
+```env
+SIWE_ALLOWED_ORIGINS=https://app.omnihub.dev,http://localhost:5173
+```
+
+SIWE messages are generated server-side using viem utilities and include chainId, domain, uri, issuedAt, and expirationTime.
+
 ## Files
 
 - `config.ts` - wagmi configuration and supported chains
