@@ -3,22 +3,19 @@ MAN Mode Activities: Risk triage and approval task persistence.
 
 These activities handle the MAN (Manual Approval Node) safety gate:
 1. risk_triage: Evaluate risk level of proposed action
-2. create_man_task: Persist approval task to database
+2. create_man_task: Persist approval task to database + send notifications
 3. resolve_man_task: Update task with human decision
 4. get_man_task: Retrieve task status (for polling)
+5. notify_man_task: Send push notifications for pending approvals
 
 Design Principles:
 - Stateless: Each call is independent
 - Idempotent: Safe to retry (uses idempotency_key)
 - Retryable: Transient failures use non_retryable=False
-
-Why Activities (not direct calls in workflows):
-1. Determinism: Workflows must be deterministic for replay
-2. Retries: Activities have independent retry policies
-3. Timeouts: Activities have start-to-close timeouts
+- Non-blocking: Notifications are fire-and-forget
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from temporalio import activity
@@ -32,6 +29,7 @@ from models.man_mode import (
 )
 from policies.man_policy import ManPolicy
 from providers.database.factory import get_database_provider
+from services.notifications import get_notification_service
 
 # ============================================================================
 # RISK TRIAGE ACTIVITY
@@ -75,7 +73,7 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
         result = policy.triage(intent)
 
         activity.logger.info(
-            f"Risk triage for '{intent.tool_name}': " f"{result.lane.value} ({result.reason})"
+            f"Risk triage for '{intent.tool_name}': {result.lane.value} ({result.reason})"
         )
 
         return result.model_dump()
@@ -129,8 +127,8 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         # Create idempotency key
         idempotency_key = create_idempotency_key(workflow_id, step_id)
 
-        # Calculate expiration
-        expires_at = (datetime.utcnow() + timedelta(hours=timeout_hours)).isoformat() + "Z"
+        # Calculate expiration (timezone-aware)
+        expires_at = (datetime.now(timezone.utc) + timedelta(hours=timeout_hours)).isoformat()
 
         # Get database provider
         db = get_database_provider()
@@ -146,25 +144,50 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
             "expires_at": expires_at,
         }
 
-        # Upsert (insert or return existing)
-        result = await db.upsert(
+        # Check if task already exists (for idempotency)
+        existing = await db.get(
             table="man_tasks",
-            record=record,
-            conflict_columns=["idempotency_key"],
+            query_params={"idempotency_key": idempotency_key},
         )
+
+        is_new_task = not existing
+
+        if is_new_task:
+            # Insert new task
+            result = await db.insert(table="man_tasks", record=record)
+        else:
+            # Return existing task (idempotent)
+            result = existing[0]
 
         task_id = str(result["id"])
-        is_new = result.get("created_at") == result.get("created_at")  # Always true
 
-        activity.logger.info(
-            f"MAN task {'created' if is_new else 'found'}: " f"{task_id} for workflow {workflow_id}"
-        )
+        status_msg = "created" if is_new_task else "retrieved"
+        activity.logger.info(f"MAN task {status_msg}: {task_id} for workflow {workflow_id}")
+
+        # Send notifications only for NEW tasks (idempotent - won't resend on retry)
+        if is_new_task:
+            try:
+                notification_service = get_notification_service()
+                await notification_service.notify_task_created(
+                    task_id=task_id,
+                    workflow_id=workflow_id,
+                    step_id=step_id,
+                    intent=intent_data,
+                    triage_result=triage_data,
+                    expires_at=expires_at,
+                )
+                activity.logger.info(f"Notifications sent for MAN task {task_id}")
+            except Exception as notify_err:
+                # Fire-and-forget: log but don't fail the activity
+                activity.logger.warning(
+                    f"Failed to send notifications for MAN task {task_id}: {notify_err}"
+                )
 
         return {
             "task_id": task_id,
             "idempotency_key": idempotency_key,
-            "status": ManTaskStatus.PENDING.value,
-            "created": True,
+            "status": result.get("status", ManTaskStatus.PENDING.value),
+            "created": is_new_task,
         }
 
     except ApplicationError:
@@ -238,7 +261,7 @@ async def resolve_man_task(params: dict[str, Any]) -> dict[str, Any]:
             updates={
                 "status": new_status,
                 "decision": decision.model_dump(),
-                "decided_at": datetime.utcnow().isoformat() + "Z",
+                "decided_at": datetime.now(timezone.utc).isoformat(),
                 "decided_by": decided_by,
             },
             filters={"id": task_id},
@@ -324,7 +347,7 @@ async def get_man_task(params: dict[str, Any]) -> dict[str, Any]:
         task_data = results[0]
 
         activity.logger.debug(
-            f"Retrieved MAN task: {task_data.get('id')} " f"status={task_data.get('status')}"
+            f"Retrieved MAN task: {task_data.get('id')} status={task_data.get('status')}"
         )
 
         return {
@@ -397,3 +420,72 @@ async def check_man_decision(params: dict[str, Any]) -> dict[str, Any]:
     except Exception as e:
         activity.logger.error(f"Failed to check MAN decision: {str(e)}")
         raise ApplicationError(f"Error checking MAN decision: {str(e)}", non_retryable=False) from e
+
+
+# ============================================================================
+# NOTIFY MAN TASK ACTIVITY (Standalone)
+# ============================================================================
+
+
+@activity.defn(name="notify_man_task")
+async def notify_man_task(params: dict[str, Any]) -> dict[str, Any]:
+    """
+    Send push notifications for a MAN task.
+
+    Standalone activity for manually triggering notifications.
+    Useful for re-sending notifications or custom notification flows.
+
+    Args:
+        params: Dict with keys:
+            - task_id: str (UUID)
+            - workflow_id: str
+            - step_id: str
+            - intent: dict (ActionIntent)
+            - triage_result: dict (RiskTriageResult)
+            - expires_at: str (optional)
+
+    Returns:
+        Dict with keys:
+            - success: bool
+            - channels_attempted: int
+            - channels_succeeded: int
+            - errors: list[str]
+    """
+    try:
+        task_id = params["task_id"]
+        workflow_id = params["workflow_id"]
+        step_id = params.get("step_id", "")
+        intent_data = params["intent"]
+        triage_data = params.get("triage_result", {})
+        expires_at = params.get("expires_at")
+
+        notification_service = get_notification_service()
+        results = await notification_service.notify_task_created(
+            task_id=task_id,
+            workflow_id=workflow_id,
+            step_id=step_id,
+            intent=intent_data,
+            triage_result=triage_data,
+            expires_at=expires_at,
+        )
+
+        succeeded = sum(1 for r in results if r.success)
+        errors = [f"{r.channel.value}: {r.error}" for r in results if not r.success and r.error]
+
+        activity.logger.info(
+            f"Notifications for MAN task {task_id}: {succeeded}/{len(results)} succeeded"
+        )
+
+        return {
+            "success": succeeded > 0,
+            "channels_attempted": len(results),
+            "channels_succeeded": succeeded,
+            "errors": errors,
+        }
+
+    except Exception as e:
+        activity.logger.error(f"Failed to send MAN task notifications: {str(e)}")
+        raise ApplicationError(
+            f"Notification error: {str(e)}",
+            non_retryable=False,  # Retryable for transient network issues
+        ) from e
