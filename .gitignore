@@ -43,3 +43,16 @@ dev-server.log
 
 # Screenshots and artifacts
 artifacts/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+ENV/

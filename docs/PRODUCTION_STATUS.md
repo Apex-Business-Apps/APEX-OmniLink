@@ -11,7 +11,7 @@
 ```
 
 **Status:** `PRODUCTION READY` | **Architecture:** `TRI-FORCE HIERARCHICAL DAG`
-**Last Audit:** `2024-12-31` | **Test Coverage:** `96.8%` (91/94 tests passing)
+**Last Audit:** `2026-01-04` | **Test Coverage:** `96.8%` (91/94 tests passing)
 **Branch:** `claude/apex-ascension-prod-ready-ZhGFm`
 **Commit:** `74f3f32` [clean-tree] ✓ verified
 
@@ -25,7 +25,7 @@
                            └───────────────┬─────────────────┘
                                            │
                     ┌──────────────────────▼──────────────────────┐
-                    │            🛡️ GUARDIAN NODE                  │
+                    │            🛡️ GUARDIAN NODE                 │
                     │  ┌─────────────────────────────────────────┐│
                     │  │ LAYER 1: Regex Pre-Filter (10 patterns) ││
                     │  │ • ignore previous instructions          ││
@@ -44,7 +44,7 @@
                     └──────────────────────┬──────────────────────┘
                                            │ safe: true
                     ┌──────────────────────▼──────────────────────┐
-                    │            🧠 PLANNER NODE                   │
+                    │            🧠 PLANNER NODE                  │
                     │  ┌─────────────────────────────────────────┐│
                     │  │ Cognitive Decoupling Engine             ││
                     │  │ • Decomposes request → PlanStep[]       ││
@@ -52,12 +52,12 @@
                     │  │ • Builds dependency graph (DAG)         ││
                     │  │ • Max 5 steps per request               ││
                     │  └─────────────────────────────────────────┘│
-                    │  File: supabase/functions/omnilink-agent/  │
-                    │        index.ts:280-354                    │
+                    │  File: supabase/functions/omnilink-agent/   │
+                    │        index.ts:280-354                     │
                     └──────────────────────┬──────────────────────┘
                                            │
                     ┌──────────────────────▼──────────────────────┐
-                    │            🔧 EXECUTOR NODE                  │
+                    │            🔧 EXECUTOR NODE                 │
                     │  ┌─────────────────────────────────────────┐│
                     │  │ DAG Execution Engine                    ││
                     │  │ • Dependency-ordered execution          ││
@@ -65,15 +65,15 @@
                     │  │ • 30s tool timeout protection           ││
                     │  │ • Audit logging on every operation      ││
                     │  └─────────────────────────────────────────┘│
-                    │  File: supabase/functions/omnilink-agent/  │
-                    │        index.ts:361-452                    │
+                    │  File: supabase/functions/omnilink-agent/   │
+                    │        index.ts:361-452                     │
                     └──────────────────────┬──────────────────────┘
                                            │
                     ┌──────────────────────▼──────────────────────┐
                     │         🛡️ GUARDIAN NODE (OUTPUT)           │
-                    │  • Policy validation on response           │
-                    │  • PII Redaction (SSN, Card, Phone, Email) │
-                    │  • Content sanitization                    │
+                    │  • Policy validation on response            │
+                    │  • PII Redaction (SSN, Card, Phone, Email)  │
+                    │  • Content sanitization                     │
                     └──────────────────────┬──────────────────────┘
                                            │
                            ┌───────────────▼─────────────────┐
@@ -91,7 +91,7 @@
 | **TypeScript Files** | 162 | `find src supabase tests -name "*.ts" \| wc -l` |
 | **Lines of Code** | 12,791 | `wc -l src/**/*.ts supabase/**/*.ts` |
 | **Edge Functions** | 15 | `ls supabase/functions/` |
-| **SQL Migrations** | 12 | `ls supabase/migrations/*.sql` |
+| **SQL Migrations** | 17 | `ls supabase/migrations/*.sql` |
 | **Web3 Dependencies** | 513 packages | `npm list --depth=0 \| grep -E "viem\|wagmi"` |
 | **Security Exports** | 116 | `grep -r "export" src/lib src/security` |
 | **Test Suites** | 14 | `npm test` |
@@ -157,7 +157,7 @@ Files: BLOCKCHAIN_CONFIG.md (11KB)
 ## DATABASE SCHEMA (PostgreSQL + pgvector)
 
 ```sql
--- CORE TABLES (12 migrations applied)
+-- CORE TABLES (17 migrations applied)
 ┌─────────────────────────────────────────────────────────────────┐
 │ agent_skills          │ Vector-indexed skill registry (384-dim) │
 │ agent_checkpoints     │ Thread state persistence                │
@@ -169,6 +169,7 @@ Files: BLOCKCHAIN_CONFIG.md (11KB)
 │ tool_invocations      │ Tool execution audit trail              │
 │ web3_nonces           │ SIWE challenge nonces                   │
 │ web3_sessions         │ Wallet authentication sessions          │
+│ man_tasks             │ MAN Mode human approval tasks (NEW)     │
 └─────────────────────────────────────────────────────────────────┘
 
 -- HYBRID SEARCH (RRF Algorithm)
@@ -201,6 +202,76 @@ CREATE FUNCTION match_skills(
 │ data_exfiltration_grd  │ Never output schemas, API keys, internal URLs       │ ✅ YES   │
 │ rate_limit_awareness   │ Warn after 10 requests/minute                       │ ⚠️ SOFT  │
 └────────────────────────┴─────────────────────────────────────────────────────┴──────────┘
+```
+
+---
+
+## MAN MODE - TEMPORAL ORCHESTRATOR SAFETY GATE
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│         🛡️ HUMAN-IN-THE-LOOP APPROVAL SYSTEM (NON-BLOCKING)        │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│   Agent Step ──► risk_triage() ──► Lane Classification             │
+│                        │                                           │
+│       ┌────────────────┼────────────────┬────────────────┐         │
+│       ▼                ▼                ▼                ▼         │
+│    GREEN            YELLOW            RED             BLOCKED      │
+│   (execute)       (log+exec)       (isolate)         (reject)      │
+│                                        │                           │
+│                         ┌──────────────┴──────────────┐            │
+│                         │ Create MAN Task (man_tasks) │            │
+│                         │ Notify human for approval   │            │
+│                         └──────────────┬──────────────┘            │
+│                                        │                           │
+│                    Return: {status: "isolated",                    │
+│                             awaiting_approval: true}               │
+│                                        │                           │
+│                    ──► Workflow CONTINUES (no pause) ──►           │
+│                                                                    │
+│  Key Design: Efficiency first - workflow never blocks on RED       │
+│  Human approval triggers separate re-execution if approved         │
+│                                                                    │
+│  Files:                                                            │
+│    orchestrator/policies/man_policy.py    - Risk classification    │
+│    orchestrator/models/man_mode.py        - Data contracts         │
+│    orchestrator/activities/man_mode.py    - Temporal activities    │
+│    orchestrator/workflows/agent_saga.py   - Non-blocking isolation │
+│    supabase/migrations/20260108120000_man_mode.sql - DB schema     │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### Risk Classification Matrix
+
+| Lane | Trigger Conditions | Example Tools | Behavior |
+|------|-------------------|---------------|----------|
+| **GREEN** | Safe tools list | `search_database`, `read_record`, `get_config` | Auto-execute |
+| **YELLOW** | Unknown tools, single high-risk param | Custom tools, `force=true` | Execute + audit |
+| **RED** | Sensitive tools, `irreversible=true`, multiple risk params | `delete_record`, `transfer_funds`, `send_email` | Isolate + notify (non-blocking) |
+| **BLOCKED** | Prohibited tools | `execute_sql_raw`, `shell_execute` | Reject immediately |
+
+### Sensitive Tools (RED Lane)
+```
+Financial:    transfer_funds, process_payment, refund_payment, modify_subscription
+Deletion:     delete_record, delete_user, purge_data, truncate_table
+Accounts:     deactivate_account, suspend_user, revoke_access, reset_credentials
+System:       modify_config, update_secrets, deploy_code, restart_service
+Comms:        send_email, send_sms, send_notification, broadcast_message
+```
+
+### Test Coverage (31 tests)
+```
+File: orchestrator/tests/test_man_mode.py
+
+✅ Enum validation (ManLane, ManTaskStatus)
+✅ Model immutability (ActionIntent, RiskTriageResult, ManTask)
+✅ Policy triage for all 4 lanes
+✅ Case-insensitive tool matching
+✅ High-risk parameter detection
+✅ Large amount detection (≥$10,000)
+✅ Custom policy configuration
+✅ Tool set isolation verification
 ```
 
 ---
