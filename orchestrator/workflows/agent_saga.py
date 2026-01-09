@@ -298,14 +298,18 @@ class AgentWorkflow:
     @workflow.signal
     async def submit_man_decision(self, decision: dict[str, Any]) -> None:
         """
-        Receive human approval/denial for MAN task.
+        Receive human approval/denial for MAN task (for audit logging).
 
         Called by external system (API endpoint) when human makes a decision.
-        Unblocks the workflow step waiting on this decision.
+        Since the workflow does NOT block on RED lane actions, this signal
+        is used for audit logging and potential future re-execution support.
+
+        Note: The isolated action is NOT automatically re-executed on approval.
+        Re-execution requires a separate workflow or manual trigger.
 
         Args:
             decision: Dict with keys:
-                - step_id: str (identifies which step to unblock)
+                - step_id: str (identifies the isolated step)
                 - status: "APPROVED"|"DENIED"
                 - reason: str (optional)
                 - decided_by: str (user who made decision)
@@ -315,7 +319,7 @@ class AgentWorkflow:
 
         workflow.logger.info(f"📥 Received MAN decision for step '{step_id}': {status}")
 
-        # Store decision - workflow.wait_condition will pick this up
+        # Store decision for audit trail
         self.pending_decisions[step_id] = decision
 
     @workflow.run
@@ -533,19 +537,27 @@ class AgentWorkflow:
         """
         Execute a single step with event logging and compensation registration.
 
-        Includes MAN Mode safety gate: high-risk actions (RED lane) require
-        human approval before execution.
+        Includes MAN Mode safety gate:
+        - BLOCKED lane: Action is prohibited, raises ApplicationError
+        - RED lane: Action is ISOLATED (not executed), sent to human for approval
+        - YELLOW lane: Action executes with audit logging
+        - GREEN lane: Action executes normally
+
+        The workflow does NOT pause for RED lane actions. Instead, the action
+        is isolated and a MAN task is created for human review. The workflow
+        continues with other steps while the isolated action awaits approval.
 
         Args:
             step: Step definition from plan
             step_id: Unique step identifier
 
         Returns:
-            Step execution result
+            Step execution result, or isolated result for RED lane actions:
+            {"status": "isolated", "man_task_id": "...", "awaiting_approval": True}
 
         Raises:
             ActivityError: If step fails after retries
-            ApplicationError: If MAN Mode approval denied or blocked
+            ApplicationError: If action is blocked by policy
         """
         step_name = step.get("name", step_id)
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
@@ -578,12 +590,14 @@ class AgentWorkflow:
                 non_retryable=True,
             )
 
-        # RED lane: require human approval
+        # RED lane: isolate action and send for human approval (non-blocking)
         if lane == "RED":
-            workflow.logger.warning(f"  🛑 MAN Mode: Awaiting approval for {step['tool']}")
+            workflow.logger.warning(
+                f"  🛑 MAN Mode: Isolating {step['tool']} - sent for human approval"
+            )
 
-            # Create MAN task in database
-            await workflow.execute_activity(
+            # Create MAN task in database for human review
+            man_task_result = await workflow.execute_activity(
                 "create_man_task",
                 args=[
                     {
@@ -604,37 +618,35 @@ class AgentWorkflow:
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
 
-            # Block until human decides (signal or timeout)
-            try:
-                await workflow.wait_condition(
-                    lambda: step_id in self.pending_decisions,
-                    timeout=timedelta(hours=24),
-                )
-            except asyncio.TimeoutError as e:
-                workflow.logger.error(
-                    f"  ⏰ MAN Mode timeout: No decision received for {step['tool']}"
-                )
-                raise ApplicationError(
-                    f"MAN Mode approval timeout for step '{step_id}'",
-                    non_retryable=True,
-                ) from e
-
-            # Check decision
-            decision = self.pending_decisions[step_id]
-            if decision.get("status") != "APPROVED":
-                reason = decision.get("reason", "No reason provided")
-                workflow.logger.warning(f"  ❌ MAN Mode denied: {step['tool']} - {reason}")
-                raise ApplicationError(
-                    f"MAN Mode denied: {reason}",
-                    non_retryable=True,
-                )
+            # Return isolated result - workflow continues without blocking
+            isolated_result = {
+                "status": "isolated",
+                "reason": triage_result.get("reason", "Requires human approval"),
+                "man_task_id": man_task_result.get("task_id"),
+                "step_id": step_id,
+                "tool_name": step["tool"],
+                "awaiting_approval": True,
+            }
 
             workflow.logger.info(
-                f"  ✅ MAN Mode approved: {step['tool']} by {decision.get('decided_by')}"
+                f"  📤 Step '{step_name}' isolated - MAN task {man_task_result.get('task_id')}"
             )
 
+            # Record the isolated action as a tool call (not executed)
+            await self._append_event(
+                ToolResultReceived(
+                    correlation_id=workflow.info().workflow_id,
+                    tool_name=step["tool"],
+                    step_id=step_id,
+                    success=True,  # Step completed (isolated), not failed
+                    result=isolated_result,
+                )
+            )
+
+            return isolated_result
+
         # =====================================================================
-        # Execute the tool (GREEN, YELLOW, or approved RED)
+        # Execute the tool (GREEN or YELLOW lanes only - RED is isolated above)
         # =====================================================================
 
         # Record tool call request

@@ -28,21 +28,21 @@ The `orchestrator/` directory contains a Temporal.io-based workflow orchestratio
 - **Providers**: Database abstraction layer supporting Supabase (`orchestrator/providers/`)
 
 ### MAN Mode (Manual Approval Node)
-Human-in-the-loop safety gate for high-risk agent actions. When an action is classified as high-risk (RED lane), the workflow pauses and awaits human approval via signal.
+Human-in-the-loop safety gate for high-risk agent actions. When an action is classified as high-risk (RED lane), it is **isolated** (not executed) and sent for human approval. The workflow continues without blocking for efficiency.
 
 **Risk Classification Lanes:**
 | Lane | Behavior | Example Tools |
 |------|----------|---------------|
 | GREEN | Auto-execute | `search_database`, `read_record`, `get_config` |
 | YELLOW | Execute with audit logging | Unknown tools, single high-risk param |
-| RED | Pause for human approval | `delete_record`, `transfer_funds`, `send_email` |
+| RED | Isolate + notify human (non-blocking) | `delete_record`, `transfer_funds`, `send_email` |
 | BLOCKED | Never execute | `execute_sql_raw`, `shell_execute` |
 
 **Key Files:**
 - Policy Engine: `orchestrator/policies/man_policy.py` (stateless risk classification)
 - Data Models: `orchestrator/models/man_mode.py` (`ActionIntent`, `ManTask`, `RiskTriageResult`)
 - Activities: `orchestrator/activities/man_mode.py` (`risk_triage`, `create_man_task`, `resolve_man_task`)
-- Workflow Integration: `orchestrator/workflows/agent_saga.py` (signal handler: `submit_man_decision`)
+- Workflow Integration: `orchestrator/workflows/agent_saga.py` (non-blocking isolation)
 - Database Schema: `supabase/migrations/20260108120000_man_mode.sql` (`man_tasks` table)
 
 **Flow:**
@@ -50,9 +50,11 @@ Human-in-the-loop safety gate for high-risk agent actions. When an action is cla
 Agent Step → risk_triage() → Lane?
    GREEN  → Execute immediately
    YELLOW → Execute with audit log
-   RED    → Create MAN task → Pause → Wait for signal → Execute/Abort
+   RED    → Isolate action → Create MAN task → Notify human → Continue workflow
    BLOCKED → Reject with ApplicationError
 ```
+
+**Non-blocking Design:** RED lane actions return `{status: "isolated", awaiting_approval: true}` and the workflow proceeds to the next step. Approved actions can be re-executed via a separate workflow or manual trigger.
 
 ## Runtime & Ops
 - Build: Vite with SWC, terser minification, chunk splitting (`vite.config.ts`), console stripping in production.
