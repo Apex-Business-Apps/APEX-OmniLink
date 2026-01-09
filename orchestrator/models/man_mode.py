@@ -120,3 +120,16 @@ class ManTask(BaseModel):
     status: ManTaskStatus = ManTaskStatus.PENDING
     created_at: datetime = Field(default_factory=datetime.utcnow)
     decision: Optional[ManTaskDecision] = None
+
+
+def create_idempotency_key(workflow_id: str, step_id: str) -> str:
+    """Create an idempotency key from workflow and step IDs.
+
+    Args:
+        workflow_id: The workflow identifier
+        step_id: The step identifier within the workflow
+
+    Returns:
+        A string key in format "workflow_id:step_id"
+    """
+    return f"{workflow_id}:{step_id}"
