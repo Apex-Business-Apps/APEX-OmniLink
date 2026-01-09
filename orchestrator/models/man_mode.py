@@ -4,7 +4,7 @@ This module defines the core data structures for the human-in-the-loop
 safety system that gates high-risk agent actions.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
@@ -102,10 +102,12 @@ class ManTaskDecision(BaseModel):
     """
 
     status: ManTaskStatus = Field(..., description="Decision outcome")
-    reason: str = Field(default="", description="Decision rationale")
-    decided_by: str = Field(..., description="Decision maker identity")
-    decided_at: datetime = Field(default_factory=datetime.utcnow, description="Decision timestamp")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
+    reason: Optional[str] = Field(default=None, description="Decision rationale")
+    decided_by: str = Field(default="unknown", description="Decision maker identity")
+    decided_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description="Decision timestamp"
+    )
+    metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional context")
 
 
 class ManTask(BaseModel):
@@ -132,7 +134,9 @@ class ManTask(BaseModel):
     decision: Optional[ManTaskDecision] = Field(
         default=None, description="Human decision (null until decided)"
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp"
+    )
 
 
 def create_idempotency_key(workflow_id: str, step_id: str) -> str:

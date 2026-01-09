@@ -18,7 +18,7 @@ Why Activities (not direct calls in workflows):
 3. Timeouts: Activities have start-to-close timeouts
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from temporalio import activity
@@ -129,8 +129,8 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         # Create idempotency key
         idempotency_key = create_idempotency_key(workflow_id, step_id)
 
-        # Calculate expiration
-        expires_at = (datetime.utcnow() + timedelta(hours=timeout_hours)).isoformat() + "Z"
+        # Calculate expiration (timezone-aware)
+        expires_at = (datetime.now(timezone.utc) + timedelta(hours=timeout_hours)).isoformat()
 
         # Get database provider
         db = get_database_provider()
@@ -154,17 +154,13 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         )
 
         task_id = str(result["id"])
-        is_new = result.get("created_at") == result.get("created_at")  # Always true
 
-        activity.logger.info(
-            f"MAN task {'created' if is_new else 'found'}: {task_id} for workflow {workflow_id}"
-        )
+        activity.logger.info(f"MAN task created: {task_id} for workflow {workflow_id}")
 
         return {
             "task_id": task_id,
             "idempotency_key": idempotency_key,
             "status": ManTaskStatus.PENDING.value,
-            "created": True,
         }
 
     except ApplicationError:
@@ -238,7 +234,7 @@ async def resolve_man_task(params: dict[str, Any]) -> dict[str, Any]:
             updates={
                 "status": new_status,
                 "decision": decision.model_dump(),
-                "decided_at": datetime.utcnow().isoformat() + "Z",
+                "decided_at": datetime.now(timezone.utc).isoformat(),
                 "decided_by": decided_by,
             },
             filters={"id": task_id},
