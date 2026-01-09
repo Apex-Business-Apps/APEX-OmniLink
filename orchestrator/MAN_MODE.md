@@ -168,9 +168,60 @@ Updates task with human decision (APPROVED/DENIED).
 
 Retrieve task status for polling or decision checking.
 
+### notify_man_task
+
+Standalone activity for manually triggering notifications.
+
+**Input**: task_id, workflow_id, step_id, intent, triage_result, expires_at
+**Output**: success, channels_attempted, channels_succeeded, errors
+**Retryable**: Yes (transient network errors)
+
+## Push Notifications
+
+MAN Mode includes a multi-channel notification service for alerting operators when approval tasks are created.
+
+### Supported Channels
+
+| Channel | Description | Configuration |
+|---------|-------------|---------------|
+| `console` | Logs to stdout (development) | Default, always available |
+| `slack` | Slack Block Kit messages | `MAN_SLACK_WEBHOOK_URL` |
+| `webhook` | Generic HTTP POST | `MAN_NOTIFICATION_WEBHOOK_URL` |
+| `email` | Email via HTTP endpoint | `MAN_EMAIL_NOTIFICATION_ENDPOINT` |
+
+### Configuration
+
+```bash
+# Comma-separated list of enabled channels
+MAN_NOTIFICATION_CHANNELS=slack,webhook,console
+
+# Channel endpoints
+MAN_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx/yyy/zzz
+MAN_NOTIFICATION_WEBHOOK_URL=https://your-api.com/webhooks/man
+MAN_EMAIL_NOTIFICATION_ENDPOINT=https://your-email-service.com/send
+
+# Dashboard URL for action buttons
+MAN_DASHBOARD_URL=https://apex.app/man/tasks
+```
+
+### Design Principles
+
+1. **Idempotent**: Notifications only sent on NEW task creation, not on activity retries
+2. **Fire-and-Forget**: Notification failures are logged but don't block task creation
+3. **Multi-Channel**: Sends to all enabled channels concurrently
+4. **Graceful Degradation**: Missing channel configuration fails silently
+
+### Slack Message Format
+
+Slack notifications use Block Kit with:
+- Header with risk lane emoji (🔴 RED, 🟡 YELLOW)
+- Tool name and workflow context
+- Risk factors list
+- "Review in Dashboard" action button
+
 ## Test Coverage
 
-**38 unit tests** covering:
+**63 unit tests** covering:
 
 - Enum validation (ManLane, ManTaskStatus)
 - Model immutability and validation
@@ -181,6 +232,11 @@ Retrieve task status for polling or decision checking.
 - Custom policy configuration
 - Performance optimizations (cached lowercase sets)
 - Edge cases (empty names, special characters, thresholds)
+- Notification channel parsing and configuration
+- Slack Block Kit message formatting
+- Email payload formatting with priority
+- Multi-channel concurrent notification delivery
+- Idempotent notification behavior
 
 ## Performance Optimizations
 
