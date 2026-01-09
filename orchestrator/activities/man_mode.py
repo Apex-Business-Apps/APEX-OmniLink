@@ -75,7 +75,7 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
         result = policy.triage(intent)
 
         activity.logger.info(
-            f"Risk triage for '{intent.tool_name}': " f"{result.lane.value} ({result.reason})"
+            f"Risk triage for '{intent.tool_name}': {result.lane.value} ({result.reason})"
         )
 
         return result.model_dump()
@@ -157,7 +157,7 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         is_new = result.get("created_at") == result.get("created_at")  # Always true
 
         activity.logger.info(
-            f"MAN task {'created' if is_new else 'found'}: " f"{task_id} for workflow {workflow_id}"
+            f"MAN task {'created' if is_new else 'found'}: {task_id} for workflow {workflow_id}"
         )
 
         return {
@@ -324,7 +324,7 @@ async def get_man_task(params: dict[str, Any]) -> dict[str, Any]:
         task_data = results[0]
 
         activity.logger.debug(
-            f"Retrieved MAN task: {task_data.get('id')} " f"status={task_data.get('status')}"
+            f"Retrieved MAN task: {task_data.get('id')} status={task_data.get('status')}"
         )
 
         return {
