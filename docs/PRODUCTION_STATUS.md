@@ -268,8 +268,20 @@ Human-in-the-loop approval system for high-risk operations:
 
 ### Sensitive Tools (RED Lane)
 
- 
+### Test Coverage (38 tests)
+```
+File: orchestrator/tests/test_man_mode.py
 
+✅ Enum validation (ManLane, ManTaskStatus)
+✅ Model immutability (ActionIntent, RiskTriageResult, ManTask)
+✅ Policy triage for all 4 lanes
+✅ Case-insensitive tool matching
+✅ High-risk parameter detection
+✅ Large amount detection (≥$10,000)
+✅ Custom policy configuration
+✅ Tool set isolation verification
+✅ Performance optimizations (cached lowercase sets)
+✅ Edge cases (empty names, special chars, thresholds)
 ```
 
 Financial:  transfer_funds, process_payment, refund_payment, modify_subscription

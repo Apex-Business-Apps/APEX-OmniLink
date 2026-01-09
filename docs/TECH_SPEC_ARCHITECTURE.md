@@ -56,6 +56,8 @@ Agent Step → risk_triage() → Lane?
 
 **Non-blocking Design:** RED lane actions return `{status: "isolated", awaiting_approval: true}` and the workflow proceeds to the next step. Approved actions can be re-executed via a separate workflow or manual trigger.
 
+**Performance:** Policy engine uses cached `frozenset` for O(1) tool lookups. Database schema includes partial indexes and GIN index for JSONB queries. 38 unit tests validate models, policy, and edge cases.
+
 ## Runtime & Ops
 - Build: Vite with SWC, terser minification, chunk splitting (`vite.config.ts`), console stripping in production.
 - Env: Requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Auth provider guards missing env and surfaces setup message.
