@@ -285,8 +285,42 @@ class AgentWorkflow:
         self.step_results: dict[str, Any] = {}
         self.failed_step_id: str = ""
 
+        # MAN Mode: pending human decisions (step_id -> decision)
+        self.pending_decisions: dict[str, dict[str, Any]] = {}
+
         # Continue-as-new threshold
         self.MAX_HISTORY_SIZE = 1000
+
+    # =========================================================================
+    # MAN MODE SIGNAL HANDLER
+    # =========================================================================
+
+    @workflow.signal
+    async def submit_man_decision(self, decision: dict[str, Any]) -> None:
+        """
+        Receive human approval/denial for MAN task (for audit logging).
+
+        Called by external system (API endpoint) when human makes a decision.
+        Since the workflow does NOT block on RED lane actions, this signal
+        is used for audit logging and potential future re-execution support.
+
+        Note: The isolated action is NOT automatically re-executed on approval.
+        Re-execution requires a separate workflow or manual trigger.
+
+        Args:
+            decision: Dict with keys:
+                - step_id: str (identifies the isolated step)
+                - status: "APPROVED"|"DENIED"
+                - reason: str (optional)
+                - decided_by: str (user who made decision)
+        """
+        step_id = decision.get("step_id", "")
+        status = decision.get("status", "UNKNOWN")
+
+        workflow.logger.info(f"📥 Received MAN decision for step '{step_id}': {status}")
+
+        # Store decision for audit trail
+        self.pending_decisions[step_id] = decision
 
     @workflow.run
     async def run(
@@ -503,18 +537,117 @@ class AgentWorkflow:
         """
         Execute a single step with event logging and compensation registration.
 
+        Includes MAN Mode safety gate:
+        - BLOCKED lane: Action is prohibited, raises ApplicationError
+        - RED lane: Action is ISOLATED (not executed), sent to human for approval
+        - YELLOW lane: Action executes with audit logging
+        - GREEN lane: Action executes normally
+
+        The workflow does NOT pause for RED lane actions. Instead, the action
+        is isolated and a MAN task is created for human review. The workflow
+        continues with other steps while the isolated action awaits approval.
+
         Args:
             step: Step definition from plan
             step_id: Unique step identifier
 
         Returns:
-            Step execution result
+            Step execution result, or isolated result for RED lane actions:
+            {"status": "isolated", "man_task_id": "...", "awaiting_approval": True}
 
         Raises:
             ActivityError: If step fails after retries
+            ApplicationError: If action is blocked by policy
         """
         step_name = step.get("name", step_id)
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
+
+        # =====================================================================
+        # MAN MODE: Risk Triage
+        # =====================================================================
+        triage_result = await workflow.execute_activity(
+            "risk_triage",
+            args=[
+                {
+                    "tool_name": step["tool"],
+                    "params": step.get("input", {}),
+                    "workflow_id": workflow.info().workflow_id,
+                    "step_id": step_id,
+                    "irreversible": step.get("irreversible", False),
+                }
+            ],
+            start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=RetryPolicy(maximum_attempts=2),
+        )
+
+        lane = triage_result.get("lane", "GREEN")
+
+        # BLOCKED lane: never execute
+        if lane == "BLOCKED":
+            workflow.logger.error(f"  🚫 BLOCKED: {step['tool']} - {triage_result.get('reason')}")
+            raise ApplicationError(
+                f"Action blocked by policy: {triage_result.get('reason')}",
+                non_retryable=True,
+            )
+
+        # RED lane: isolate action and send for human approval (non-blocking)
+        if lane == "RED":
+            workflow.logger.warning(
+                f"  🛑 MAN Mode: Isolating {step['tool']} - sent for human approval"
+            )
+
+            # Create MAN task in database for human review
+            man_task_result = await workflow.execute_activity(
+                "create_man_task",
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "step_id": step_id,
+                        "intent": {
+                            "tool_name": step["tool"],
+                            "params": step.get("input", {}),
+                            "workflow_id": workflow.info().workflow_id,
+                            "step_id": step_id,
+                            "irreversible": step.get("irreversible", False),
+                        },
+                        "triage_result": triage_result,
+                        "timeout_hours": triage_result.get("suggested_timeout_hours", 24),
+                    }
+                ],
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=RetryPolicy(maximum_attempts=3),
+            )
+
+            # Return isolated result - workflow continues without blocking
+            isolated_result = {
+                "status": "isolated",
+                "reason": triage_result.get("reason", "Requires human approval"),
+                "man_task_id": man_task_result.get("task_id"),
+                "step_id": step_id,
+                "tool_name": step["tool"],
+                "awaiting_approval": True,
+            }
+
+            workflow.logger.info(
+                f"  📤 Step '{step_name}' isolated - MAN task {man_task_result.get('task_id')}"
+            )
+
+            # Record the isolated action as a tool call (not executed)
+            await self._append_event(
+                ToolResultReceived(
+                    correlation_id=workflow.info().workflow_id,
+                    tool_name=step["tool"],
+                    step_id=step_id,
+                    success=True,  # Step completed (isolated), not failed
+                    result=isolated_result,
+                )
+            )
+
+            return isolated_result
+
+        # =====================================================================
+        # Execute the tool (GREEN or YELLOW lanes only - RED is isolated above)
+        # =====================================================================
 
         # Record tool call request
         await self._append_event(
