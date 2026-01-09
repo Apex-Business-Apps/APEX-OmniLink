@@ -26,6 +26,9 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          # Mock values for CI - real values set in Supabase Dashboard for production
+          ETHEREUM_CLIENT_ID: demo-ci-placeholder
+          ETHEREUM_CLIENT_SECRET: demo-ci-placeholder
         run: supabase link --project-ref $SUPABASE_PROJECT_REF
 
       - name: Deploy Edge Functions

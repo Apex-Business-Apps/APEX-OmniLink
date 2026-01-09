@@ -7,6 +7,9 @@ enable_signup = true
 # Enable Web3 authentication providers
 [auth.external.ethereum]
 enabled = true
+client_id = "env(ETHEREUM_CLIENT_ID)"
+secret = "env(ETHEREUM_CLIENT_SECRET)"
+# Note: For demo/CI mode, set ETHEREUM_CLIENT_ID=demo and ETHEREUM_CLIENT_SECRET=demo
 
 [auth.external.solana]
 enabled = false  # Enable when Solana support is needed
