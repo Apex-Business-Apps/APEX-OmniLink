@@ -334,7 +334,7 @@ class ChaoticClientSimulator {
       }
 
       return await response.json();
-    } catch {
+    } catch (_error) {
       console.warn('⚠️  Agent API call failed, falling back to mock');
       return this.mockAgentResponse(message);
     }

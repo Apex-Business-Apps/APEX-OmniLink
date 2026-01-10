@@ -1,10 +1,8 @@
-import { useEffect, useRef } from 'react';
-
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
+  private processor: ScriptProcessorNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
-  private workletNode: AudioWorkletNode | null = null;
 
   constructor(private onAudioData: (audioData: Float32Array) => void) {}
 
@@ -23,39 +21,16 @@ export class AudioRecorder {
       sampleRate: 24000,
     });
     
-    // Inline Worklet Processor
-    const RECORDER_WORKLET_CODE = `
-      class RecorderProcessor extends AudioWorkletProcessor {
-        process(inputs, outputs, parameters) {
-          const input = inputs[0];
-          if (input && input.length > 0) {
-            this.port.postMessage(input[0]);
-          }
-          return true;
-        }
-      }
-      registerProcessor('recorder-processor', RecorderProcessor);
-    `;
-
-    // Uses unique variable name to prevent scope collisions
-    const uniqueWorkletBlob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
-    const blobUrl = URL.createObjectURL(uniqueWorkletBlob);
-
-    try {
-      await this.audioContext.audioWorklet.addModule(blobUrl);
-    } finally {
-      URL.revokeObjectURL(blobUrl);
-    }
-
     this.source = this.audioContext.createMediaStreamSource(this.stream);
-    this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-processor');
+    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
     
-    this.workletNode.port.onmessage = (event) => {
-      this.onAudioData(event.data);
+    this.processor.onaudioprocess = (e) => {
+      const inputData = e.inputBuffer.getChannelData(0);
+      this.onAudioData(new Float32Array(inputData));
     };
-
-    this.source.connect(this.workletNode);
-    this.workletNode.connect(this.audioContext.destination);
+    
+    this.source.connect(this.processor);
+    this.processor.connect(this.audioContext.destination);
   }
 
   stop() {
@@ -63,9 +38,9 @@ export class AudioRecorder {
       this.source.disconnect();
       this.source = null;
     }
-    if (this.workletNode) {
-      this.workletNode.disconnect();
-      this.workletNode = null;
+    if (this.processor) {
+      this.processor.disconnect();
+      this.processor = null;
     }
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
@@ -77,10 +52,6 @@ export class AudioRecorder {
     }
   }
 }
-
-// ------------------------------------------------------------------
-// UTILITIES
-// ------------------------------------------------------------------
 
 export const encodeAudioForAPI = (float32Array: Float32Array): string => {
   const int16Array = new Int16Array(float32Array.length);

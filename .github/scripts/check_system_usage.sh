@@ -21,14 +21,14 @@ SUPABASE_URL=${SUPABASE_URL:-}
 SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
 SANDBOX_HEALTHCHECK_URL=${SANDBOX_HEALTHCHECK_URL:-}
 
-if [[ "$FORCE_EVAL" = "true" ]]; then
+if [ "$FORCE_EVAL" = "true" ]; then
   write_output should_run true
   write_output reason forced
   write_output count -1
   exit 0
 fi
 
-if [[ -z "$SUPABASE_URL" ]] || [[ -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
+if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
   write_output should_run false
   write_output reason no_secrets
   write_output count 0
@@ -50,18 +50,17 @@ read_count_from_headers() {
 
 response_has_rows() {
   local body_file=$1
-  if [[ ! -s "$body_file" ]]; then
+  if [ ! -s "$body_file" ]; then
     echo 0
     return 0
   fi
   local body
   body=$(tr -d '[:space:]' < "$body_file")
-  if [[ "$body" = "[]" ]]; then
+  if [ "$body" = "[]" ]; then
     echo 0
   else
     echo 1
   fi
-  return 0
 }
 
 check_table() {
@@ -78,12 +77,12 @@ check_table() {
     -H "Prefer: count=exact" \
     "$SUPABASE_URL/rest/v1/$table?select=id&limit=1&created_at=gte.$iso_since")
 
-  if [[ "$status" = "404" ]]; then
+  if [ "$status" = "404" ]; then
     rm -f "$headers_file" "$body_file"
     return 2
   fi
 
-  if [[ "$status" -lt 200 ]] || [[ "$status" -ge 300 ]]; then
+  if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
     rm -f "$headers_file" "$body_file"
     return 3
   fi
@@ -101,12 +100,12 @@ check_table() {
 }
 
 healthcheck_fallback() {
-  if [[ -z "$SANDBOX_HEALTHCHECK_URL" ]]; then
+  if [ -z "$SANDBOX_HEALTHCHECK_URL" ]; then
     return 1
   fi
   local status
   status=$(curl -sS -o /dev/null -w "%{http_code}" "$SANDBOX_HEALTHCHECK_URL")
-  if [[ "$status" -ge 200 ]] && [[ "$status" -lt 300 ]]; then
+  if [ "$status" -ge 200 ] && [ "$status" -lt 300 ]; then
     write_output should_run true
     write_output reason used
     write_output count -1
@@ -119,9 +118,9 @@ healthcheck_fallback() {
   return 0
 }
 
-if [[ -n "$USAGE_TABLE" ]]; then
+if [ -n "$USAGE_TABLE" ]; then
   if count=$(check_table "$USAGE_TABLE"); then
-    if [[ "$count" -gt 0 ]]; then
+    if [ "$count" -gt 0 ]; then
       write_output should_run true
       write_output reason used
       write_output count "$count"
@@ -133,7 +132,7 @@ if [[ -n "$USAGE_TABLE" ]]; then
     exit 0
   else
     result=$?
-    if [[ "$result" -eq 2 ]]; then
+    if [ "$result" -eq 2 ]; then
       if healthcheck_fallback; then
         exit 0
       fi
@@ -153,7 +152,7 @@ fi
 candidate_tables=(agent_runs tool_invocations skill_matches eval_results)
 for table in "${candidate_tables[@]}"; do
   if count=$(check_table "$table"); then
-    if [[ "$count" -gt 0 ]]; then
+    if [ "$count" -gt 0 ]; then
       write_output should_run true
       write_output reason used
       write_output count "$count"
@@ -165,10 +164,10 @@ for table in "${candidate_tables[@]}"; do
     exit 0
   else
     result=$?
-    if [[ "$result" -eq 2 ]]; then
+    if [ "$result" -eq 2 ]; then
       continue
     fi
-    if [[ "$result" -eq 3 ]]; then
+    if [ "$result" -eq 3 ]; then
       write_output should_run false
       write_output reason unreachable
       write_output count 0
