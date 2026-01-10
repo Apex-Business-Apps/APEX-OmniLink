@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/functions/**'
+      - 'supabase/migrations/**'
   workflow_dispatch:
 
 jobs:
@@ -23,17 +24,24 @@ jobs:
           version: latest
 
       - name: Link to Supabase
+        # Ensures the CLI knows which project to target for subsequent commands
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          # Mock values for CI - real values set in Supabase Dashboard for production
-          ETHEREUM_CLIENT_ID: demo-ci-placeholder
-          ETHEREUM_CLIENT_SECRET: demo-ci-placeholder
         run: supabase link --project-ref $SUPABASE_PROJECT_REF
 
+      - name: Apply Database Migrations
+        # Critical: Deploys schema changes (e.g., 'emergency_controls' table) BEFORE functions
+        # fix: Removes invalid 'desc' key
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
       - name: Deploy Edge Functions
+        # fix: Fixed broken env indentation and formatting
         run: |
-          # Deploy Web3-related functions
           supabase functions deploy web3-nonce
           supabase functions deploy web3-verify
           supabase functions deploy alchemy-webhook
@@ -42,30 +50,22 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
-      - name: Deployment Status
+      - name: Deployment Summary
         if: always()
         run: |
           echo "## 🚀 Edge Functions Deployment" >> $GITHUB_STEP_SUMMARY
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ **Status:** All functions deployed successfully" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Deployed Functions:**" >> $GITHUB_STEP_SUMMARY
-            echo "- web3-nonce" >> $GITHUB_STEP_SUMMARY
-            echo "- web3-verify" >> $GITHUB_STEP_SUMMARY
-            echo "- alchemy-webhook" >> $GITHUB_STEP_SUMMARY
-            echo "- verify-nft" >> $GITHUB_STEP_SUMMARY
-            echo "- supabase_healthcheck" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Success" >> $GITHUB_STEP_SUMMARY
+            echo "All functions and migrations applied successfully." >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Status:** Deployment failed" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Required Secrets:**" >> $GITHUB_STEP_SUMMARY
-            echo "- SUPABASE_ACCESS_TOKEN" >> $GITHUB_STEP_SUMMARY
-            echo "- SUPABASE_DB_PASSWORD" >> $GITHUB_STEP_SUMMARY
-            echo "- SUPABASE_PROJECT_REF" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Check logs for details on migration or deployment errors." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Smoke test the deployed functions
+      - name: Test Function Health
+        if: success()
         shell: bash
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -73,6 +73,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
+
+          # --- Configuration ---
+          MAX_RETRIES=3
+          RETRY_DELAY=5
+          # ---------------------
 
           # 1. Validate Secrets
           if [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
@@ -92,28 +97,37 @@ jobs:
             exit 1
           fi
 
-          # 3. Construct URL & Test
+          # 3. Construct URL
           FUNCTIONS_URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1"
           URL="${FUNCTIONS_URL}/supabase_healthcheck"
 
           echo "Testing endpoint: ${URL}"
 
-          # Capture HTTP status and body
-          response_code=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
-            -H "apikey: ${AUTH_JWT}" \
-            -H "Authorization: Bearer ${AUTH_JWT}" \
-            -H "Content-Type: application/json" \
-            "${URL}")
+          # 4. Retry Logic Loop
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+            echo "Attempt $i/$MAX_RETRIES..."
 
-          echo "HTTP Status: ${response_code}"
+            HTTP_CODE=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
+              -H "apikey: ${AUTH_JWT}" \
+              -H "Authorization: Bearer ${AUTH_JWT}" \
+              -H "Content-Type: application/json" \
+              "${URL}")
 
-          # 4. Validate Response
-          if [ "${response_code}" != "200" ]; then
-            echo "::error::Healthcheck failed with HTTP ${response_code}"
-            echo "Response Body:"
-            cat /tmp/response.json || true
-            exit 1
-          fi
+            if [ "${HTTP_CODE}" == "200" ]; then
+              echo "✅ Healthcheck passed (HTTP 200)"
+              cat /tmp/response.json || true
+              exit 0
+            else
+              echo "⚠️ Attempt $i failed with HTTP ${HTTP_CODE}"
+              cat /tmp/response.json || true
+              echo ""
 
-          echo "✅ Healthcheck passed."
-          cat /tmp/response.json || true
+              if [ $i -lt $MAX_RETRIES ]; then
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+
+          # 5. Final Failure
+          echo "::error::Healthcheck failed after ${MAX_RETRIES} attempts."
+          exit 1
