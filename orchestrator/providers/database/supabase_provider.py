@@ -5,7 +5,6 @@ from supabase import Client, create_client
 
 from .base import DatabaseError, DatabaseProvider, NotFound
 
-
 # SECURITY: Allowlist of valid table names (SQL injection prevention)
 ALLOWED_TABLES = frozenset([
     "users", "profiles", "wallets", "wallet_identities", "wallet_nonces",
