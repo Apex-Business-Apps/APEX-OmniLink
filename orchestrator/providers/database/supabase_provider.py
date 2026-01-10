@@ -6,12 +6,30 @@ from supabase import Client, create_client
 from .base import DatabaseError, DatabaseProvider, NotFound
 
 # SECURITY: Allowlist of valid table names (SQL injection prevention)
-ALLOWED_TABLES = frozenset([
-    "users", "profiles", "wallets", "wallet_identities", "wallet_nonces",
-    "files", "links", "integrations", "automations", "automation_logs",
-    "todos", "notifications", "audit_logs", "rate_limits", "sessions",
-    "user_data", "settings", "events", "workflows", "workflow_runs",
-])
+ALLOWED_TABLES = frozenset(
+    [
+        "users",
+        "profiles",
+        "wallets",
+        "wallet_identities",
+        "wallet_nonces",
+        "files",
+        "links",
+        "integrations",
+        "automations",
+        "automation_logs",
+        "todos",
+        "notifications",
+        "audit_logs",
+        "rate_limits",
+        "sessions",
+        "user_data",
+        "settings",
+        "events",
+        "workflows",
+        "workflow_runs",
+    ]
+)
 
 # Valid column name pattern (alphanumeric and underscore only)
 VALID_COLUMN_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -162,9 +180,7 @@ class SupabaseProvider(DatabaseProvider):
             response = query.execute()
 
             if not response.data:
-                raise NotFound(
-                    f"No records to update in {validated_table} with {filters}"
-                )
+                raise NotFound(f"No records to update in {validated_table} with {filters}")
 
             return response.data[0]
         except (DatabaseError, NotFound):
