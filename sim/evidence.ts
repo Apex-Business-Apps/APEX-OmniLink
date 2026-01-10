@@ -23,7 +23,7 @@ export interface EvidenceManifest {
  */
 export async function createEvidenceBundle(
   runId: string,
-  result: any
+  result: unknown
 ): Promise<string> {
   const evidenceDir = path.join(process.cwd(), 'evidence', runId);
 
@@ -31,22 +31,27 @@ export async function createEvidenceBundle(
     fs.mkdirSync(evidenceDir, { recursive: true });
   }
 
+  // Cast result to Record<string, unknown> for access to properties
+  // This satisfies strict typing while acknowledging dynamic nature of result object
+  const r = result as Record<string, unknown>;
+
   // Save scorecard
   const scorecardPath = path.join(evidenceDir, 'scorecard.json');
-  fs.writeFileSync(scorecardPath, JSON.stringify(result.scorecard, null, 2));
+  fs.writeFileSync(scorecardPath, JSON.stringify(r.scorecard, null, 2));
 
   // Save full result
   const resultPath = path.join(evidenceDir, 'result.json');
-  fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
+  fs.writeFileSync(resultPath, JSON.stringify(r, null, 2));
 
   // Save logs
   const logsPath = path.join(evidenceDir, 'logs.txt');
-  fs.writeFileSync(logsPath, result.logs.join('\n'));
+  const logs = Array.isArray(r.logs) ? r.logs : [];
+  fs.writeFileSync(logsPath, logs.join('\n'));
 
   // Create manifest
   const manifest: EvidenceManifest = {
     runId,
-    scenario: result.scenario,
+    scenario: typeof r.scenario === 'string' ? r.scenario : 'unknown',
     timestamp: new Date().toISOString(),
     files: {
       scorecard: 'scorecard.json',
@@ -125,16 +130,18 @@ export async function generateHTMLReport(runId: string): Promise<string> {
       </tr>
     </thead>
     <tbody>
-      ${Object.entries(scorecard.apps).map(([app, score]: [string, any]) => `
+  ${Object.entries(scorecard.apps).map(([app, score]: [string, unknown]) => {
+        const s = score as Record<string, any>;
+        return `
         <tr>
           <td>${app}</td>
-          <td>${score.score.toFixed(1)}</td>
-          <td>${score.eventsProcessed}</td>
-          <td>${(score.successRate * 100).toFixed(1)}%</td>
-          <td>${score.avgLatencyMs.toFixed(0)}ms</td>
-          <td>${score.passed ? '✅' : '❌'}</td>
+          <td>${s.score.toFixed(1)}</td>
+          <td>${s.eventsProcessed}</td>
+          <td>${(s.successRate * 100).toFixed(1)}%</td>
+          <td>${s.avgLatencyMs.toFixed(0)}ms</td>
+          <td>${s.passed ? '✅' : '❌'}</td>
         </tr>
-      `).join('')}
+      `;}).join('')}
     </tbody>
   </table>
 

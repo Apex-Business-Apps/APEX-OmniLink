@@ -39,16 +39,14 @@ env:
 
 # Explicit least-privilege permissions for workflow
 # Prevents 403 errors when commenting on PRs
-permissions:
-  contents: read          # Required: Clone repository
-  pull-requests: write    # Required: Comment on PRs
-  issues: write           # Required: Comment on PRs (via issues API)
-  # All other permissions: none (implicit)
+# permissions: moved to job level
 
 jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 10
 
     steps:
@@ -80,6 +78,8 @@ jobs:
   quick-smoke-test:
     name: Quick Smoke Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 5
     needs: unit-tests
 
@@ -113,6 +113,8 @@ jobs:
   dry-run-simulation:
     name: Dry Run Simulation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 10
     needs: unit-tests
 
@@ -146,6 +148,10 @@ jobs:
   full-chaos-simulation:
     name: Full Chaos Simulation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     timeout-minutes: 15
     needs: [unit-tests, quick-smoke-test]
 
@@ -281,6 +287,8 @@ jobs:
   burst-load-test:
     name: Burst Load Test (1000 events)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 20
     needs: [unit-tests, dry-run-simulation]
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -334,6 +342,8 @@ jobs:
   determinism-check:
     name: Determinism Verification
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 15
     needs: unit-tests
 
@@ -392,6 +402,8 @@ jobs:
   summary:
     name: Test Summary
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: always()
     needs: [unit-tests, quick-smoke-test, dry-run-simulation, full-chaos-simulation, determinism-check]
 

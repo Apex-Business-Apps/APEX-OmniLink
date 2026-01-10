@@ -16,14 +16,15 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  security-events: write
+# permissions: moved to job level
 
 jobs:
   security-invariants:
     name: Security Invariant Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -79,6 +80,8 @@ jobs:
   dependency-audit:
     name: Dependency Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -114,6 +117,8 @@ jobs:
   code-quality:
     name: Code Quality Gates
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
