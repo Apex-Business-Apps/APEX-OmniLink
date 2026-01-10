@@ -1,7 +1,7 @@
 # Web3 Verification Module - RUNBOOK
 
-**Version:** Phase 1
-**Date:** 2026-01-01
+**Version:** Phase 1.1 (CI/CD Enhanced)
+**Date:** 2026-01-10
 **Author:** OmniLink APEX Team
 **Status:** ✅ Ready for Production
 
@@ -161,6 +161,15 @@ VITE_WALLETCONNECT_PROJECT_ID=your-walletconnect-project-id
 
 ### Step 3: Deploy Edge Functions
 
+**CI/CD Pipeline (Recommended):**
+The repository uses `.github/workflows/deploy-web3-functions.yml` for automated deployment.
+The pipeline follows a strict sequence:
+1. **Link**: Connect to Supabase project
+2. **Migrate**: Apply schema changes (`supabase db push`)
+3. **Deploy**: Update Edge Functions
+4. **Verify**: Run smoke tests with retry logic (3 attempts)
+
+**Manual Deployment:**
 ```bash
 # Deploy web3-nonce function
 supabase functions deploy web3-nonce
@@ -371,10 +380,11 @@ async function premiumApiAction() {
 
 ### Rate Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| `/web3-nonce` | 5 requests | 1 minute (per IP) |
-| `/web3-verify` | 10 attempts | 1 hour (per user) |
+| Endpoint | Limit | Window | Notes |
+|----------|-------|--------|-------|
+| `/web3-nonce` | 5 requests | 1 minute (per IP) | |
+| `/web3-verify` | 10 attempts | 1 hour (per user) | |
+| `/supabase_healthcheck` | 10 requests | 1 minute (per user/IP) | Unauthenticated requests grouped as 'anonymous' |
 
 **Customize rate limits** in edge function files:
 ```ts
@@ -537,6 +547,7 @@ Expected output:
    const { data } = await supabase.auth.getSession();
    console.log(data.session);
    ```
+4. **CI Smoke Tests**: If seeing this in CI, ensure `SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY` is correctly injected in the workflow. The `supabase_healthcheck` function allows anonymous access for smoke tests but requires a valid JWT signature.
 
 ---
 
@@ -749,7 +760,7 @@ Before deploying to production:
 
 ---
 
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-01-10
 **Next Review:** After 1 week of production usage
 
 **Maintainer:** OmniLink APEX Team
