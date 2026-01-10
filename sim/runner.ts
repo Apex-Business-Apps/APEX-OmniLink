@@ -95,10 +95,10 @@ export interface SimulationResult {
   completedAt: Date;
   durationMs: number;
   beats: BeatResult[];
-  scorecard: any; // From metrics.ts
-  chaosStats: any;
-  idempotencyStats: any;
-  circuitStats: Record<string, any>;
+  scorecard: unknown; // From metrics.ts
+  chaosStats: unknown;
+  idempotencyStats: unknown;
+  circuitStats: Record<string, unknown>;
   logs: string[];
   passed: boolean;
 }

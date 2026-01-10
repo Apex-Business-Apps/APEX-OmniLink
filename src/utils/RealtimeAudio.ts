@@ -1,25 +1,9 @@
 
-const WORKLET_CODE = `
-class AudioProcessor extends AudioWorkletProcessor {
-  process(inputs, outputs, parameters) {
-    const input = inputs[0];
-    if (input && input.length > 0) {
-      const inputChannel = input[0];
-      if (inputChannel.length > 0) {
-        this.port.postMessage(inputChannel);
-      }
-    }
-    return true;
-  }
-}
-registerProcessor('audio-processor', AudioProcessor);
-`;
-
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
-  private source: AudioWorkletNode | null = null;
-  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
+  private source: MediaStreamAudioSourceNode | null = null;
+  private workletNode: AudioWorkletNode | null = null;
 
   constructor(private onAudioData: (audioData: Float32Array) => void) {}
 
@@ -37,44 +21,50 @@ export class AudioRecorder {
     this.audioContext = new AudioContext({
       sampleRate: 24000,
     });
-
-    const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
-    const workletUrl = URL.createObjectURL(blob);
-    await this.audioContext.audioWorklet.addModule(workletUrl);
     
-    const WORKLET_CODE = `
+    // Inline Worklet Processor to avoid file loading issues
+    const RECORDER_WORKLET_CODE = `
       class RecorderProcessor extends AudioWorkletProcessor {
-        process(inputs) {
+        process(inputs, outputs, parameters) {
           const input = inputs[0];
-          if (input.length > 0) this.port.postMessage(input[0]);
+          if (input && input.length > 0) {
+            this.port.postMessage(input[0]);
+          }
           return true;
         }
       }
       registerProcessor('recorder-processor', RecorderProcessor);
     `;
 
-    const blob = new Blob([WORKLET_CODE], { type: "application/javascript" });
-    await this.audioContext.audioWorklet.addModule(URL.createObjectURL(blob));
+    // Create Worklet from Blob - Scoped strictly to this method
+    const blob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
+    const blobUrl = URL.createObjectURL(blob);
 
-    this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
-    this.source = new AudioWorkletNode(this.audioContext, 'recorder-processor');
+    try {
+      await this.audioContext.audioWorklet.addModule(blobUrl);
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
+
+    this.source = this.audioContext.createMediaStreamSource(this.stream);
+    this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-processor');
     
-    this.source.port.onmessage = (event) => {
+    this.workletNode.port.onmessage = (event) => {
       this.onAudioData(event.data);
     };
 
-    this.mediaStreamSource.connect(this.source);
-    this.source.connect(this.audioContext.destination);
+    this.source.connect(this.workletNode);
+    this.workletNode.connect(this.audioContext.destination);
   }
 
   stop() {
-    if (this.mediaStreamSource) {
-      this.mediaStreamSource.disconnect();
-      this.mediaStreamSource = null;
-    }
     if (this.source) {
       this.source.disconnect();
       this.source = null;
+    }
+    if (this.workletNode) {
+      this.workletNode.disconnect();
+      this.workletNode = null;
     }
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
@@ -86,6 +76,10 @@ export class AudioRecorder {
     }
   }
 }
+
+// ------------------------------------------------------------------
+// UTILITIES
+// ------------------------------------------------------------------
 
 export const encodeAudioForAPI = (float32Array: Float32Array): string => {
   const int16Array = new Int16Array(float32Array.length);

@@ -1,5 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs';
+import crypto from 'crypto';
+import path from 'path';
 import { recordAuditEvent } from '../../src/security/auditLog';
 
 function checksum(filePath: string): string {

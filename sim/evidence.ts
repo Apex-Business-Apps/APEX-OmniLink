@@ -140,13 +140,7 @@ export async function generateHTMLReport(runId: string): Promise<string> {
           <td>${s.avgLatencyMs.toFixed(0)}ms</td>
           <td>${s.passed ? '✅' : '❌'}</td>
         </tr>
-      `}).join('')}
-          <td>${score.eventsProcessed}</td>
-          <td>${(score.successRate * 100).toFixed(1)}%</td>
-          <td>${score.avgLatencyMs.toFixed(0)}ms</td>
-          <td>${score.passed ? '✅' : '❌'}</td>
-        </tr>
-      `).join('')}
+      `;}).join('')}
     </tbody>
   </table>
 
