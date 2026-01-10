@@ -75,7 +75,7 @@ async def risk_triage(intent_data: dict[str, Any]) -> dict[str, Any]:
         result = policy.triage(intent)
 
         activity.logger.info(
-            f"Risk triage for '{intent.tool_name}': " f"{result.lane.value} ({result.reason})"
+            f"Risk triage for '{intent.tool_name}': {result.lane.value} ({result.reason})"
         )
 
         return result.model_dump()

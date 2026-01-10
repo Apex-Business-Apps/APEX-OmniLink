@@ -1,8 +1,8 @@
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
-  private processor: ScriptProcessorNode | null = null;
-  private source: MediaStreamAudioSourceNode | null = null;
+  private source: AudioWorkletNode | null = null;
+  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
 
   constructor(private onAudioData: (audioData: Float32Array) => void) {}
 
@@ -21,26 +21,39 @@ export class AudioRecorder {
       sampleRate: 24000,
     });
     
-    this.source = this.audioContext.createMediaStreamSource(this.stream);
-    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    const WORKLET_CODE = `
+      class RecorderProcessor extends AudioWorkletProcessor {
+        process(inputs) {
+          const input = inputs[0];
+          if (input.length > 0) this.port.postMessage(input[0]);
+          return true;
+        }
+      }
+      registerProcessor('recorder-processor', RecorderProcessor);
+    `;
+
+    const blob = new Blob([WORKLET_CODE], { type: "application/javascript" });
+    await this.audioContext.audioWorklet.addModule(URL.createObjectURL(blob));
+
+    this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
+    this.source = new AudioWorkletNode(this.audioContext, 'recorder-processor');
     
-    this.processor.onaudioprocess = (e) => {
-      const inputData = e.inputBuffer.getChannelData(0);
-      this.onAudioData(new Float32Array(inputData));
+    this.source.port.onmessage = (event) => {
+      this.onAudioData(event.data);
     };
-    
-    this.source.connect(this.processor);
-    this.processor.connect(this.audioContext.destination);
+
+    this.mediaStreamSource.connect(this.source);
+    this.source.connect(this.audioContext.destination);
   }
 
   stop() {
+    if (this.mediaStreamSource) {
+      this.mediaStreamSource.disconnect();
+      this.mediaStreamSource = null;
+    }
     if (this.source) {
       this.source.disconnect();
       this.source = null;
-    }
-    if (this.processor) {
-      this.processor.disconnect();
-      this.processor = null;
     }
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
