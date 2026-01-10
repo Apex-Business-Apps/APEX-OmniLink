@@ -65,17 +65,55 @@ jobs:
             echo "- SUPABASE_PROJECT_REF" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Test Function Health
-        if: success()
+      - name: Smoke test the deployed functions
+        shell: bash
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          # Smoke test the deployed functions
-          echo "Testing supabase_healthcheck endpoint..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/supabase_healthcheck")
+          set -euo pipefail
 
-          if [ $response -eq 200 ] || [ $response -eq 400 ]; then
-            echo "✅ supabase_healthcheck is healthy (HTTP $response)"
-          else
-            echo "⚠️ supabase_healthcheck returned HTTP $response"
+          # 1. Validate Secrets
+          if [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
+            echo "::error::Missing required secret: SUPABASE_PROJECT_REF"
             exit 1
           fi
+
+          # 2. Select Auth Token (Prefer Anon, Fallback to Service Role)
+          AUTH_JWT="${SUPABASE_ANON_KEY:-}"
+          if [ -z "${AUTH_JWT}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "⚠️ SUPABASE_ANON_KEY missing. Falling back to SERVICE_ROLE_KEY."
+            AUTH_JWT="${SUPABASE_SERVICE_ROLE_KEY}"
+          fi
+
+          if [ -z "${AUTH_JWT}" ]; then
+            echo "::error::No JWT available. Set SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY."
+            exit 1
+          fi
+
+          # 3. Construct URL & Test
+          FUNCTIONS_URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1"
+          URL="${FUNCTIONS_URL}/supabase_healthcheck"
+
+          echo "Testing endpoint: ${URL}"
+
+          # Capture HTTP status and body
+          response_code=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
+            -H "apikey: ${AUTH_JWT}" \
+            -H "Authorization: Bearer ${AUTH_JWT}" \
+            -H "Content-Type: application/json" \
+            "${URL}")
+
+          echo "HTTP Status: ${response_code}"
+
+          # 4. Validate Response
+          if [ "${response_code}" != "200" ]; then
+            echo "::error::Healthcheck failed with HTTP ${response_code}"
+            echo "Response Body:"
+            cat /tmp/response.json || true
+            exit 1
+          fi
+
+          echo "✅ Healthcheck passed."
+          cat /tmp/response.json || true
