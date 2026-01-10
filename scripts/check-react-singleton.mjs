@@ -10,7 +10,7 @@
  * @see docs/CI_RUNTIME_GATES.md
  */
 
-import { execSync } from 'child_process';
+import { execSync } from 'node:child_process';
 
 // ANSI colors
 const colors = {

@@ -154,7 +154,19 @@ GRANT ALL ON idempotency_receipts TO service_role;
 
 -- Create a view for active receipts (not expired)
 CREATE OR REPLACE VIEW active_idempotency_receipts AS
-SELECT *
+SELECT
+  id,
+  idempotency_key,
+  correlation_id,
+  event_type,
+  tenant_id,
+  request_payload,
+  response_payload,
+  attempt_count,
+  created_at,
+  expires_at,
+  updated_at,
+  metadata
 FROM idempotency_receipts
 WHERE expires_at > NOW();
 

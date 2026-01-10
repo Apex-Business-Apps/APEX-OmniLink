@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -224,7 +224,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [session]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     stopBackgroundDeviceSync();
     if (session?.user) {
@@ -236,15 +236,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     }
     navigate('/auth');
-  };
+  }, [navigate, session?.user]);
 
   // Show setup message if Cloud is not configured
   if (!cloudConfigured) {
     return <CloudSetupMessage />;
   }
 
+  const value = useMemo(() => ({
+    user,
+    session,
+    signOut,
+    loading
+  }), [user, session, signOut, loading]);
+
   return (
-    <AuthContext.Provider value={{ user, session, signOut, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -150,7 +150,7 @@ class TestAgentEvents:
         )
 
         assert event.total_steps == 5
-        assert event.duration_seconds == 12.5
+        assert event.duration_seconds == pytest.approx(12.5)
 
     def test_workflow_failed_event(self):
         """Should create WorkflowFailed event with compensation details."""

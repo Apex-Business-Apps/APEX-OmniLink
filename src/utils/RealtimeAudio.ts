@@ -1,7 +1,24 @@
+
+const WORKLET_CODE = `
+class AudioProcessor extends AudioWorkletProcessor {
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (input && input.length > 0) {
+      const inputChannel = input[0];
+      if (inputChannel.length > 0) {
+        this.port.postMessage(inputChannel);
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('audio-processor', AudioProcessor);
+`;
+
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
-  private processor: ScriptProcessorNode | null = null;
+  private workletNode: AudioWorkletNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
 
   constructor(private onAudioData: (audioData: Float32Array) => void) {}
@@ -20,17 +37,20 @@ export class AudioRecorder {
     this.audioContext = new AudioContext({
       sampleRate: 24000,
     });
+
+    const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+    const workletUrl = URL.createObjectURL(blob);
+    await this.audioContext.audioWorklet.addModule(workletUrl);
     
     this.source = this.audioContext.createMediaStreamSource(this.stream);
-    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    this.workletNode = new AudioWorkletNode(this.audioContext, 'audio-processor');
     
-    this.processor.onaudioprocess = (e) => {
-      const inputData = e.inputBuffer.getChannelData(0);
-      this.onAudioData(new Float32Array(inputData));
+    this.workletNode.port.onmessage = (e) => {
+      this.onAudioData(e.data);
     };
     
-    this.source.connect(this.processor);
-    this.processor.connect(this.audioContext.destination);
+    this.source.connect(this.workletNode);
+    this.workletNode.connect(this.audioContext.destination);
   }
 
   stop() {
@@ -38,9 +58,9 @@ export class AudioRecorder {
       this.source.disconnect();
       this.source = null;
     }
-    if (this.processor) {
-      this.processor.disconnect();
-      this.processor = null;
+    if (this.workletNode) {
+      this.workletNode.disconnect();
+      this.workletNode = null;
     }
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
