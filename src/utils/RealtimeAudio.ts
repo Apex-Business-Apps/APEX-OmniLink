@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 
 export class AudioRecorder {
   private stream: MediaStream | null = null;
@@ -22,7 +23,7 @@ export class AudioRecorder {
       sampleRate: 24000,
     });
     
-    // Inline Worklet Processor to avoid file loading issues
+    // Inline Worklet Processor: Avoids 404s on external files
     const RECORDER_WORKLET_CODE = `
       class RecorderProcessor extends AudioWorkletProcessor {
         process(inputs, outputs, parameters) {
@@ -37,8 +38,9 @@ export class AudioRecorder {
     `;
 
     // Create Worklet from Blob - Scoped strictly to this method
-    const blob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
-    const blobUrl = URL.createObjectURL(blob);
+    // unique variable name ensures no collision if this code is ever pasted twice
+    const workletBlob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
+    const blobUrl = URL.createObjectURL(workletBlob);
 
     try {
       await this.audioContext.audioWorklet.addModule(blobUrl);
