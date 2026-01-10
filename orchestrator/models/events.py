@@ -12,7 +12,7 @@ Design Principles:
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator
@@ -82,8 +82,8 @@ class TraceContext(BaseModel):
 
     trace_id: str = Field(..., description="Trace ID (same as correlationId)")
     span_id: str = Field(..., description="Span ID (unique per hop)")
-    parent_span_id: Optional[str] = Field(None, description="Parent span ID (null for root)")
-    baggage: Optional[dict[str, str]] = Field(None, description="Context propagation baggage")
+    parent_span_id: str | None = Field(None, description="Parent span ID (null for root)")
+    baggage: dict[str, str] | None = Field(None, description="Context propagation baggage")
 
     model_config = {"frozen": True}
 
@@ -95,13 +95,13 @@ class ChaosMetadata(BaseModel):
     Used by sim/chaos-engine.ts for reproducible failure injection.
     """
 
-    is_duplicate: Optional[bool] = Field(None, description="Event duplicated by chaos engine")
-    injected_delay_ms: Optional[int] = Field(None, description="Injected delay in milliseconds")
-    out_of_order: Optional[bool] = Field(None, description="Delivery order scrambled")
-    simulated_failure: Optional[SimulatedFailureType] = Field(
+    is_duplicate: bool | None = Field(None, description="Event duplicated by chaos engine")
+    injected_delay_ms: int | None = Field(None, description="Injected delay in milliseconds")
+    out_of_order: bool | None = Field(None, description="Delivery order scrambled")
+    simulated_failure: SimulatedFailureType | None = Field(
         None, description="Simulated failure type"
     )
-    retry_attempt: Optional[int] = Field(None, description="Retry attempt number")
+    retry_attempt: int | None = Field(None, description="Retry attempt number")
 
     model_config = {"frozen": True}
 
@@ -139,11 +139,11 @@ class EventEnvelope(BaseModel):
         description="ISO 8601 timestamp",
     )
     source: AppName = Field(..., description="Source app that emitted the event")
-    target: Optional[Union[AppName, list[AppName]]] = Field(
+    target: AppName | list[AppName] | None = Field(
         None, description="Target app(s) - null = broadcast"
     )
     trace: TraceContext = Field(..., description="Trace context for observability")
-    chaos: Optional[ChaosMetadata] = Field(None, description="Chaos engineering metadata")
+    chaos: ChaosMetadata | None = Field(None, description="Chaos engineering metadata")
     schema_version: str = Field(default="1.0.0", description="Schema version")
 
     @field_validator("timestamp")
@@ -206,7 +206,7 @@ class GoalReceived(AgentEvent):
 
     goal: str = Field(..., description="User's goal in natural language")
     user_id: str = Field(..., description="User ID who submitted the goal")
-    context: Optional[dict[str, Any]] = Field(
+    context: dict[str, Any] | None = Field(
         None, description="Additional context (user prefs, history)"
     )
 
@@ -223,8 +223,8 @@ class PlanGenerated(AgentEvent):
     plan_id: str = Field(..., description="Unique plan identifier")
     steps: list[dict[str, Any]] = Field(..., description="Execution steps (DAG nodes)")
     cache_hit: bool = Field(..., description="True if plan came from semantic cache")
-    template_id: Optional[str] = Field(None, description="Plan template ID (if cache hit)")
-    estimated_duration_seconds: Optional[int] = Field(None, description="Estimated execution time")
+    template_id: str | None = Field(None, description="Plan template ID (if cache hit)")
+    estimated_duration_seconds: int | None = Field(None, description="Estimated execution time")
 
 
 class ToolCallRequested(AgentEvent):
@@ -238,7 +238,7 @@ class ToolCallRequested(AgentEvent):
     tool_name: str = Field(..., description="Tool to execute")
     tool_input: dict[str, Any] = Field(..., description="Tool input parameters (validated)")
     step_id: str = Field(..., description="Step ID from plan")
-    compensation_activity: Optional[str] = Field(
+    compensation_activity: str | None = Field(
         None, description="Compensation activity name (for Saga pattern)"
     )
 
@@ -253,8 +253,8 @@ class ToolResultReceived(AgentEvent):
     tool_name: str = Field(..., description="Tool that was executed")
     step_id: str = Field(..., description="Step ID from plan")
     success: bool = Field(..., description="True if tool execution succeeded")
-    result: Optional[dict[str, Any]] = Field(None, description="Tool output (if success)")
-    error: Optional[str] = Field(None, description="Error message (if failure)")
+    result: dict[str, Any] | None = Field(None, description="Tool output (if success)")
+    error: str | None = Field(None, description="Error message (if failure)")
     retry_count: int = Field(default=0, description="Number of retries attempted")
 
 
@@ -282,7 +282,7 @@ class WorkflowFailed(AgentEvent):
     failed_step_id: str = Field(..., description="Step that caused failure")
     error_message: str = Field(..., description="Error details")
     compensation_executed: bool = Field(..., description="True if Saga compensations were executed")
-    compensation_results: Optional[list[dict[str, Any]]] = Field(
+    compensation_results: list[dict[str, Any]] | None = Field(
         None, description="Results of compensation activities"
     )
 
@@ -312,7 +312,7 @@ class SchemaTranslator:
         raw_data: dict[str, Any],
         target_model: type[BaseModel],
         strict: bool = True,
-        context: Optional[dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> BaseModel:
         """
         Transform raw dict into validated Pydantic model.

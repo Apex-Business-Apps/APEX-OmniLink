@@ -6,7 +6,7 @@ This enables portability between different database backends (Supabase, PostgreS
 while maintaining consistent behavior and error handling.
 """
 
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Protocol
 
 
 class DatabaseError(Exception):
@@ -31,9 +31,9 @@ class DatabaseProvider(Protocol):
     async def select(
         self,
         table: str,
-        filters: Optional[Dict[str, Any]] = None,
-        select_fields: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+        select_fields: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Select records from a table with optional filtering.
 
@@ -51,7 +51,7 @@ class DatabaseProvider(Protocol):
         """
         ...
 
-    async def insert(self, table: str, record: Dict[str, Any]) -> Dict[str, Any]:
+    async def insert(self, table: str, record: dict[str, Any]) -> dict[str, Any]:
         """
         Insert a new record into a table.
 
@@ -67,7 +67,7 @@ class DatabaseProvider(Protocol):
         """
         ...
 
-    async def delete(self, table: str, filters: Dict[str, Any]) -> int:
+    async def delete(self, table: str, filters: dict[str, Any]) -> int:
         """
         Delete records from a table matching the filters.
 

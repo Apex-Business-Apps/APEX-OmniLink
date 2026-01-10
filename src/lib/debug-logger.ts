@@ -10,7 +10,7 @@ const RUN_ID = 'run2';
 interface LogData {
   location: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   hypothesisId?: string;
 }
 

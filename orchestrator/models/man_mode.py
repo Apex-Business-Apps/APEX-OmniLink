@@ -4,9 +4,9 @@ This module defines the core data structures for the human-in-the-loop
 safety system that gates high-risk agent actions.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -55,7 +55,7 @@ class ActionIntent(BaseModel):
     workflow_id: str = Field(..., description="Parent workflow ID")
     step_id: str = Field(default="", description="Unique step identifier")
     irreversible: bool = Field(default=False, description="Action cannot be reversed")
-    context: Optional[dict[str, Any]] = Field(default=None, description="Additional context")
+    context: dict[str, Any] | None = Field(default=None, description="Additional context")
 
     model_config = {"frozen": True}
 
@@ -90,12 +90,12 @@ class ManTaskDecision(BaseModel):
     """
 
     status: ManTaskStatus = Field(..., description="Decision outcome")
-    reason: Optional[str] = Field(default=None, description="Decision rationale")
+    reason: str | None = Field(default=None, description="Decision rationale")
     decided_by: str = Field(default="unknown", description="Decision maker identity")
     decided_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="Decision timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Decision timestamp"
     )
-    metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional context")
+    metadata: dict[str, Any] | None = Field(default=None, description="Additional context")
 
 
 class ManTask(BaseModel):
@@ -122,14 +122,14 @@ class ManTask(BaseModel):
     step_id: str = Field(default="", description="Step identifier")
     status: ManTaskStatus = Field(default=ManTaskStatus.PENDING, description="Task status")
     intent: ActionIntent = Field(..., description="Proposed action")
-    triage_result: Optional[RiskTriageResult] = Field(
+    triage_result: RiskTriageResult | None = Field(
         default=None, description="Risk triage result"
     )
-    decision: Optional[ManTaskDecision] = Field(
+    decision: ManTaskDecision | None = Field(
         default=None, description="Human decision (null until decided)"
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Creation timestamp"
     )
 
 

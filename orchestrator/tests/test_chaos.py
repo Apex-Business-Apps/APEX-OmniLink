@@ -13,7 +13,7 @@ Target: >95% success rate under chaos conditions.
 
 import asyncio
 import random
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -77,7 +77,7 @@ class ChaosInjector:
 
         return corrupted
 
-    def simulate_network_error(self) -> Optional[Exception]:
+    def simulate_network_error(self) -> Exception | None:
         """Simulate network failure."""
         if not self.should_fail():
             return None

@@ -63,10 +63,10 @@ export abstract class BaseConnector implements Connector {
     options: {
       method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
       headers?: Record<string, string>;
-      body?: any;
+      body?: unknown;
       token?: string;
     } = {}
-  ): Promise<any> {
+  ): Promise<unknown> {
     const url = `${this.config.baseUrl}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export abstract class BaseConnector implements Connector {
   protected async exchangeCodeForToken(
     code: string,
     codeVerifier: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Standard OAuth2 token exchange
     return this.makeRequest('/oauth/access_token', {
       method: 'POST',

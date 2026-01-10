@@ -153,7 +153,7 @@ suite('Database Integration Tests', () => {
       })
 
       expect(user).not.toBeNull()
-      const userId = (user as any).id
+      const userId = (user as unknown).id
 
       // Update user
       const { data: updated, error } = await db.updateById('users', userId, {
@@ -175,7 +175,7 @@ suite('Database Integration Tests', () => {
       })
 
       expect(user).not.toBeNull()
-      const userId = (user as any).id
+      const userId = (user as unknown).id
 
       // Delete user
       const { data: success, error } = await db.deleteById('users', userId)
@@ -221,8 +221,8 @@ suite('Database Integration Tests', () => {
       expect(page2).toHaveLength(2)
 
       // Pages should have different users
-      const page1Ids = page1?.map((u: any) => u.id) || []
-      const page2Ids = page2?.map((u: any) => u.id) || []
+      const page1Ids = page1?.map((u: unknown) => u.id) || []
+      const page2Ids = page2?.map((u: unknown) => u.id) || []
 
       expect(page1Ids).not.toEqual(page2Ids)
     })

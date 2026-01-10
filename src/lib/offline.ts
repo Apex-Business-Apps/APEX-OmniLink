@@ -35,7 +35,7 @@ export function setupOfflineListeners(
 interface QueuedRequest {
   id: string;
   timestamp: number;
-  request: () => Promise<any>;
+  request: () => Promise<unknown>;
   retries: number;
 }
 
@@ -65,7 +65,7 @@ function loadQueue() {
 
 loadQueue();
 
-export function queueOfflineRequest(request: () => Promise<any>): string {
+export function queueOfflineRequest(request: () => Promise<unknown>): string {
   if (requestQueue.length >= MAX_QUEUE_SIZE) {
     console.warn('Request queue is full, removing oldest request');
     requestQueue.shift();

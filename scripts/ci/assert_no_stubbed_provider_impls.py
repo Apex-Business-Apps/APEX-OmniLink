@@ -19,7 +19,7 @@ def check_for_stubs(directory):
 
             filepath = os.path.join(root, file)
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     tree = ast.parse(f.read(), filename=filepath)
 
                 for node in ast.walk(tree):

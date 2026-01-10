@@ -12,7 +12,7 @@ interface Automation {
   trigger_type: string;
   action_type: string;
   is_active: boolean;
-  config: any;
+  config: unknown;
   created_at: string;
 }
 
@@ -35,7 +35,7 @@ const Automations = () => {
 
       if (error) throw error;
       setAutomations(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message,
@@ -59,7 +59,7 @@ const Automations = () => {
         title: 'Success',
         description: 'Automation executed successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Execution Failed',
         description: error.message,
@@ -87,7 +87,7 @@ const Automations = () => {
         title: automation.is_active ? 'Deactivated' : 'Activated',
         description: `${automation.name} has been ${automation.is_active ? 'deactivated' : 'activated'}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message,
@@ -110,7 +110,7 @@ const Automations = () => {
         title: 'Deleted',
         description: 'Automation deleted successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message,

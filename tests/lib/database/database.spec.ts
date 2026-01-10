@@ -13,7 +13,7 @@ import type { IDatabase, QueryFilter } from '@/lib/database/interface'
 
 class MockDatabase implements IDatabase {
   // Store mock data
-  private mockData: Record<string, any[]> = {
+  private mockData: Record<string, unknown[]> = {
     users: [
       { id: '1', email: 'user1@example.com', name: 'User 1', active: true },
       { id: '2', email: 'user2@example.com', name: 'User 2', active: true },
@@ -26,7 +26,7 @@ class MockDatabase implements IDatabase {
     return { data: record as T || null, error: null }
   }
 
-  async find<T>(table: string, options?: any): Promise<{ data: T[] | null; error: Error | null; count?: number | null }> {
+  async find<T>(table: string, options?: unknown): Promise<{ data: T[] | null; error: Error | null; count?: number | null }> {
     let records = this.mockData[table] || []
 
     // Apply filters
@@ -67,12 +67,12 @@ class MockDatabase implements IDatabase {
     return { data: records as T[], error: null, count: records.length }
   }
 
-  async findOne<T>(table: string, options?: any): Promise<{ data: T | null; error: Error | null }> {
+  async findOne<T>(table: string, options?: unknown): Promise<{ data: T | null; error: Error | null }> {
     const result = await this.find<T>(table, { ...options, limit: 1 })
     return { data: result.data?.[0] || null, error: result.error }
   }
 
-  async count(table: string, options?: any): Promise<{ data: number | null; error: Error | null }> {
+  async count(table: string, options?: unknown): Promise<{ data: number | null; error: Error | null }> {
     const result = await this.find(table, options)
     return { data: result.data?.length || 0, error: null }
   }
@@ -89,13 +89,13 @@ class MockDatabase implements IDatabase {
     return { data: records, error: null }
   }
 
-  async update<T>(table: string, data: Partial<T>, options?: any): Promise<{ data: T[] | null; error: Error | null }> {
+  async update<T>(table: string, data: Partial<T>, options?: unknown): Promise<{ data: T[] | null; error: Error | null }> {
     const result = await this.find(table, options)
     if (!result.data) return { data: null, error: result.error }
 
-    const updatedRecords = result.data.map((record: any) => ({ ...record, ...data }))
+    const updatedRecords = result.data.map((record: unknown) => ({ ...record, ...data }))
     this.mockData[table] = [
-      ...this.mockData[table].filter((r) => !result.data!.find((ur: any) => ur.id === r.id)),
+      ...this.mockData[table].filter((r) => !result.data!.find((ur: unknown) => ur.id === r.id)),
       ...updatedRecords,
     ]
     return { data: updatedRecords as T[], error: null }
@@ -113,7 +113,7 @@ class MockDatabase implements IDatabase {
     return { data: updated as T, error: null }
   }
 
-  async delete(table: string, options?: any): Promise<{ data: boolean | null; error: Error | null }> {
+  async delete(table: string, options?: unknown): Promise<{ data: boolean | null; error: Error | null }> {
     if (!options?.filters) {
       return { data: null, error: new Error('Delete requires filters') }
     }
@@ -122,7 +122,7 @@ class MockDatabase implements IDatabase {
     if (!result.data) return { data: false, error: result.error }
 
     this.mockData[table] = this.mockData[table].filter(
-      (r) => !result.data!.find((dr: any) => dr.id === r.id)
+      (r) => !result.data!.find((dr: unknown) => dr.id === r.id)
     )
     return { data: true, error: null }
   }
@@ -237,7 +237,7 @@ describe('Database Abstraction Layer', () => {
 
       expect(error).toBeNull()
       expect(users).toHaveLength(2)
-      expect(users?.every((u: any) => u.active === true)).toBe(true)
+      expect(users?.every((u: unknown) => u.active === true)).toBe(true)
     })
 
     it('should filter records by inequality', async () => {
@@ -257,7 +257,7 @@ describe('Database Abstraction Layer', () => {
 
       expect(error).toBeNull()
       expect(users).toHaveLength(2)
-      expect(users?.map((u: any) => u.id)).toEqual(['1', '2'])
+      expect(users?.map((u: unknown) => u.id)).toEqual(['1', '2'])
     })
 
     it('should apply limit', async () => {

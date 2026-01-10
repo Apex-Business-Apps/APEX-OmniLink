@@ -3,7 +3,8 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+# E=pycodestyle, F=pyflakes, I=isort, S=bandit security, C90=complexity, UP=pyupgrade
+select = ["E", "F", "I", "S", "C90", "UP"]
 ignore = []
 
 [tool.black]

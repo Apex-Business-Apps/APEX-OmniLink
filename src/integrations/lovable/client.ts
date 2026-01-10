@@ -16,7 +16,7 @@ function getEnv(name: string): string | undefined {
     return process.env[name];
   }
   // For environments where process.env is shimmed (e.g., serverless bundlers)
-  return (import.meta as any)?.env?.[name];
+  return (import.meta as unknown)?.env?.[name];
 }
 
 function getConfig(): LovableClientConfig | null {

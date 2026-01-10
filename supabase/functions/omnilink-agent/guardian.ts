@@ -181,7 +181,7 @@ function shouldCheckIntent(): boolean {
 /**
  * Calculate JSON depth (prevents nested object attacks)
  */
-function getJsonDepth(obj: any, currentDepth = 0): number {
+function getJsonDepth(obj: unknown, currentDepth = 0): number {
   if (obj === null || typeof obj !== "object") {
     return currentDepth;
   }

@@ -33,7 +33,7 @@ function getEnv(name: string): string | undefined {
   if (typeof process !== 'undefined' && process.env?.[name]) {
     return process.env[name];
   }
-  return (import.meta as any)?.env?.[name];
+  return (import.meta as unknown)?.env?.[name];
 }
 
 function readBoolean(name: string, fallback: boolean): boolean {

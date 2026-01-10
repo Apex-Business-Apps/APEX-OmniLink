@@ -77,7 +77,7 @@ serve(async (req) => {
   }
 });
 
-async function testSlack(config: any) {
+async function testSlack(config: unknown) {
   if (!config.apiKey) return { connected: false, message: 'API key missing' };
 
   const response = await fetch('https://slack.com/api/auth.test', {
@@ -92,7 +92,7 @@ async function testSlack(config: any) {
   };
 }
 
-async function testZapier(config: any) {
+async function testZapier(config: unknown) {
   if (!config.webhookUrl) return { connected: false, message: 'Webhook URL missing' };
 
   const response = await fetch(config.webhookUrl, {
@@ -107,7 +107,7 @@ async function testZapier(config: any) {
   };
 }
 
-async function testGitHub(config: any) {
+async function testGitHub(config: unknown) {
   if (!config.apiKey) return { connected: false, message: 'API token missing' };
 
   const response = await fetch('https://api.github.com/user', {
@@ -122,7 +122,7 @@ async function testGitHub(config: any) {
   };
 }
 
-async function testNotion(config: any) {
+async function testNotion(config: unknown) {
   if (!config.apiKey) return { connected: false, message: 'API key missing' };
 
   const response = await fetch('https://api.notion.com/v1/users/me', {
@@ -140,7 +140,7 @@ async function testNotion(config: any) {
   };
 }
 
-async function testGoogleDrive(config: any) {
+async function testGoogleDrive(config: unknown) {
   if (!config.apiKey) return { connected: false, message: 'API key missing' };
 
   const response = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {

@@ -23,7 +23,7 @@ export interface EvidenceManifest {
  */
 export async function createEvidenceBundle(
   runId: string,
-  result: any
+  result: unknown
 ): Promise<string> {
   const evidenceDir = path.join(process.cwd(), 'evidence', runId);
 
@@ -125,7 +125,7 @@ export async function generateHTMLReport(runId: string): Promise<string> {
       </tr>
     </thead>
     <tbody>
-      ${Object.entries(scorecard.apps).map(([app, score]: [string, any]) => `
+      ${Object.entries(scorecard.apps).map(([app, score]: [string, unknown]) => `
         <tr>
           <td>${app}</td>
           <td>${score.score.toFixed(1)}</td>

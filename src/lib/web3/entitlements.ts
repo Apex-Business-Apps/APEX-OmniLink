@@ -32,7 +32,7 @@ export interface EntitlementCheck {
 export interface EntitlementResult {
   hasEntitlement: boolean;
   source: 'chain' | 'cache' | 'allowlist' | 'denied';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   cacheHit?: boolean;
   error?: string;
 }
@@ -82,7 +82,7 @@ const ERC721_ABI = [
  */
 function getChainConfig(chainId: number): ChainConfig | null {
   // Map chain IDs to environment variables
-  const chainConfigMap: Record<number, { envKey: string; name: string; chain: any }> = {
+  const chainConfigMap: Record<number, { envKey: string; name: string; chain: unknown }> = {
     1: { envKey: 'VITE_ETHEREUM_RPC_URL', name: 'Ethereum', chain: mainnet },
     137: { envKey: 'VITE_POLYGON_RPC_URL', name: 'Polygon', chain: polygon },
     10: { envKey: 'VITE_OPTIMISM_RPC_URL', name: 'Optimism', chain: optimism },
@@ -112,7 +112,7 @@ function getChainConfig(chainId: number): ChainConfig | null {
  * Create viem public client for chain
  */
 function createPublicClient(chainConfig: ChainConfig): PublicClient {
-  const chainMap: Record<number, any> = {
+  const chainMap: Record<number, unknown> = {
     1: mainnet,
     137: polygon,
     10: optimism,
@@ -179,7 +179,7 @@ async function checkCache(
   chainId: number,
   contractAddress: string,
   tokenId?: bigint
-): Promise<{ hit: boolean; hasEntitlement: boolean; data?: any }> {
+): Promise<{ hit: boolean; hasEntitlement: boolean; data?: unknown }> {
   try {
     const queryParams = {
       contract: contractAddress.toLowerCase(),
@@ -257,7 +257,7 @@ async function updateCache(
 async function checkAllowlist(
   walletAddress: string,
   entitlementKey: string
-): Promise<{ granted: boolean; metadata?: any }> {
+): Promise<{ granted: boolean; metadata?: unknown }> {
   try {
     const { data, error } = await supabase
       .from('entitlements')
@@ -467,7 +467,7 @@ export async function grantEntitlement(
   subjectId: string,
   entitlementKey: string,
   expiresAt?: Date,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase.from('entitlements').upsert(

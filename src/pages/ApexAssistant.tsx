@@ -75,7 +75,7 @@ const ApexAssistant = () => {
         title: 'APEX Response',
         description: 'Successfully retrieved knowledge',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error logged via toast
       
       const errorMsg = error.message || 'Failed to get response from APEX';

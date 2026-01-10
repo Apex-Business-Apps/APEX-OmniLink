@@ -3,17 +3,17 @@
 
 export type JsonSchema = {
   type: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   required?: string[];
   additionalProperties?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type SkillDefinition = {
   name: string;
   description: string;
   parameters: JsonSchema;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 };
 
 export type AgentState = {
@@ -35,14 +35,14 @@ export type AgentState = {
   current_skills: SkillDefinition[];
   tool_results?: Array<{
     tool_call_id: string;
-    result: any;
+    result: unknown;
     error?: string;
   }>;
 };
 
 export type ToolExecutionResult = {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
 };
 
@@ -51,7 +51,7 @@ export type SkillMatch = {
   name: string;
   description: string;
   tool_definition: JsonSchema;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   score: number;
 };
 

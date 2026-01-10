@@ -18,7 +18,7 @@ describe('audit log queue', () => {
 
   it('enqueues and flushes audit events', async () => {
     const { recordAuditEvent, getAuditQueueSnapshot, flushQueue } = await importAudit();
-    (fetch as any).mockResolvedValue({
+    (fetch as unknown).mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: async () => ({ status: 'ok' }),
@@ -42,7 +42,7 @@ describe('audit log queue', () => {
   it.skip('keeps events queued when Lovable returns 500', { timeout: 10000 }, async () => {
     const { recordAuditEvent, getAuditQueueSnapshot, flushQueue } = await importAudit();
     let callCount = 0;
-    (fetch as any).mockImplementation(async () => {
+    (fetch as unknown).mockImplementation(async () => {
       callCount++;
       if (callCount === 1) {
         return {

@@ -76,10 +76,10 @@ export interface CanonicalEvent {
   consentFlags: ConsentFlags;
 
   /** Provider-specific metadata */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 
   /** Standardized payload */
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
 }
 
 export interface EventEnvelope {

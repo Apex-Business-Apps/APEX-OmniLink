@@ -41,7 +41,7 @@ describe('Memory Stress Tests', () => {
     });
 
     it('handles large component trees efficiently', () => {
-      const createTree = (depth: number, breadth: number): any => {
+      const createTree = (depth: number, breadth: number): unknown => {
         if (depth === 0) return { data: 'leaf' };
         
         return {
@@ -135,9 +135,9 @@ describe('Memory Stress Tests', () => {
   describe('Cache Memory', () => {
     it('limits cache size to prevent memory issues', () => {
       const maxCacheSize = 100;
-      const cache: Map<string, any> = new Map();
+      const cache: Map<string, unknown> = new Map();
 
-      const addToCache = (key: string, value: any) => {
+      const addToCache = (key: string, value: unknown) => {
         if (cache.size >= maxCacheSize) {
           const firstKey = cache.keys().next().value;
           cache.delete(firstKey);

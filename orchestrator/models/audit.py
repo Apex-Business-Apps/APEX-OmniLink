@@ -13,7 +13,7 @@ All audit events must be logged using this schema to maintain:
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -81,27 +81,27 @@ class AuditMetadata(BaseModel):
     """Structured metadata for audit events."""
 
     # Request Context
-    user_agent: Optional[str] = None
-    ip_address: Optional[str] = None
-    geo_location: Optional[str] = None
-    session_id: Optional[str] = None
+    user_agent: str | None = None
+    ip_address: str | None = None
+    geo_location: str | None = None
+    session_id: str | None = None
 
     # Workflow Context
-    workflow_id: Optional[str] = None
-    workflow_run_id: Optional[str] = None
-    activity_id: Optional[str] = None
-    task_queue: Optional[str] = None
+    workflow_id: str | None = None
+    workflow_run_id: str | None = None
+    activity_id: str | None = None
+    task_queue: str | None = None
 
     # Performance Metrics
-    duration_ms: Optional[int] = None
-    retry_count: Optional[int] = 0
+    duration_ms: int | None = None
+    retry_count: int | None = 0
 
     # Compliance Fields
-    data_sensitivity: Optional[str] = None  # public, internal, confidential, restricted
-    compliance_flags: List[str] = Field(default_factory=list)  # soc2, gdpr, hipaa, etc.
+    data_sensitivity: str | None = None  # public, internal, confidential, restricted
+    compliance_flags: list[str] = Field(default_factory=list)  # soc2, gdpr, hipaa, etc.
 
     # Custom Fields
-    custom_fields: Dict[str, Any] = Field(default_factory=dict)
+    custom_fields: dict[str, Any] = Field(default_factory=dict)
 
 
 class AuditLogEntry(BaseModel):
@@ -130,8 +130,8 @@ class AuditLogEntry(BaseModel):
     # Actor Information
     actor_id: str = Field(..., description="ID of the user/service that performed the action")
     actor_type: str = Field("user", description="Type of actor: user, service, system")
-    actor_ip: Optional[str] = Field(None, description="IP address of the actor")
-    actor_user_agent: Optional[str] = Field(None, description="User agent string")
+    actor_ip: str | None = Field(None, description="IP address of the actor")
+    actor_user_agent: str | None = Field(None, description="User agent string")
 
     # Action Details
     action: AuditAction = Field(..., description="Standardized action type")
@@ -140,7 +140,7 @@ class AuditLogEntry(BaseModel):
     # Resource Information
     resource_type: AuditResourceType = Field(..., description="Type of resource being acted upon")
     resource_id: str = Field(..., description="Unique identifier of the resource")
-    resource_owner: Optional[str] = Field(None, description="Owner of the resource (if applicable)")
+    resource_owner: str | None = Field(None, description="Owner of the resource (if applicable)")
 
     # Context & Metadata
     metadata: AuditMetadata = Field(
@@ -152,22 +152,22 @@ class AuditLogEntry(BaseModel):
     retention_period_days: int = Field(
         2555, description="How long to retain this log (7 years for financial)"
     )
-    compliance_frameworks: List[str] = Field(
+    compliance_frameworks: list[str] = Field(
         default_factory=lambda: ["soc2", "gdpr"], description="Applicable compliance frameworks"
     )
 
     # Security & Integrity
-    integrity_hash: Optional[str] = Field(
+    integrity_hash: str | None = Field(
         None, description="Cryptographic hash for tamper detection"
     )
-    previous_hash: Optional[str] = Field(
+    previous_hash: str | None = Field(
         None, description="Hash of previous log entry for chain integrity"
     )
 
     # Processing Metadata
-    processed_at: Optional[datetime] = Field(None, description="When this log was processed")
-    storage_location: Optional[str] = Field(None, description="Where this log is stored")
-    backup_location: Optional[str] = Field(None, description="Backup location for DR")
+    processed_at: datetime | None = Field(None, description="When this log was processed")
+    storage_location: str | None = Field(None, description="Where this log is stored")
+    backup_location: str | None = Field(None, description="Backup location for DR")
 
     class Config:
         """Pydantic configuration."""
@@ -198,7 +198,7 @@ class AuditLogger:
             storage_backend: Where to store audit logs ('supabase', 'file', 'external')
         """
         self.storage_backend = storage_backend
-        self._integrity_chain: List[str] = []
+        self._integrity_chain: list[str] = []
 
     async def log_event(self, event: AuditLogEntry) -> str:
         """
@@ -271,13 +271,13 @@ class AuditLogger:
 
     async def query_events(
         self,
-        actor_id: Optional[str] = None,
-        action: Optional[AuditAction] = None,
-        resource_type: Optional[AuditResourceType] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        actor_id: str | None = None,
+        action: AuditAction | None = None,
+        resource_type: AuditResourceType | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         limit: int = 100,
-    ) -> List[AuditLogEntry]:
+    ) -> list[AuditLogEntry]:
         """
         Query audit events for compliance reporting.
 
@@ -296,7 +296,7 @@ class AuditLogger:
         # This is a placeholder
         return []
 
-    async def validate_integrity(self, events: List[AuditLogEntry]) -> bool:
+    async def validate_integrity(self, events: list[AuditLogEntry]) -> bool:
         """
         Validate the integrity of audit log chain.
 
@@ -329,7 +329,7 @@ async def log_audit_event(
     resource_type: AuditResourceType,
     resource_id: str,
     status: AuditStatus = AuditStatus.SUCCESS,
-    metadata: Optional[AuditMetadata] = None,
+    metadata: AuditMetadata | None = None,
     **kwargs,
 ) -> str:
     """

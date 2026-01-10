@@ -6,7 +6,7 @@
 import { appConfig, getEnvironment } from './config';
 import { createDebugLogger } from './debug-logger';
 
-let sentry: any | null = null;
+let sentry: unknown | null = null;
 let sentryInitialized = false;
 
 export interface ErrorContext {
@@ -31,17 +31,17 @@ async function ensureSentry() {
 
   try {
     // Dynamic import from CDN - TypeScript can't resolve these at compile time
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+     
     sentry = await import('https://esm.sh/@sentry/browser@7.120.1');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+     
     const { BrowserTracing } = await import('https://esm.sh/@sentry/tracing@7.120.1');
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+     
     sentry.init({
       dsn,
       environment: getEnvironment(),
       release: `${appConfig.name}@${appConfig.version}`,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+       
       integrations: [new BrowserTracing()],
       tracesSampleRate: 0.2,
     });

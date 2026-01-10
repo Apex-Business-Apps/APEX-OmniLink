@@ -140,7 +140,7 @@ export const Today = () => {
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
-            <Select value={category} onValueChange={(v) => setCategory(v as any)}>
+            <Select value={category} onValueChange={(v) => setCategory(v as unknown)}>
               <SelectTrigger className="w-full md:w-40">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>

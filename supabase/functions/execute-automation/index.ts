@@ -100,7 +100,7 @@ serve(async (req) => {
   }
 });
 
-async function executeEmailAction(config: any, supabase: any) {
+async function executeEmailAction(config: unknown, supabase: unknown) {
   const resendKey = Deno.env.get('RESEND_API_KEY');
   if (!resendKey) throw new Error('Email service not configured');
 
@@ -130,7 +130,7 @@ async function executeEmailAction(config: any, supabase: any) {
   return await response.json();
 }
 
-async function executeCreateRecord(config: any, supabase: any) {
+async function executeCreateRecord(config: unknown, supabase: unknown) {
   const { table, data } = config;
 
   // SECURITY: Validate table name against allowlist (SQL injection prevention)
@@ -152,7 +152,7 @@ async function executeCreateRecord(config: any, supabase: any) {
   return result;
 }
 
-async function executeWebhook(config: any) {
+async function executeWebhook(config: unknown) {
   if (!config.url || typeof config.url !== 'string') {
     throw new Error('Webhook URL is required');
   }
@@ -200,7 +200,7 @@ async function executeWebhook(config: any) {
   }
 }
 
-async function executeNotification(config: any) {
+async function executeNotification(config: unknown) {
   // For now, just return success - can be extended to push notifications
   return {
     message: config.message,
