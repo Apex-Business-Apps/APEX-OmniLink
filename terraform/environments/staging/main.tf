@@ -41,14 +41,6 @@ terraform {
     }
   }
 
-  # DEVELOPMENT ONLY (NOT FOR STAGING/PRODUCTION):
-  # Uncomment below and comment out 'cloud' block for local development
-  # WARNING: Local state files contain secrets in plaintext
-  #
-  # backend "local" {
-  #   path = "terraform.tfstate"
-  # }
-
   # ALTERNATIVE: S3 backend with encryption
   # Uncomment below if using AWS instead of Terraform Cloud
   #
