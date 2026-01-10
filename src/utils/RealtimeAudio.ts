@@ -1,3 +1,20 @@
+
+const WORKLET_CODE = `
+class AudioProcessor extends AudioWorkletProcessor {
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (input && input.length > 0) {
+      const inputChannel = input[0];
+      if (inputChannel.length > 0) {
+        this.port.postMessage(inputChannel);
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('audio-processor', AudioProcessor);
+`;
+
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
@@ -20,6 +37,10 @@ export class AudioRecorder {
     this.audioContext = new AudioContext({
       sampleRate: 24000,
     });
+
+    const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+    const workletUrl = URL.createObjectURL(blob);
+    await this.audioContext.audioWorklet.addModule(workletUrl);
     
     const WORKLET_CODE = `
       class RecorderProcessor extends AudioWorkletProcessor {

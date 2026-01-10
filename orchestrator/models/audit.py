@@ -15,7 +15,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AuditAction(str, Enum):
@@ -169,6 +169,16 @@ class AuditLogEntry(BaseModel):
     storage_location: Optional[str] = Field(None, description="Where this log is stored")
     backup_location: Optional[str] = Field(None, description="Backup location for DR")
 
+    @field_validator("processed_at")
+    @classmethod
+    def validate_processed_at(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure processed_at is timezone-aware."""
+        if v and v.tzinfo is None:
+            # If naive, assume UTC
+            from datetime import timezone
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     class Config:
         """Pydantic configuration."""
 
@@ -214,7 +224,8 @@ class AuditLogger:
             AuditFailureException: If logging fails (critical for compliance)
         """
         # Set processing timestamp
-        event.processed_at = datetime.utcnow()
+        from datetime import timezone
+        event.processed_at = datetime.now(timezone.utc)
 
         # Generate integrity hash
         event.integrity_hash = self._generate_integrity_hash(event)
@@ -372,10 +383,12 @@ async def log_audit_event(
             setattr(metadata, key, value)
 
     # Create audit event
+    from datetime import timezone
+
     event = AuditLogEntry(
         id=str(uuid.uuid4()),
         correlation_id=str(uuid.uuid4()),  # In practice, this would be passed from request context
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         event_sequence=1,  # Would be incremented per correlation_id
         actor_id=actor_id,
         action=action,

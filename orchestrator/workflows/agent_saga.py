@@ -542,30 +542,28 @@ class AgentWorkflow:
         - RED lane: Action is ISOLATED (not executed), sent to human for approval
         - YELLOW lane: Action executes with audit logging
         - GREEN lane: Action executes normally
-
-        The workflow does NOT pause for RED lane actions. Instead, the action
-        is isolated and a MAN task is created for human review. The workflow
-        continues with other steps while the isolated action awaits approval.
-
-        Args:
-            step: Step definition from plan
-            step_id: Unique step identifier
-
-        Returns:
-            Step execution result, or isolated result for RED lane actions:
-            {"status": "isolated", "man_task_id": "...", "awaiting_approval": True}
-
-        Raises:
-            ActivityError: If step fails after retries
-            ApplicationError: If action is blocked by policy
         """
         step_name = step.get("name", step_id)
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
 
-        # =====================================================================
-        # MAN MODE: Risk Triage
-        # =====================================================================
-        triage_result = await workflow.execute_activity(
+        # 1. Risk Triage
+        triage_result = await self._perform_risk_triage(step, step_id)
+        lane = triage_result.get("lane", "GREEN")
+
+        # 2. Handle Blocked Actions
+        if lane == "BLOCKED":
+            await self._handle_blocked_action(step, triage_result)
+
+        # 3. Handle Isolated Actions (RED Lane)
+        if lane == "RED":
+            return await self._handle_isolated_action(step, step_id, step_name, triage_result)
+
+        # 4. Execute Standard Action (GREEN/YELLOW Lane)
+        return await self._execute_standard_action(step, step_id, step_name)
+
+    async def _perform_risk_triage(self, step: dict[str, Any], step_id: str) -> dict[str, Any]:
+        """Execute risk triage activity."""
+        return await workflow.execute_activity(
             "risk_triage",
             args=[
                 {
@@ -580,76 +578,83 @@ class AgentWorkflow:
             retry_policy=RetryPolicy(maximum_attempts=2),
         )
 
-        lane = triage_result.get("lane", "GREEN")
+    async def _handle_blocked_action(
+        self,
+        step: dict[str, Any],
+        triage_result: dict[str, Any]
+    ) -> None:
+        """Handle blocked actions by raising an error."""
+        workflow.logger.error(f"  🚫 BLOCKED: {step['tool']} - {triage_result.get('reason')}")
+        raise ApplicationError(
+            f"Action blocked by policy: {triage_result.get('reason')}",
+            non_retryable=True,
+        )
 
-        # BLOCKED lane: never execute
-        if lane == "BLOCKED":
-            workflow.logger.error(f"  🚫 BLOCKED: {step['tool']} - {triage_result.get('reason')}")
-            raise ApplicationError(
-                f"Action blocked by policy: {triage_result.get('reason')}",
-                non_retryable=True,
-            )
+    async def _handle_isolated_action(
+        self,
+        step: dict[str, Any],
+        step_id: str,
+        step_name: str,
+        triage_result: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Handle high-risk actions by creating a MAN task."""
+        workflow.logger.warning(
+            f"  🛑 MAN Mode: Isolating {step['tool']} - sent for human approval"
+        )
 
-        # RED lane: isolate action and send for human approval (non-blocking)
-        if lane == "RED":
-            workflow.logger.warning(
-                f"  🛑 MAN Mode: Isolating {step['tool']} - sent for human approval"
-            )
-
-            # Create MAN task in database for human review
-            man_task_result = await workflow.execute_activity(
-                "create_man_task",
-                args=[
-                    {
+        man_task_result = await workflow.execute_activity(
+            "create_man_task",
+            args=[
+                {
+                    "workflow_id": workflow.info().workflow_id,
+                    "step_id": step_id,
+                    "intent": {
+                        "tool_name": step["tool"],
+                        "params": step.get("input", {}),
                         "workflow_id": workflow.info().workflow_id,
                         "step_id": step_id,
-                        "intent": {
-                            "tool_name": step["tool"],
-                            "params": step.get("input", {}),
-                            "workflow_id": workflow.info().workflow_id,
-                            "step_id": step_id,
-                            "irreversible": step.get("irreversible", False),
-                        },
-                        "triage_result": triage_result,
-                        "timeout_hours": triage_result.get("suggested_timeout_hours", 24),
-                    }
-                ],
-                start_to_close_timeout=timedelta(seconds=30),
-                retry_policy=RetryPolicy(maximum_attempts=3),
+                        "irreversible": step.get("irreversible", False),
+                    },
+                    "triage_result": triage_result,
+                    "timeout_hours": triage_result.get("suggested_timeout_hours", 24),
+                }
+            ],
+            start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=RetryPolicy(maximum_attempts=3),
+        )
+
+        isolated_result = {
+            "status": "isolated",
+            "reason": triage_result.get("reason", "Requires human approval"),
+            "man_task_id": man_task_result.get("task_id"),
+            "step_id": step_id,
+            "tool_name": step["tool"],
+            "awaiting_approval": True,
+        }
+
+        workflow.logger.info(
+            f"  📤 Step '{step_name}' isolated - MAN task {man_task_result.get('task_id')}"
+        )
+
+        await self._append_event(
+            ToolResultReceived(
+                correlation_id=workflow.info().workflow_id,
+                tool_name=step["tool"],
+                step_id=step_id,
+                success=True,
+                result=isolated_result,
             )
+        )
 
-            # Return isolated result - workflow continues without blocking
-            isolated_result = {
-                "status": "isolated",
-                "reason": triage_result.get("reason", "Requires human approval"),
-                "man_task_id": man_task_result.get("task_id"),
-                "step_id": step_id,
-                "tool_name": step["tool"],
-                "awaiting_approval": True,
-            }
+        return isolated_result
 
-            workflow.logger.info(
-                f"  📤 Step '{step_name}' isolated - MAN task {man_task_result.get('task_id')}"
-            )
-
-            # Record the isolated action as a tool call (not executed)
-            await self._append_event(
-                ToolResultReceived(
-                    correlation_id=workflow.info().workflow_id,
-                    tool_name=step["tool"],
-                    step_id=step_id,
-                    success=True,  # Step completed (isolated), not failed
-                    result=isolated_result,
-                )
-            )
-
-            return isolated_result
-
-        # =====================================================================
-        # Execute the tool (GREEN or YELLOW lanes only - RED is isolated above)
-        # =====================================================================
-
-        # Record tool call request
+    async def _execute_standard_action(
+        self,
+        step: dict[str, Any],
+        step_id: str,
+        step_name: str
+    ) -> dict[str, Any]:
+        """Execute a standard low/medium risk action."""
         await self._append_event(
             ToolCallRequested(
                 correlation_id=workflow.info().workflow_id,
@@ -669,7 +674,6 @@ class AgentWorkflow:
                 step_id=step_id,
             )
 
-            # Record success
             await self._append_event(
                 ToolResultReceived(
                     correlation_id=workflow.info().workflow_id,
@@ -684,7 +688,6 @@ class AgentWorkflow:
             return result
 
         except ActivityError as e:
-            # Record failure
             await self._append_event(
                 ToolResultReceived(
                     correlation_id=workflow.info().workflow_id,
