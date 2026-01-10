@@ -1,14 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES } from "../_shared/ratelimit.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed tables for record creation (SQL injection prevention)
+const ALLOWED_TABLES = ['automations', 'automation_logs', 'notifications', 'user_data'];
 
 serve(async (req) => {
+  // Handle CORS preflight with origin validation
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handlePreflight(req);
+  }
+
+  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
+  const corsHeaders = buildCorsHeaders(requestOrigin);
+
+  // Validate origin
+  if (!isOriginAllowed(requestOrigin)) {
+    return new Response(
+      JSON.stringify({ error: 'Origin not allowed' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -22,6 +34,15 @@ serve(async (req) => {
     // Validate automationId
     if (!automationId || typeof automationId !== 'string' || automationId.trim().length === 0) {
       return new Response(JSON.stringify({ error: 'Invalid automationId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate UUID format to prevent injection
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(automationId)) {
+      return new Response(JSON.stringify({ error: 'Invalid automationId format' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -72,7 +93,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Automation execution error:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: 'Automation execution failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -81,7 +102,12 @@ serve(async (req) => {
 
 async function executeEmailAction(config: any, supabase: any) {
   const resendKey = Deno.env.get('RESEND_API_KEY');
-  if (!resendKey) throw new Error('RESEND_API_KEY not configured');
+  if (!resendKey) throw new Error('Email service not configured');
+
+  // Validate email configuration
+  if (!config.to || !config.subject) {
+    throw new Error('Invalid email configuration');
+  }
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -98,8 +124,7 @@ async function executeEmailAction(config: any, supabase: any) {
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Email send failed: ${error}`);
+    throw new Error('Email send failed');
   }
 
   return await response.json();
@@ -107,6 +132,17 @@ async function executeEmailAction(config: any, supabase: any) {
 
 async function executeCreateRecord(config: any, supabase: any) {
   const { table, data } = config;
+
+  // SECURITY: Validate table name against allowlist (SQL injection prevention)
+  if (!table || typeof table !== 'string' || !ALLOWED_TABLES.includes(table)) {
+    throw new Error('Invalid or unauthorized table');
+  }
+
+  // Validate data is an object
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Invalid record data');
+  }
+
   const { data: result, error } = await supabase
     .from(table)
     .insert(data)
@@ -122,10 +158,17 @@ async function executeWebhook(config: any) {
   }
 
   // Validate URL
+  let parsedUrl: URL;
   try {
-    new URL(config.url);
+    parsedUrl = new URL(config.url);
   } catch {
     throw new Error('Invalid webhook URL');
+  }
+
+  // Block internal/private URLs
+  const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
+  if (blockedHosts.includes(parsedUrl.hostname) || parsedUrl.hostname.startsWith('192.168.') || parsedUrl.hostname.startsWith('10.')) {
+    throw new Error('Internal URLs are not allowed');
   }
 
   const controller = new AbortController();
@@ -143,13 +186,13 @@ async function executeWebhook(config: any) {
     });
 
     if (!response.ok) {
-      throw new Error(`Webhook failed: ${response.statusText}`);
+      throw new Error('Webhook request failed');
     }
 
     return await response.json();
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Webhook request timed out after 30 seconds');
+      throw new Error('Webhook request timed out');
     }
     throw error;
   } finally {

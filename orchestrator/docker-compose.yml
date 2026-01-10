@@ -1,32 +1,56 @@
 version: '3.8'
 
+# SECURITY: All credentials must be provided via environment variables
+# Never commit credentials to version control
+# Required environment variables:
+#   - TEMPORAL_DB_USER
+#   - TEMPORAL_DB_PASSWORD
+#   - SUPABASE_URL
+#   - SUPABASE_SERVICE_ROLE_KEY
+#   - SUPABASE_DB_URL
+#   - OPENAI_API_KEY
+#   - ANTHROPIC_API_KEY (optional)
+
 services:
   # Temporal server (workflow engine)
   temporal:
-    image: temporalio/auto-setup:latest
+    image: temporalio/auto-setup:1.24.2
     ports:
       - "7233:7233"  # gRPC
       - "8233:8233"  # Web UI
     environment:
       - DB=postgresql
       - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
+      - POSTGRES_USER=${TEMPORAL_DB_USER:?Error: TEMPORAL_DB_USER is required}
+      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:?Error: TEMPORAL_DB_PASSWORD is required}
       - POSTGRES_SEEDS=postgres
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # PostgreSQL (Temporal backend)
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: temporal
-      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: ${TEMPORAL_DB_USER:?Error: TEMPORAL_DB_USER is required}
+      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:?Error: TEMPORAL_DB_PASSWORD is required}
       POSTGRES_DB: temporal
     ports:
       - "5433:5432"
     volumes:
       - temporal_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal} -d temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Redis Stack (with vector search)
   redis:
@@ -55,24 +79,31 @@ services:
       # Redis
       - REDIS_URL=redis://redis:6379
 
-      # Supabase (override with your values)
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+      # Supabase (required)
+      - SUPABASE_URL=${SUPABASE_URL:?Error: SUPABASE_URL is required}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?Error: SUPABASE_SERVICE_ROLE_KEY is required}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL:?Error: SUPABASE_DB_URL is required}
 
-      # LLM
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # LLM (required)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?Error: OPENAI_API_KEY is required}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DEFAULT_LLM_MODEL=gpt-4-turbo-preview
 
       # App
-      - LOG_LEVEL=INFO
-      - ENVIRONMENT=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
 
     depends_on:
-      - temporal
-      - redis
+      temporal:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   temporal_data:

@@ -2,17 +2,38 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getOmniLinkIntegrationBrainPrompt } from "../_shared/omnilinkIntegrationBrain.ts";
 import { evaluatePromptSafety, validateLLMOutput } from "../_shared/promptDefense.ts";
+import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES } from "../_shared/ratelimit.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Maximum request body size (100KB)
+const MAX_REQUEST_SIZE = 100 * 1024;
 
 const systemPromptPromise = getOmniLinkIntegrationBrainPrompt();
 
 serve(async (req) => {
+  // Handle CORS preflight with origin validation
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handlePreflight(req);
+  }
+
+  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
+  const corsHeaders = buildCorsHeaders(requestOrigin);
+
+  // Validate origin for non-preflight requests
+  if (!isOriginAllowed(requestOrigin)) {
+    return new Response(
+      JSON.stringify({ error: 'Origin not allowed' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Check request size limit
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  if (contentLength > MAX_REQUEST_SIZE) {
+    return new Response(
+      JSON.stringify({ error: 'Request body too large', max_size: MAX_REQUEST_SIZE }),
+      { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {

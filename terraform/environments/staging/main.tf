@@ -1,5 +1,15 @@
 # STAGING ENVIRONMENT
 # Production-parity environment for testing
+#
+# SECURITY NOTE: State file contains secrets. This configuration uses
+# Terraform Cloud for encrypted state storage with access controls.
+#
+# Backend options (in order of preference):
+# 1. Terraform Cloud (current) - encrypted at rest, access controls, audit logs
+# 2. S3 with KMS encryption + DynamoDB locking
+# 3. Azure Blob Storage with encryption
+#
+# NEVER use local backend in production or staging environments.
 
 terraform {
   required_version = ">= 1.6.0"
@@ -19,17 +29,36 @@ terraform {
     }
   }
 
-  # Local backend for now (switch to Terraform Cloud when TF_API_TOKEN is available)
-  backend "local" {
-    path = "terraform.tfstate"
+  # PRODUCTION/STAGING: Use Terraform Cloud for encrypted state storage
+  # Prerequisites:
+  # 1. Create organization "omnihub" in Terraform Cloud
+  # 2. Create workspace "omnihub-staging"
+  # 3. Set TF_API_TOKEN environment variable
+  cloud {
+    organization = "omnihub"
+    workspaces {
+      name = "omnihub-staging"
+    }
   }
 
-  # Uncomment when ready to use Terraform Cloud:
-  # cloud {
-  #   organization = "omnihub"
-  #   workspaces {
-  #     name = "omnihub-staging"
-  #   }
+  # DEVELOPMENT ONLY (NOT FOR STAGING/PRODUCTION):
+  # Uncomment below and comment out 'cloud' block for local development
+  # WARNING: Local state files contain secrets in plaintext
+  #
+  # backend "local" {
+  #   path = "terraform.tfstate"
+  # }
+
+  # ALTERNATIVE: S3 backend with encryption
+  # Uncomment below if using AWS instead of Terraform Cloud
+  #
+  # backend "s3" {
+  #   bucket         = "omnihub-terraform-state"
+  #   key            = "staging/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   encrypt        = true
+  #   kms_key_id     = "alias/terraform-state-key"
+  #   dynamodb_table = "terraform-state-lock"
   # }
 }
 

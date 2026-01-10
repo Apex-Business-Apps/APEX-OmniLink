@@ -1,0 +1,138 @@
+# Security Regression Guard
+# Prevents security vulnerabilities from being reintroduced
+#
+# This workflow enforces security invariants that must never regress:
+# 1. No wildcard CORS in edge functions
+# 2. No hardcoded credentials
+# 3. No in-memory-only rate limiting in serverless
+# 4. No SQL injection vulnerabilities
+# 5. No known CVEs in dependencies
+
+name: Security Regression Guard
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-invariants:
+    name: Security Invariant Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for wildcard CORS
+        run: |
+          echo "Checking for wildcard CORS in edge functions..."
+          if grep -rn "Access-Control-Allow-Origin.*'\*'" supabase/functions/ --include="*.ts" 2>/dev/null | grep -v "_shared/cors.ts"; then
+            echo "::error::Wildcard CORS detected in edge functions. Use _shared/cors.ts instead."
+            exit 1
+          fi
+          echo "✅ No wildcard CORS found"
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "Checking for hardcoded credentials..."
+          # Check docker-compose for hardcoded passwords
+          if grep -E "(POSTGRES_PASSWORD|PASSWORD):\s*[a-zA-Z0-9_-]+$" orchestrator/docker-compose.yml 2>/dev/null | grep -v '\${'; then
+            echo "::error::Hardcoded credentials detected in docker-compose.yml"
+            exit 1
+          fi
+          echo "✅ No hardcoded credentials found"
+
+      - name: Check for in-memory rate limiting
+        run: |
+          echo "Checking for unsafe in-memory rate limiting..."
+          # Check for Map-based rate limiting without distributed fallback
+          UNSAFE_RATELIMIT=$(grep -rn "new Map.*rate" supabase/functions/ --include="*.ts" 2>/dev/null | grep -v "_shared/ratelimit.ts" | wc -l)
+          if [ "$UNSAFE_RATELIMIT" -gt 0 ]; then
+            echo "::warning::In-memory rate limiting detected. Consider using _shared/ratelimit.ts for distributed rate limiting."
+          fi
+          echo "✅ Rate limiting check complete"
+
+      - name: Check for SQL injection patterns
+        run: |
+          echo "Checking for SQL injection vulnerabilities..."
+          # Check Python files for unvalidated table names
+          if grep -rn "\.table(" orchestrator/ --include="*.py" 2>/dev/null | grep -v "validate_table_name"; then
+            echo "::warning::Direct table access detected. Ensure validate_table_name() is used."
+          fi
+          echo "✅ SQL injection check complete"
+
+      - name: Check for unencrypted Terraform state
+        run: |
+          echo "Checking Terraform backend configuration..."
+          if grep -rn 'backend "local"' terraform/ --include="*.tf" 2>/dev/null | grep -v "^#"; then
+            echo "::error::Local Terraform backend detected in non-development environment"
+            exit 1
+          fi
+          echo "✅ Terraform backend check complete"
+
+  dependency-audit:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          echo "Running npm security audit..."
+          npm audit --audit-level=high
+          if [ $? -ne 0 ]; then
+            echo "::error::High severity vulnerabilities found. Run 'npm audit fix' to resolve."
+            exit 1
+          fi
+          echo "✅ No high/critical vulnerabilities found"
+
+      - name: Check Python lockfile exists
+        run: |
+          if [ ! -f orchestrator/requirements.lock ]; then
+            echo "::error::Python lockfile missing. Run 'pip freeze > requirements.lock' in orchestrator/"
+            exit 1
+          fi
+          echo "✅ Python lockfile exists"
+
+  code-quality:
+    name: Code Quality Gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build verification
+        run: npm run build
