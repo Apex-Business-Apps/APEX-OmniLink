@@ -16,16 +16,14 @@ interface VoiceHealthResponse {
   logs: VoiceLog[];
 }
 
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-};
+import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
 Deno.serve((req: Request): Response => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handlePreflight(req);
   }
+
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'));
 
   const data: VoiceHealthResponse = {
     metrics: {

@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Optional
 import re
+from typing import Any, Dict, List, Optional
 
 from supabase import Client, create_client
 
@@ -8,14 +8,14 @@ from .base import DatabaseError, DatabaseProvider, NotFound
 
 # SECURITY: Allowlist of valid table names (SQL injection prevention)
 ALLOWED_TABLES = frozenset([
-    'users', 'profiles', 'wallets', 'wallet_identities', 'wallet_nonces',
-    'files', 'links', 'integrations', 'automations', 'automation_logs',
-    'todos', 'notifications', 'audit_logs', 'rate_limits', 'sessions',
-    'user_data', 'settings', 'events', 'workflows', 'workflow_runs',
+    "users", "profiles", "wallets", "wallet_identities", "wallet_nonces",
+    "files", "links", "integrations", "automations", "automation_logs",
+    "todos", "notifications", "audit_logs", "rate_limits", "sessions",
+    "user_data", "settings", "events", "workflows", "workflow_runs",
 ])
 
 # Valid column name pattern (alphanumeric and underscore only)
-VALID_COLUMN_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+VALID_COLUMN_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
 def validate_table_name(table: str) -> str:
@@ -66,8 +66,6 @@ class SupabaseProvider(DatabaseProvider):
         """
         if not self.client:
             raise DatabaseError("Supabase client not initialized")
-        # Optional: Make a lightweight call to verify connection if strict mode needed.
-        pass
 
     async def disconnect(self) -> None:
         """
@@ -81,9 +79,8 @@ class SupabaseProvider(DatabaseProvider):
             validated_table = validate_table_name(table)
 
             response = self.client.table(validated_table).insert(record).execute()
-            # Supabase-py v2 returns an object with .data
             if not response.data:
-                raise DatabaseError(f"Insert failed: No data returned from {validated_table}")
+                raise DatabaseError(f"Insert failed: No data from {validated_table}")
             return response.data[0]
         except DatabaseError:
             raise
@@ -104,13 +101,10 @@ class SupabaseProvider(DatabaseProvider):
             validated_table = validate_table_name(table)
 
             query = self.client.table(validated_table).upsert(record)
-
-            # If specific conflict columns are needed (depending on supabase-py version support)
-            # strictly speaking, standard upsert relies on PK constraints.
             response = query.execute()
 
             if not response.data:
-                raise DatabaseError(f"Upsert failed: No data returned from {validated_table}")
+                raise DatabaseError(f"Upsert failed: No data from {validated_table}")
             return response.data[0]
         except DatabaseError:
             raise
@@ -142,7 +136,6 @@ class SupabaseProvider(DatabaseProvider):
         """
         results = await self.get(table, query_params)
         if not results:
-            # Format params for cleaner error log
             params_str = ", ".join(f"{k}={v}" for k, v in query_params.items())
             raise NotFound(f"Record not found in {table} matching: {params_str}")
         return results[0]
@@ -170,9 +163,9 @@ class SupabaseProvider(DatabaseProvider):
             response = query.execute()
 
             if not response.data:
-                # Check if it was because no record matched
-                # Note: Supabase update returns empty list if no match found.
-                raise NotFound(f"No records found to update in {validated_table} with filters {filters}")
+                raise NotFound(
+                    f"No records to update in {validated_table} with {filters}"
+                )
 
             return response.data[0]
         except (DatabaseError, NotFound):
@@ -197,7 +190,6 @@ class SupabaseProvider(DatabaseProvider):
 
             response = query.execute()
 
-            # response.data usually contains the deleted rows
             return len(response.data) > 0
         except DatabaseError:
             raise

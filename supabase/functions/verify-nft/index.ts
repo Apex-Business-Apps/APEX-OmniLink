@@ -36,12 +36,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { createPublicClient, http } from 'https://esm.sh/viem@2.43.4';
 import { polygon, mainnet } from 'https://esm.sh/viem@2.43.4/chains';
 
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-};
+import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
 
 // Rate limiting configuration
 const VERIFY_NFT_RATE_LIMIT_MAX = 30;
@@ -170,8 +165,11 @@ async function verifyNFTOwnership(walletAddress: string): Promise<{ balance: num
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 204 });
+    return handlePreflight(req);
   }
+
+  const requestOrigin = req.headers.get('origin');
+  const corsHeaders = buildCorsHeaders(requestOrigin);
 
   // Only allow GET requests
   if (req.method !== 'GET') {

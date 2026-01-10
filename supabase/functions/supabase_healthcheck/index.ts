@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
-};
+import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
 // Enhanced rate limiting with cleanup
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -48,11 +44,12 @@ function generateRequestId(): string {
 Deno.serve(async (req) => {
   const requestId = generateRequestId();
   const startTime = Date.now();
-  
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'));
+
   console.log(`[${requestId}] Health check started`);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handlePreflight(req);
   }
 
   try {

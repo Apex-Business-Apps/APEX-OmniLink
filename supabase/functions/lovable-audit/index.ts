@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-id',
-};
+import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
 interface AuditEventPayload {
   id: string;
@@ -46,7 +42,7 @@ async function writeAuditEvent(payload: AuditEventPayload): Promise<void> {
   }
 }
 
-function unauthorized(): Response {
+function unauthorized(corsHeaders: HeadersInit): Response {
   return new Response(JSON.stringify({ error: 'unauthorized' }), {
     status: 401,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -54,9 +50,11 @@ function unauthorized(): Response {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'));
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handlePreflight(req);
   }
 
   if (req.method !== 'POST') {
@@ -80,10 +78,10 @@ Deno.serve(async (req) => {
         if (user?.id) {
           userId = user.id;
         } else {
-          return unauthorized();
+          return unauthorized(corsHeaders);
         }
       } else {
-        return unauthorized();
+        return unauthorized(corsHeaders);
       }
     }
 

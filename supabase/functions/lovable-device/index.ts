@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-id',
-};
+import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
 interface DeviceInfo {
   device_info: Record<string, unknown>;
@@ -73,21 +69,23 @@ async function upsertDevice(userId: string, device: DeviceInfo): Promise<void> {
   }
 }
 
-function json(data: any, status = 200): Response {
+function json(data: any, corsHeaders: HeadersInit, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
 
-function unauthorized(): Response {
-  return json({ error: 'unauthorized' }, 401);
+function unauthorized(corsHeaders: HeadersInit): Response {
+  return json({ error: 'unauthorized' }, corsHeaders, 401);
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'));
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handlePreflight(req);
   }
 
   try {
@@ -107,21 +105,21 @@ Deno.serve(async (req) => {
         if (user?.id) {
           userId = user.id;
         } else {
-          return unauthorized();
+          return unauthorized(corsHeaders);
         }
       } else {
-        return unauthorized();
+        return unauthorized(corsHeaders);
       }
     }
 
     if (!userId) {
-      return unauthorized();
+      return unauthorized(corsHeaders);
     }
 
     if (req.method === 'GET') {
       try {
         const registry = await getDeviceRegistry(userId);
-        return json(registry, 200);
+        return json(registry, corsHeaders, 200);
       } catch (error) {
         console.error('Device registry fetch failed:', error);
         return json(
@@ -129,6 +127,7 @@ Deno.serve(async (req) => {
             error: 'registry_fetch_failed',
             message: error instanceof Error ? error.message : 'Unknown error',
           },
+          corsHeaders,
           500
         );
       }
@@ -138,10 +137,10 @@ Deno.serve(async (req) => {
       try {
         const body = (await req.json()) as { device: DeviceInfo };
         if (!body?.device?.device_id) {
-          return json({ error: 'invalid_payload', message: 'Missing device_id' }, 400);
+          return json({ error: 'invalid_payload', message: 'Missing device_id' }, corsHeaders, 400);
         }
         await upsertDevice(userId, body.device);
-        return json({ status: 'ok' }, 200);
+        return json({ status: 'ok' }, corsHeaders, 200);
       } catch (error) {
         console.error('Device upsert failed:', error);
         return json(
@@ -149,6 +148,7 @@ Deno.serve(async (req) => {
             error: 'upsert_failed',
             message: error instanceof Error ? error.message : 'Unknown error',
           },
+          corsHeaders,
           500
         );
       }
@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
         error: 'server_error',
         message: error instanceof Error ? error.message : 'Unknown error',
       },
+      corsHeaders,
       500
     );
   }
