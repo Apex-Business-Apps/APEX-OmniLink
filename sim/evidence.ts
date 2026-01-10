@@ -31,9 +31,9 @@ export async function createEvidenceBundle(
     fs.mkdirSync(evidenceDir, { recursive: true });
   }
 
-  // Cast result to any for access to properties, but function signature uses unknown
+  // Cast result to Record<string, unknown> for access to properties
   // This satisfies strict typing while acknowledging dynamic nature of result object
-  const r = result as any;
+  const r = result as Record<string, unknown>;
 
   // Save scorecard
   const scorecardPath = path.join(evidenceDir, 'scorecard.json');
@@ -45,12 +45,13 @@ export async function createEvidenceBundle(
 
   // Save logs
   const logsPath = path.join(evidenceDir, 'logs.txt');
-  fs.writeFileSync(logsPath, r.logs.join('\n'));
+  const logs = Array.isArray(r.logs) ? r.logs : [];
+  fs.writeFileSync(logsPath, logs.join('\n'));
 
   // Create manifest
   const manifest: EvidenceManifest = {
     runId,
-    scenario: r.scenario,
+    scenario: typeof r.scenario === 'string' ? r.scenario : 'unknown',
     timestamp: new Date().toISOString(),
     files: {
       scorecard: 'scorecard.json',
@@ -130,7 +131,7 @@ export async function generateHTMLReport(runId: string): Promise<string> {
     </thead>
     <tbody>
   ${Object.entries(scorecard.apps).map(([app, score]: [string, unknown]) => {
-        const s = score as any;
+        const s = score as Record<string, any>;
         return `
         <tr>
           <td>${app}</td>

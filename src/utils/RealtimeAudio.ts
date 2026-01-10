@@ -23,7 +23,7 @@ export class AudioRecorder {
       sampleRate: 24000,
     });
     
-    // Inline Worklet Processor: Avoids 404s on external files
+    // Inline Worklet Processor
     const RECORDER_WORKLET_CODE = `
       class RecorderProcessor extends AudioWorkletProcessor {
         process(inputs, outputs, parameters) {
@@ -37,10 +37,9 @@ export class AudioRecorder {
       registerProcessor('recorder-processor', RecorderProcessor);
     `;
 
-    // Create Worklet from Blob - Scoped strictly to this method
-    // unique variable name ensures no collision if this code is ever pasted twice
-    const workletBlob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
-    const blobUrl = URL.createObjectURL(workletBlob);
+    // Uses unique variable name to prevent scope collisions
+    const uniqueWorkletBlob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
+    const blobUrl = URL.createObjectURL(uniqueWorkletBlob);
 
     try {
       await this.audioContext.audioWorklet.addModule(blobUrl);

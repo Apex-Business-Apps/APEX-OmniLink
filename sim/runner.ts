@@ -251,7 +251,7 @@ export class SimulationRunner {
 
         // Execute with idempotency
         // Only apply chaos on first attempt - retries should be clean
-        const { wasCached: cached, attemptCount } = await executeEventIdempotently(
+        const { wasCached: cached } = await executeEventIdempotently(
           event,
           async (evt) => {
             return await this.executeEvent(evt, beat, chaosDecision, attempt);
@@ -334,7 +334,7 @@ export class SimulationRunner {
     beat: Beat,
     chaosDecision: any,
     attempt: number = 0
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Get circuit breaker for target app
     const targetApp = Array.isArray(beat.target) ? beat.target[0] : (beat.target || 'omnihub');
     const circuitName = `circuit:${targetApp}`;
@@ -376,7 +376,7 @@ export class SimulationRunner {
   /**
    * Call app adapter (stub - would call real adapters)
    */
-  private async callAppAdapter(app: AppName, event: EventEnvelope): Promise<any> {
+  private async callAppAdapter(app: AppName, event: EventEnvelope): Promise<unknown> {
     // Simulate network delay
     const delay = Math.random() * 100 + 50; // 50-150ms
     await new Promise(resolve => setTimeout(resolve, delay));
@@ -420,28 +420,30 @@ export class SimulationRunner {
     this.log(`♻️  Dedupes: ${result.beats.filter(b => b.wasCached).length}`);
     this.log('');
 
+    const chaosStats = result.chaosStats as any;
     this.log('📈 Chaos Stats:');
-    this.log(`   Duplicates: ${result.chaosStats.duplicates} (${(result.chaosStats.duplicateRate * 100).toFixed(1)}%)`);
-    this.log(`   Delays: ${result.chaosStats.delayed} (${(result.chaosStats.delayRate * 100).toFixed(1)}%)`);
-    this.log(`   Timeouts: ${result.chaosStats.timeouts} (${(result.chaosStats.timeoutRate * 100).toFixed(1)}%)`);
-    this.log(`   Network Failures: ${result.chaosStats.networkFailures} (${(result.chaosStats.networkFailureRate * 100).toFixed(1)}%)`);
+    this.log(`   Duplicates: ${chaosStats.duplicates} (${(chaosStats.duplicateRate * 100).toFixed(1)}%)`);
+    this.log(`   Delays: ${chaosStats.delayed} (${(chaosStats.delayRate * 100).toFixed(1)}%)`);
+    this.log(`   Timeouts: ${chaosStats.timeouts} (${(chaosStats.timeoutRate * 100).toFixed(1)}%)`);
+    this.log(`   Network Failures: ${chaosStats.networkFailures} (${(chaosStats.networkFailureRate * 100).toFixed(1)}%)`);
     this.log('');
 
+    const scorecard = result.scorecard as any;
     this.log('🏆 Scorecard:');
-    this.log(`   Overall Score: ${result.scorecard.overallScore.toFixed(1)}/100`);
-    this.log(`   Required Score: ${result.scorecard.requiredScore}/100`);
+    this.log(`   Overall Score: ${scorecard.overallScore.toFixed(1)}/100`);
+    this.log(`   Required Score: ${scorecard.requiredScore}/100`);
     this.log(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
     this.log('');
 
-    if (result.scorecard.issues.length > 0) {
+    if (scorecard.issues.length > 0) {
       this.log('⚠️  Issues:');
-      result.scorecard.issues.forEach((issue: string) => this.log(`   - ${issue}`));
+      scorecard.issues.forEach((issue: string) => this.log(`   - ${issue}`));
       this.log('');
     }
 
-    if (result.scorecard.warnings.length > 0) {
+    if (scorecard.warnings.length > 0) {
       this.log('⚠️  Warnings:');
-      result.scorecard.warnings.forEach((warning: string) => this.log(`   - ${warning}`));
+      scorecard.warnings.forEach((warning: string) => this.log(`   - ${warning}`));
       this.log('');
     }
 
