@@ -3,7 +3,7 @@ import { SkillDefinition, SkillMatch } from './types.ts';
 
 export class SkillRegistry {
   private supabase: SupabaseClient;
-  private aiSession: any;
+  private aiSession: unknown;
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;

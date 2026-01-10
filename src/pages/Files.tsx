@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const Files = () => {
   const [uid, setUid] = useState<string>("");
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<unknown[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -59,7 +59,7 @@ const Files = () => {
 
       await refresh();
       e.currentTarget.value = "";
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error logged via toast
       toast({
         title: "Upload failed",
@@ -80,7 +80,7 @@ const Files = () => {
       if (data?.signedUrl) {
         window.open(data.signedUrl, "_blank");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error logged via toast
       toast({
         title: "Download failed",
@@ -105,7 +105,7 @@ const Files = () => {
       });
 
       await refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error logged via toast
       toast({
         title: "Delete failed",

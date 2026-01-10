@@ -5,7 +5,7 @@
 import { CanonicalEvent, EventType } from '../types/canonical';
 import { SessionToken } from '../types/connector';
 
-export function validateCanonicalEvent(event: any): event is CanonicalEvent {
+export function validateCanonicalEvent(event: unknown): event is CanonicalEvent {
   if (!event || typeof event !== 'object') return false;
 
   // Required fields
@@ -25,7 +25,7 @@ export function validateCanonicalEvent(event: any): event is CanonicalEvent {
   return true;
 }
 
-export function validateSessionToken(token: any): token is SessionToken {
+export function validateSessionToken(token: unknown): token is SessionToken {
   if (!token || typeof token !== 'object') return false;
 
   if (!token.token || typeof token.token !== 'string') return false;
@@ -41,7 +41,7 @@ export function validateSessionToken(token: any): token is SessionToken {
   return true;
 }
 
-export function sanitizeEventPayload(payload: Record<string, any>): Record<string, any> {
+export function sanitizeEventPayload(payload: Record<string, unknown>): Record<string, unknown> {
   // TODO: Implement PII redaction and content sanitization
   return payload;
 }

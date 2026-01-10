@@ -123,11 +123,11 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number; 
  * Log audit event
  */
 async function logAuditEvent(
-  supabase: any,
+  supabase: unknown,
   userId: string,
   action: string,
   walletAddress: string,
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 ) {
   try {
     await supabase.from('audit_logs').insert({

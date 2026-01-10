@@ -9,8 +9,8 @@ export interface TranslatedEvent {
   eventId: string;
   correlationId: string;
   appId: string;
-  payload: Record<string, any>;
-  metadata: Record<string, any>;
+  payload: Record<string, unknown>;
+  metadata: Record<string, unknown>;
 }
 
 /**

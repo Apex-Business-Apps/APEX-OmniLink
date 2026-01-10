@@ -6,7 +6,7 @@ import { render, screen } from '@testing-library/react';
 import OmniDashLayout from '@/pages/OmniDash/OmniDashLayout';
 
 vi.mock('@/omnidash/types', async () => {
-  const actual = await vi.importActual<any>('@/omnidash/types');
+  const actual = await vi.importActual<unknown>('@/omnidash/types');
   return {
     ...actual,
     OMNIDASH_FLAG: true,

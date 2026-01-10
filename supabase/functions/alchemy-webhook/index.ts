@@ -108,7 +108,7 @@ interface AlchemyWebhookPayload {
  * Process a single NFT transfer event
  */
 async function processNFTTransfer(
-  supabase: any,
+  supabase: unknown,
   activity: AlchemyNFTActivity,
   membershipNFTAddress: string
 ): Promise<{ success: boolean; reason?: string }> {

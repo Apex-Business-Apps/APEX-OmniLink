@@ -28,7 +28,7 @@ Architecture:
 import hashlib
 import json
 import re
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import redis.asyncio as aioredis
@@ -240,7 +240,7 @@ class SemanticCacheService:
         self.ttl_seconds = ttl_seconds
 
         # Redis client (async)
-        self.redis: Optional[aioredis.Redis] = None
+        self.redis: aioredis.Redis | None = None
 
         # Sentence embeddings model (runs locally, no API calls)
         print(f"Loading embedding model: {embedding_model}...")
@@ -292,9 +292,9 @@ class SemanticCacheService:
             await self.redis.ft(self.index_name).info()
             print(f"✓ Vector index already exists: {self.index_name}")
             return
-        except Exception:
-            # Index doesn't exist - create it
-            pass
+        except Exception:  # noqa: S110 - Expected: index may not exist yet
+            # Index doesn't exist - will be created below
+            print(f"ℹ Vector index not found, creating: {self.index_name}")
 
         # Define index schema
         schema = [
@@ -323,7 +323,7 @@ class SemanticCacheService:
         )
         print(f"✓ Created vector index: {self.index_name}")
 
-    async def get_plan(self, goal: str) -> Optional[CachedPlan]:
+    async def get_plan(self, goal: str) -> CachedPlan | None:
         """
         Try to retrieve cached plan for given goal.
 
@@ -407,7 +407,7 @@ class SemanticCacheService:
         self,
         goal: str,
         plan_steps: list[dict[str, Any]],
-        ttl_seconds: Optional[int] = None,
+        ttl_seconds: int | None = None,
     ) -> str:
         """
         Store a new plan in the cache.

@@ -28,7 +28,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 import instructor
@@ -88,7 +88,7 @@ async def setup_activities(
 
 
 @activity.defn(name="check_semantic_cache")
-async def check_semantic_cache(goal: str) -> Optional[dict[str, Any]]:
+async def check_semantic_cache(goal: str) -> dict[str, Any] | None:
     """
     Check semantic cache for existing plan template.
 
@@ -125,8 +125,8 @@ class PlanStep(BaseModel):
     tool: str
     input: dict[str, Any]
     depends_on: list[str] = []
-    compensation: Optional[str] = None
-    compensation_input: Optional[dict[str, Any]] = None
+    compensation: str | None = None
+    compensation_input: dict[str, Any] | None = None
 
 
 class GeneratedPlan(BaseModel):

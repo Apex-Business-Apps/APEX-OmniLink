@@ -3,7 +3,7 @@ import { logError } from '@/lib/monitoring';
 import { recordAuditEvent } from '@/security/auditLog';
 import { Incident, KpiDaily, PipelineItem, TodayItem, OmniDashSettings } from './types';
 
-async function handleError<T>(promise: Promise<{ data: T | null; error: any }>, context: string): Promise<T> {
+async function handleError<T>(promise: Promise<{ data: T | null; error: unknown }>, context: string): Promise<T> {
   const { data, error } = await promise;
   if (error) {
     logError(error, { action: `omnidash_${context}` });

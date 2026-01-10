@@ -41,7 +41,7 @@ import asyncio
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
@@ -118,8 +118,8 @@ class SagaContext:
         self,
         activity_name: str,
         activity_input: dict[str, Any],
-        compensation_activity: Optional[str] = None,
-        compensation_input: Optional[dict[str, Any]] = None,
+        compensation_activity: str | None = None,
+        compensation_input: dict[str, Any] | None = None,
         step_id: str = "",
     ) -> dict[str, Any]:
         """
@@ -275,7 +275,7 @@ class AgentWorkflow:
         self.events: list[AgentEvent] = []
 
         # Saga context for compensations
-        self.saga: Optional[SagaContext] = None
+        self.saga: SagaContext | None = None
 
         # Derived state (computed from events)
         self.goal: str = ""
@@ -324,7 +324,7 @@ class AgentWorkflow:
 
     @workflow.run
     async def run(
-        self, goal: str, user_id: str, context: Optional[dict[str, Any]] = None
+        self, goal: str, user_id: str, context: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """
         Main workflow entry point.
@@ -403,7 +403,7 @@ class AgentWorkflow:
                 details=workflow_result,
             ) from e
 
-    async def _check_semantic_cache(self, goal: str) -> Optional[dict[str, Any]]:
+    async def _check_semantic_cache(self, goal: str) -> dict[str, Any] | None:
         """
         Check semantic cache for existing plan template.
 

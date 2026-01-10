@@ -130,10 +130,10 @@ describe('Retry Logic', () => {
         correlationId: 'corr-1',
         idempotencyKey: 'idem-1',
         tenantId: 'test',
-        eventType: 'test:event' as any,
+        eventType: 'test:event' as unknown,
         payload: {},
         timestamp: new Date().toISOString(),
-        source: 'test' as any,
+        source: 'test' as unknown,
         trace: { traceId: 'trace-1', spanId: 'span-1' },
         schemaVersion: '1.0.0',
       };

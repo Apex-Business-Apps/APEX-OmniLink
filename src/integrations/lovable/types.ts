@@ -5,7 +5,7 @@ export interface AuditEventPayload {
   actionType: string;
   resourceType?: string;
   resourceId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AuditEventEnvelope {
@@ -13,7 +13,7 @@ export interface AuditEventEnvelope {
 }
 
 export interface DeviceInfo {
-  device_info: Record<string, any>;
+  device_info: Record<string, unknown>;
   last_seen: string;
   device_id: string;
   user_id: string;
@@ -32,7 +32,7 @@ export interface LovableClientConfig {
 export interface LovableRequestOptions {
   path: string;
   method?: 'GET' | 'POST';
-  body?: any;
+  body?: unknown;
   signal?: AbortSignal;
   maxAttempts?: number;
   baseDelayMs?: number;

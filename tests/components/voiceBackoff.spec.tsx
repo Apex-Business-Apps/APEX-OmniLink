@@ -30,10 +30,10 @@ class MockWebSocket {
 
   readyState = MockWebSocket.CONNECTING;
   url: string;
-  onopen: ((ev: any) => void) | null = null;
-  onerror: ((ev: any) => void) | null = null;
-  onclose: ((ev: any) => void) | null = null;
-  onmessage: ((ev: any) => void) | null = null;
+  onopen: ((ev: unknown) => void) | null = null;
+  onerror: ((ev: unknown) => void) | null = null;
+  onclose: ((ev: unknown) => void) | null = null;
+  onmessage: ((ev: unknown) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -43,11 +43,11 @@ class MockWebSocket {
   send() {}
   close() {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({} as any);
+    this.onclose?.({} as unknown);
   }
 
   triggerError() {
-    this.onerror?.({} as any);
+    this.onerror?.({} as unknown);
   }
 }
 

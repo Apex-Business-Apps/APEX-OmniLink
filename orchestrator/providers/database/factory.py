@@ -6,13 +6,12 @@ This enables runtime switching between different database backends.
 """
 
 import os
-from typing import Optional
 
 from .base import DatabaseProvider
 from .supabase_provider import SupabaseDatabaseProvider
 
 # Global singleton instance
-_db_provider: Optional[DatabaseProvider] = None
+_db_provider: DatabaseProvider | None = None
 
 
 def get_database_provider() -> DatabaseProvider:

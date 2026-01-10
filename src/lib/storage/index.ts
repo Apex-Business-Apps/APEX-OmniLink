@@ -109,7 +109,7 @@ export function getStorage(): IStorage {
 export const storage = new Proxy({} as IStorage, {
   get(target, prop) {
     const instance = getStorage()
-    return (instance as any)[prop]
+    return (instance as unknown)[prop]
   },
 })
 

@@ -100,7 +100,7 @@ export function getDatabase(): IDatabase {
 export const db = new Proxy({} as IDatabase, {
   get(target, prop) {
     const instance = getDatabase()
-    return (instance as any)[prop]
+    return (instance as unknown)[prop]
   },
 })
 

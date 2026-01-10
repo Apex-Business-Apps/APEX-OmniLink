@@ -15,8 +15,8 @@ interface PendingRequest<T> {
   timestamp: number;
 }
 
-const cache = new Map<string, CacheEntry<any>>();
-const pendingRequests = new Map<string, PendingRequest<any>>();
+const cache = new Map<string, CacheEntry<unknown>>();
+const pendingRequests = new Map<string, PendingRequest<unknown>>();
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 let cleanupInterval: NodeJS.Timeout | null = null;
 

@@ -16,7 +16,7 @@ interface Integration {
   name: string;
   type: string;
   description: string;
-  icon: any;
+  icon: unknown;
   requiresApiKey: boolean;
   requiresUsername?: boolean;
 }
@@ -26,7 +26,7 @@ const Integrations = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [connectedIntegrations, setConnectedIntegrations] = useState<any[]>([]);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<unknown[]>([]);
   const [formData, setFormData] = useState({
     apiKey: '',
     apiUsername: '',
@@ -98,7 +98,7 @@ const Integrations = () => {
       }
 
       fetchIntegrations();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Test failed');
     } finally {
       setIsLoading(false);
@@ -112,7 +112,7 @@ const Integrations = () => {
     setIsLoading(true);
 
     try {
-      const config: any = {};
+      const config: unknown = {};
       if (selectedIntegration.requiresApiKey) {
         config.apiKey = formData.apiKey;
       }

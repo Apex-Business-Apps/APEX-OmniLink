@@ -17,7 +17,7 @@ export interface DeviceRecord {
   deviceId: string;
   userId: string;
   lastSeen: string;
-  deviceInfo: Record<string, any>;
+  deviceInfo: Record<string, unknown>;
   status?: DeviceStatus;
 }
 
@@ -265,7 +265,7 @@ export async function syncOnLogin(userId: string): Promise<DeviceRecord[]> {
 export async function upsertDevice(
   userId: string,
   deviceId: string,
-  deviceInfo: Record<string, any>,
+  deviceInfo: Record<string, unknown>,
   status: DeviceStatus = 'suspect'
 ): Promise<DeviceRecord> {
   await loadRegistryFromLocal();

@@ -95,10 +95,10 @@ export interface SimulationResult {
   completedAt: Date;
   durationMs: number;
   beats: BeatResult[];
-  scorecard: any; // From metrics.ts
-  chaosStats: any;
-  idempotencyStats: any;
-  circuitStats: Record<string, any>;
+  scorecard: unknown; // From metrics.ts
+  chaosStats: unknown;
+  idempotencyStats: unknown;
+  circuitStats: Record<string, unknown>;
   logs: string[];
   passed: boolean;
 }
@@ -332,9 +332,9 @@ export class SimulationRunner {
   private async executeEvent(
     event: EventEnvelope,
     beat: Beat,
-    chaosDecision: any,
+    chaosDecision: unknown,
     attempt: number = 0
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Get circuit breaker for target app
     const targetApp = Array.isArray(beat.target) ? beat.target[0] : (beat.target || 'omnihub');
     const circuitName = `circuit:${targetApp}`;
@@ -376,7 +376,7 @@ export class SimulationRunner {
   /**
    * Call app adapter (stub - would call real adapters)
    */
-  private async callAppAdapter(app: AppName, event: EventEnvelope): Promise<any> {
+  private async callAppAdapter(app: AppName, event: EventEnvelope): Promise<unknown> {
     // Simulate network delay
     const delay = Math.random() * 100 + 50; // 50-150ms
     await new Promise(resolve => setTimeout(resolve, delay));

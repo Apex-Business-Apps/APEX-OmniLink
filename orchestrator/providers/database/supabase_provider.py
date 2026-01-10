@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from supabase import Client, create_client
 
@@ -90,7 +90,7 @@ class SupabaseProvider(DatabaseProvider):
         """
         pass
 
-    async def insert(self, table: str, record: Dict[str, Any]) -> Dict[str, Any]:
+    async def insert(self, table: str, record: dict[str, Any]) -> dict[str, Any]:
         try:
             # SECURITY: Validate table name against allowlist
             validated_table = validate_table_name(table)
@@ -107,9 +107,9 @@ class SupabaseProvider(DatabaseProvider):
     async def upsert(
         self,
         table: str,
-        record: Dict[str, Any],
-        conflict_columns: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        record: dict[str, Any],
+        conflict_columns: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Perform an upsert (insert or update on conflict).
         """
@@ -128,7 +128,7 @@ class SupabaseProvider(DatabaseProvider):
         except Exception as e:
             raise DatabaseError(f"Database upsert failed: {str(e)}") from e
 
-    async def get(self, table: str, query_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def get(self, table: str, query_params: dict[str, Any]) -> list[dict[str, Any]]:
         try:
             # SECURITY: Validate table name against allowlist
             validated_table = validate_table_name(table)
@@ -147,7 +147,7 @@ class SupabaseProvider(DatabaseProvider):
         except Exception as e:
             raise DatabaseError(f"Database get failed: {str(e)}") from e
 
-    async def select_one(self, table: str, query_params: Dict[str, Any]) -> Dict[str, Any]:
+    async def select_one(self, table: str, query_params: dict[str, Any]) -> dict[str, Any]:
         """
         Retrieve a single record. Raises NotFound if not found.
         """
@@ -158,8 +158,8 @@ class SupabaseProvider(DatabaseProvider):
         return results[0]
 
     async def update(
-        self, table: str, updates: Dict[str, Any], filters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, table: str, updates: dict[str, Any], filters: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Update records matching filters.
         """
@@ -188,7 +188,7 @@ class SupabaseProvider(DatabaseProvider):
         except Exception as e:
             raise DatabaseError(f"Database update failed: {str(e)}") from e
 
-    async def delete(self, table: str, filters: Dict[str, Any]) -> bool:
+    async def delete(self, table: str, filters: dict[str, Any]) -> bool:
         try:
             if not filters:
                 raise DatabaseError("Delete requires at least one filter")

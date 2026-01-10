@@ -75,7 +75,23 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "B", "Q"]
+# E=pycodestyle, F=pyflakes, I=isort, N=pep8-naming, W=warnings, B=bugbear,
+# Q=quotes, S=bandit security, C90=complexity, UP=pyupgrade
+select = ["E", "F", "I", "N", "W", "B", "Q", "S", "C90", "UP"]
+ignore = [
+  "S104",  # Binding 0.0.0.0 is intentional for container deployments
+  "S105",  # False positives on string enum values containing 'password'/'token'
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "S101",  # assert is expected in pytest tests
+  "S110",  # try-except-pass in chaos tests is intentional
+  "S311",  # pseudo-random in tests is fine (not crypto)
+]
+"workflows/**/*.py" = [
+  "C901",  # Complex workflow orchestration is expected
+]
 
 [tool.black]
 line-length = 100

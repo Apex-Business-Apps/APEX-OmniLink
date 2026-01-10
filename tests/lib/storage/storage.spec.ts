@@ -127,7 +127,7 @@ class MockStorage implements IStorage {
 
   async list(
     bucket: string,
-    options?: any
+    options?: unknown
   ): Promise<{ data: StorageFile[] | null; error: Error | null; count?: number | null }> {
     if (!this.mockFiles[bucket]) {
       return { data: [], error: null, count: 0 }
@@ -209,7 +209,7 @@ class MockStorage implements IStorage {
   async createSignedUrl(
     bucket: string,
     path: string,
-    options?: any
+    options?: unknown
   ): Promise<{ data: string | null; error: Error | null }> {
     const file = this.mockFiles[bucket]?.[path]
     if (!file) {
@@ -225,7 +225,7 @@ class MockStorage implements IStorage {
   async createSignedUrls(
     bucket: string,
     paths: string[],
-    options?: any
+    options?: unknown
   ): Promise<{ data: string[] | null; error: Error | null }> {
     const urls: string[] = []
     for (const path of paths) {
