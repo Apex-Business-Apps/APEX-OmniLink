@@ -168,7 +168,7 @@ Rules:
 1. Break goal into sequential steps (each step = one tool call)
 2. Define dependencies (steps that must complete before this one)
 3. Assign compensation activities for reversible actions
-4. Use available tools: search_database, send_email, book_flight, create_record, webhook, search_youtube
+4. Use available tools: search_database, send_email, book_flight, create_record, webhook
 
 Example:
 Goal: "Book flight to Paris tomorrow and send confirmation to john@example.com"
@@ -178,7 +178,6 @@ Plan:
 - Step 3: send_email (to=john@example.com, body=confirmation)
 
 Output valid JSON matching the PlanStep schema."""
-
 
     # Use instructor to get structured output
     client = instructor.from_litellm(acompletion)
@@ -505,31 +504,6 @@ async def call_webhook(params: dict[str, Any]) -> dict[str, Any]:
             "status_code": response.status_code,
             "body": response.text,
         }
-
-
-@activity.defn(name="search_youtube")
-async def search_youtube(params: dict[str, Any]) -> dict[str, Any]:
-    """
-    Search YouTube for videos.
-
-    Args:
-        params: {
-            "query": "funny cats"
-        }
-
-    Returns:
-        List of videos
-    """
-    query = params.get("query")
-    activity.logger.info(f"Searching YouTube for: {query}")
-    
-    # Mock response
-    return {
-        "success": True,
-        "videos": [
-            {"title": f"Video about {query}", "url": "https://youtube.com/watch?v=mock123", "description": "A very interesting video"}
-        ]
-    }
 
 
 # ============================================================================
