@@ -185,7 +185,6 @@ Plan:
 
 Output valid JSON matching the PlanStep schema."""
 
-
     # Use instructor to get structured output
     client = instructor.from_litellm(acompletion)
 
@@ -528,7 +527,7 @@ async def search_youtube(params: dict[str, Any]) -> dict[str, Any]:
     """
     query = params.get("query")
     activity.logger.info(f"Searching YouTube for: {query}")
-    
+
     # Mock response
     return {
         "success": True,
@@ -538,7 +537,7 @@ async def search_youtube(params: dict[str, Any]) -> dict[str, Any]:
                 "url": "https://youtube.com/watch?v=mock123",
                 "description": "A very interesting video",
             }
-        ]
+        ],
     }
 
 
