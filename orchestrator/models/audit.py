@@ -267,7 +267,7 @@ class AuditLogger:
         async with aiofiles.open(log_file, "a") as f:
             await f.write(json.dumps(event.model_dump(), default=str) + "\n")
 
-    async def query_events(
+    def query_events(
         self,
         _actor_id: str | None = None,
         _action: AuditAction | None = None,
@@ -293,7 +293,7 @@ class AuditLogger:
         # Interface placeholder - implementation pending
         return []
 
-    async def validate_integrity(self, events: list[AuditLogEntry]) -> bool:
+    def validate_integrity(self, events: list[AuditLogEntry]) -> bool:
         """
         Validate the integrity of audit log chain.
 

@@ -6,7 +6,7 @@
 import { appConfig, getEnvironment } from './config';
 import { createDebugLogger } from './debug-logger';
 
-let sentry: unknown | null = null;
+let sentry: unknown = null;
 let sentryInitialized = false;
 
 export interface ErrorContext {
