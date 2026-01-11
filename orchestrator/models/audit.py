@@ -157,9 +157,7 @@ class AuditLogEntry(BaseModel):
     )
 
     # Security & Integrity
-    integrity_hash: str | None = Field(
-        None, description="Cryptographic hash for tamper detection"
-    )
+    integrity_hash: str | None = Field(None, description="Cryptographic hash for tamper detection")
     previous_hash: str | None = Field(
         None, description="Hash of previous log entry for chain integrity"
     )

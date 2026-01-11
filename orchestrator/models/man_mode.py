@@ -122,9 +122,7 @@ class ManTask(BaseModel):
     step_id: str = Field(default="", description="Step identifier")
     status: ManTaskStatus = Field(default=ManTaskStatus.PENDING, description="Task status")
     intent: ActionIntent = Field(..., description="Proposed action")
-    triage_result: RiskTriageResult | None = Field(
-        default=None, description="Risk triage result"
-    )
+    triage_result: RiskTriageResult | None = Field(default=None, description="Risk triage result")
     decision: ManTaskDecision | None = Field(
         default=None, description="Human decision (null until decided)"
     )
