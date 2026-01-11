@@ -168,7 +168,13 @@ Rules:
 1. Break goal into sequential steps (each step = one tool call)
 2. Define dependencies (steps that must complete before this one)
 3. Assign compensation activities for reversible actions
-4. Use available tools: search_database, send_email, book_flight, create_record, webhook, search_youtube
+4. Use available tools:
+   - search_database
+   - send_email
+   - book_flight
+   - create_record
+   - webhook
+   - search_youtube
 
 Example:
 Goal: "Book flight to Paris tomorrow and send confirmation to john@example.com"
@@ -527,7 +533,11 @@ async def search_youtube(params: dict[str, Any]) -> dict[str, Any]:
     return {
         "success": True,
         "videos": [
-            {"title": f"Video about {query}", "url": "https://youtube.com/watch?v=mock123", "description": "A very interesting video"}
+            {
+                "title": f"Video about {query}",
+                "url": "https://youtube.com/watch?v=mock123",
+                "description": "A very interesting video",
+            }
         ]
     }
 
