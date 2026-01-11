@@ -4,26 +4,25 @@ from unittest.mock import MagicMock
 import os
 
 # Mocks for external libs
-TEMPORALIO_ACTIVITY_MODULE = "temporalio.activity"
 sys.modules["instructor"] = MagicMock()
 sys.modules["litellm"] = MagicMock()
 sys.modules["temporalio"] = MagicMock()
-sys.modules[TEMPORALIO_ACTIVITY_MODULE] = MagicMock()
+sys.modules["temporalio.activity"] = MagicMock()
 
 # Mock logger
 logger_mock = MagicMock()
 logger_mock.info = print  # Print logs to stdout
-sys.modules[TEMPORALIO_ACTIVITY_MODULE].logger = logger_mock
+sys.modules["temporalio.activity"].logger = logger_mock
 
 # Mock decorators
 def mock_defn(name=None):
     def decorator(func):
         return func
     return decorator
-sys.modules[TEMPORALIO_ACTIVITY_MODULE].defn = mock_defn
+sys.modules["temporalio.activity"].defn = mock_defn
 
 # Link temporalio.activity to ensure imports work correctly
-sys.modules["temporalio"].activity = sys.modules[TEMPORALIO_ACTIVITY_MODULE]
+sys.modules["temporalio"].activity = sys.modules["temporalio.activity"]
 
 # Read tools.py
 print("Reading activities/tools.py...")
