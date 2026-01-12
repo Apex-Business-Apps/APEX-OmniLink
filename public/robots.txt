@@ -6,4 +6,4 @@ Disallow: /files
 Disallow: /automations
 Disallow: /integrations
 
-Sitemap: https://apexbusiness-systems.com/sitemap.xml
+Sitemap: https://apexomnihub.icu/sitemap.xml
