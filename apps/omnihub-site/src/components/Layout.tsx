@@ -45,18 +45,20 @@ function MoonIcon() {
   );
 }
 
+function getInitialTheme(): boolean {
+  if (typeof window === 'undefined') return false;
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return saved === 'dark' || (!saved && prefersDark);
+}
+
 function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(getInitialTheme);
 
   useEffect(() => {
-    // Check for saved preference or system preference
-    const saved = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = saved === 'dark' || (!saved && prefersDark);
-
-    setIsDark(shouldBeDark);
-    document.documentElement.setAttribute('data-theme', shouldBeDark ? 'dark' : 'light');
-  }, []);
+    // Sync DOM attribute with state on mount
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';

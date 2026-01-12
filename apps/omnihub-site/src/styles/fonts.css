@@ -1,0 +1,132 @@
+/**
+ * Self-Hosted Font Configuration
+ *
+ * Uses system font stack with optimized fallbacks.
+ * No external font requests - zero Google Fonts dependency.
+ *
+ * Benefits:
+ * - Faster LCP (no font download blocking render)
+ * - Stricter CSP (no external font-src needed)
+ * - Privacy-preserving (no third-party requests)
+ * - Works offline
+ */
+
+/* System UI Font Stack - Modern, Professional */
+:root {
+  /* Primary: Inter-like system fonts */
+  --font-sans:
+    "Inter",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+
+  /* Monospace: JetBrains Mono-like system fonts */
+  --font-mono:
+    "JetBrains Mono",
+    "SF Mono",
+    "Fira Code",
+    "Cascadia Code",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    Monaco,
+    "Courier New",
+    monospace;
+}
+
+/*
+ * Font Feature Settings for Professional Typography
+ * These work with system fonts that support them
+ */
+body {
+  font-feature-settings:
+    "kern" 1,      /* Kerning */
+    "liga" 1,      /* Standard ligatures */
+    "calt" 1;      /* Contextual alternates */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Monospace elements */
+code,
+pre,
+kbd,
+samp,
+.font-mono {
+  font-family: var(--font-mono);
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "calt" 1,
+    "zero" 1;      /* Slashed zero */
+}
+
+/*
+ * Optional: Self-hosted font faces
+ *
+ * If you want to use actual Inter/JetBrains Mono fonts:
+ * 1. Download from Google Fonts or fontsource
+ * 2. Place .woff2 files in public/fonts/
+ * 3. Uncomment the @font-face rules below
+ *
+ * Note: This adds ~100KB to initial load but ensures
+ * consistent typography across all platforms.
+ */
+
+/*
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/inter-medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/inter-semibold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/inter-bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-medium.woff2") format("woff2");
+}
+*/

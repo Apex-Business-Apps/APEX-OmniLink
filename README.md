@@ -70,7 +70,7 @@ APEX OmniHub is a production-ready platform combining AI agent orchestration, bl
 
 │  ┌──────┴────────────────┴────────────────┴────────────────┴──────┐        │
 
-│  │                    React + TypeScript Frontend                  │        │
+│  │                    React + TypeScript Frontend                  │       │
 
 │  │              (Vite, Tailwind, shadcn/ui, React Query)          │        │
 
