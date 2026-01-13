@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, Download, Trash2, FileIcon } from 'lucide-react';
@@ -21,13 +21,13 @@ const Files = () => {
     });
   }, []);
 
-  const refresh = useCallback(async () => {
+  async function refresh() {
     if (!uid) return;
     try {
       const { data, error } = await listUserFiles(uid);
       if (error) throw error;
       setItems(data ?? []);
-    } catch (_error) {
+    } catch (error) {
       // Error logged via toast
       toast({
         title: "Error",
@@ -35,11 +35,11 @@ const Files = () => {
         variant: "destructive"
       });
     }
-  }, [uid, toast]);
+  }
 
   useEffect(() => {
     if (uid) refresh();
-  }, [uid, refresh]);
+  }, [uid]);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];

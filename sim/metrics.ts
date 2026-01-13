@@ -5,7 +5,7 @@
  * Tracks latency, throughput, errors, and quality of service.
  */
 
-import type { AppName } from './contracts';
+import type { AppName, EventType } from './contracts';
 
 // ============================================================================
 // TYPES
