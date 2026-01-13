@@ -10,8 +10,9 @@
  * Date: 2026-01-01
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useWalletVerification } from '@/hooks/useWalletVerification';
@@ -42,7 +43,11 @@ export function NFTGatedContent({ config, children, fallback }: NFTGatedContentP
   const [error, setError] = useState<string | null>(null);
   const [cacheHit, setCacheHit] = useState(false);
 
-  const checkAccess = useCallback(async () => {
+  useEffect(() => {
+    checkAccess();
+  }, [walletState.address, walletState.isVerified]);
+
+  const checkAccess = async () => {
     if (!walletState.isVerified || !walletState.address) {
       setHasAccess(false);
       setIsChecking(false);
@@ -73,11 +78,7 @@ export function NFTGatedContent({ config, children, fallback }: NFTGatedContentP
     } finally {
       setIsChecking(false);
     }
-  }, [walletState.address, walletState.isVerified, config.chainId, config.contractAddress, config.entitlementKey]);
-
-  useEffect(() => {
-    checkAccess();
-  }, [checkAccess]);
+  };
 
   // Not connected state
   if (!walletState.isVerified) {

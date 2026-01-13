@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Globe, Check, X, MessageCircle, Facebook, Mail, Youtube, Instagram, Music, Zap, Server, Bot, BarChart3, Smartphone } from 'lucide-react';
+import { Globe, Check, X, ExternalLink, MessageCircle, Facebook, Mail, Youtube, Instagram, Music, Zap, ShoppingBag, Server, Bot, BarChart3, Smartphone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { WalletConnect } from '@/components/WalletConnect';
 import { Separator } from '@/components/ui/separator';
 
@@ -51,7 +51,11 @@ const Integrations = () => {
     { id: '16', name: 'Grok', type: 'grok', description: 'AI assistant by xAI', icon: Bot, requiresApiKey: true },
   ];
 
-  const fetchIntegrations = useCallback(async () => {
+  useEffect(() => {
+    fetchIntegrations();
+  }, [user]);
+
+  const fetchIntegrations = async () => {
     if (!user) return;
 
     const { data, error } = await supabase
@@ -62,11 +66,7 @@ const Integrations = () => {
     if (!error && data) {
       setConnectedIntegrations(data);
     }
-  }, [user]);
-
-  useEffect(() => {
-    fetchIntegrations();
-  }, [fetchIntegrations]);
+  };
 
   const isConnected = (type: string) => {
     return connectedIntegrations.some(int => int.type === type);
