@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Play, Pause, Trash2, Loader2 } from 'lucide-react';
@@ -22,11 +22,7 @@ const Automations = () => {
   const [executing, setExecuting] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchAutomations();
-  }, []);
-
-  const fetchAutomations = async () => {
+  const fetchAutomations = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('automations')
@@ -38,18 +34,22 @@ const Automations = () => {
     } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: (error as Error).message,
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchAutomations();
+  }, [fetchAutomations]);
 
   const executeAutomation = async (automationId: string) => {
     setExecuting(automationId);
     try {
-      const { data, error } = await supabase.functions.invoke('execute-automation', {
+      const { data: _data, error } = await supabase.functions.invoke('execute-automation', {
         body: { automationId },
       });
 
