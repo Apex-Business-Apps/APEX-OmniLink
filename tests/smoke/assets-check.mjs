@@ -16,6 +16,7 @@ import path from 'path';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4173';
 const DIST_DIR = './dist';
+const VERCEL_BYPASS_SECRET = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
 // ANSI colors for output
 const colors = {
@@ -33,11 +34,18 @@ function log(status, message) {
 
 async function checkAsset(url, description, expectStatus = 200) {
   try {
+    const headers = {
+      'User-Agent': 'OmniLink-APEX-CI-AssetCheck/1.0',
+    };
+
+    // Add Vercel deployment protection bypass if secret is available
+    if (VERCEL_BYPASS_SECRET) {
+      headers['x-vercel-protection-bypass'] = VERCEL_BYPASS_SECRET;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'User-Agent': 'OmniLink-APEX-CI-AssetCheck/1.0',
-      },
+      headers,
     });
 
     if (response.status === expectStatus) {

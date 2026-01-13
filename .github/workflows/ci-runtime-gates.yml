@@ -138,6 +138,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 300
           check_interval: 10
+          vercel_password: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         continue-on-error: true
 
       - name: Run asset tests against preview
@@ -145,12 +146,14 @@ jobs:
         run: npm run test:assets
         env:
           BASE_URL: ${{ steps.vercel-preview.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
       - name: Run Playwright tests against preview
         if: steps.vercel-preview.outputs.url != ''
         run: npm run test:e2e
         env:
           BASE_URL: ${{ steps.vercel-preview.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
       - name: Upload preview test artifacts
         uses: actions/upload-artifact@v4

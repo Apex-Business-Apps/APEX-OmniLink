@@ -199,9 +199,32 @@ npm why react
 ```
 
 ### "Asset check failed with 401"
-- Check Vercel authentication settings
-- Ensure assets aren't behind auth middleware
-- Verify `vercel.json` headers configuration
+
+**Common cause:** Vercel Deployment Protection is enabled, blocking CI access to preview deployments.
+
+**Solution:**
+
+1. **Generate Vercel Automation Bypass Secret**:
+   - Go to Vercel Dashboard → Your Project → Settings → Deployment Protection
+   - Scroll to "Automation Bypass"
+   - Click "Create Secret" and copy the generated value
+
+2. **Add to GitHub Secrets**:
+   - Go to GitHub repository → Settings → Secrets and variables → Actions
+   - Click "New repository secret"
+   - Name: `VERCEL_AUTOMATION_BYPASS_SECRET`
+   - Value: Paste the secret from Vercel
+   - Click "Add secret"
+
+3. **How it works**:
+   - The CI workflow passes the secret as `x-vercel-protection-bypass` header
+   - Asset tests and Playwright tests include this header automatically
+   - Preview URLs become accessible to CI while staying protected from public access
+
+**Alternative solutions**:
+- Disable Deployment Protection for preview deployments (less secure)
+- Configure Vercel to allow specific IP ranges (complex)
+- Use Vercel API tokens with proper scopes (overkill for basic testing)
 
 ### "Playwright test timed out"
 - Increase timeout in `playwright.config.ts`
