@@ -44,6 +44,10 @@ dev-server.log
 # Screenshots and artifacts
 artifacts/
 
+# Playwright test artifacts
+playwright-report/
+test-results/
+
 # Python
 __pycache__/
 *.py[cod]
