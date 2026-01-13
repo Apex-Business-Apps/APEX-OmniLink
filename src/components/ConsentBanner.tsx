@@ -59,7 +59,7 @@ export const ConsentBanner = () => {
   if (!showBanner) return null;
 
   return (
-    <div
+    <div 
       className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4 sm:items-center"
       role="dialog"
       aria-labelledby="consent-title"
@@ -82,10 +82,10 @@ export const ConsentBanner = () => {
             </Button>
           </div>
           <CardDescription id="consent-description" className="pt-2">
-            Welcome to APEX OmniHub! Here's how we protect your data:
+            Welcome to APEX Business Systems! Here's how we protect your data:
           </CardDescription>
         </CardHeader>
-
+        
         <CardContent className="space-y-4">
           <div className="space-y-3 text-sm">
             <div className="flex gap-2">
