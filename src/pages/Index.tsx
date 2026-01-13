@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
-import { Download } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
+import { AppTile, AppData } from '@/components/AppTile';
 const placeholderIcon = '/placeholder.svg';
 
 const Index = () => {
@@ -14,6 +14,14 @@ const Index = () => {
   const handlePWAInstall = () => {
     installPWA();
     toast.success('Installing APEX App...');
+  };
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
+  const handleOpenUrl = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
@@ -31,7 +39,7 @@ const Index = () => {
     document.getElementById('apps-grid')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const apps = [
+  const apps: AppData[] = [
     { name: 'TradeLine 24/7', icon: placeholderIcon, alt: 'TradeLine 24/7 app icon', url: 'https://tradeline247ai.com' },
     { name: 'Built Canadian', icon: placeholderIcon, alt: 'Built Canadian app icon', path: '/apps/built-canadian' },
     { name: 'AutoRepAi', icon: placeholderIcon, alt: 'AutoRepAi app icon', url: 'https://autorepai.ca' },
@@ -46,17 +54,17 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       {/* Hero Section */}
       <section className="px-4 py-16 md:py-20 lg:py-24 pt-20 md:pt-24 lg:pt-28">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            
+
             {/* Left Column - Content */}
             <div className="max-w-[560px] space-y-6 lg:space-y-8">
               {/* H1 */}
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-[hsl(var(--navy))]">
-                APEX Business Systems, Apps for Life!
+                APEX OmniHub
               </h1>
 
               {/* Support Copy */}
@@ -66,8 +74,8 @@ const Index = () => {
 
               {/* CTA */}
               <div className="pt-2">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   onClick={scrollToApps}
                   className="w-full md:w-auto bg-[hsl(var(--navy))] hover:bg-[hsl(var(--navy-600))] text-white px-8"
                 >
@@ -80,49 +88,15 @@ const Index = () => {
             <div className="relative">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-[500px] mx-auto">
                 {apps.map((app, index) => (
-                  <div
+                  <AppTile
                     key={index}
-                    role="group"
-                    aria-label={`${app.name} tile`}
-                    className={`aspect-square rounded-xl p-4 flex flex-col items-center justify-center text-center transition-transform hover:scale-105 cursor-pointer ${
-                      app.icon 
-                     ? 'bg-white border-2 border-[hsl(var(--navy))] shadow-lg' 
-                        : 'bg-white border-2 border-dashed border-muted-foreground/30'
-                    }`}
-                    onClick={() => {
-                      if (app.name === 'APEX' && isInstallable) {
-                        handlePWAInstall();
-                      } else if ('url' in app) {
-                        window.open(app.url, '_blank', 'noopener,noreferrer');
-                      } else if ('path' in app) {
-                        navigate(app.path);
-                      }
-                    }}
-                  >
-                    {app.icon ? (
-                      <>
-                        <div className="relative">
-                          <img 
-                            src={app.icon} 
-                            alt={app.alt}
-                            className="w-icon-sm h-icon-sm md:w-icon-md md:h-icon-md mb-2 object-cover rounded-lg"
-                          />
-                          {app.name === 'APEX' && isInstallable && (
-                            <div className="absolute -top-1 -right-1 bg-[hsl(var(--navy))] text-white rounded-full p-1 shadow-lg animate-pulse">
-                              <Download className="w-3 h-3" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-[hsl(var(--navy))]">
-                          {app.name}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-xs md:text-sm text-muted-foreground">
-                        {app.name}
-                      </span>
-                    )}
-                  </div>
+                    app={app}
+                    isInstallable={isInstallable}
+                    onInstall={handlePWAInstall}
+                    onNavigate={handleNavigate}
+                    onOpenUrl={handleOpenUrl}
+                    variant="small"
+                  />
                 ))}
               </div>
             </div>
@@ -138,49 +112,15 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {apps.map((app, index) => (
-              <div
+              <AppTile
                 key={index}
-                role="group"
-                aria-label={`${app.name} tile`}
-                className={`aspect-square rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all hover:scale-105 cursor-pointer ${
-                  app.icon 
-                    ? 'bg-white border-2 border-[hsl(var(--navy))] shadow-lg hover:shadow-xl' 
-                    : 'bg-white border-2 border-dashed border-muted-foreground/30'
-                }`}
-                onClick={() => {
-                  if (app.name === 'APEX' && isInstallable) {
-                    handlePWAInstall();
-                  } else if ('url' in app) {
-                    window.open(app.url, '_blank', 'noopener,noreferrer');
-                  } else if ('path' in app) {
-                    navigate(app.path);
-                  }
-                }}
-              >
-                {app.icon ? (
-                  <>
-                    <div className="relative">
-                      <img 
-                        src={app.icon} 
-                        alt={app.alt}
-                        className="w-icon-lg h-icon-lg md:w-icon-xl md:h-icon-xl mb-3 object-cover rounded-lg"
-                      />
-                      {app.name === 'APEX' && isInstallable && (
-                        <div className="absolute -top-2 -right-2 bg-[hsl(var(--navy))] text-white rounded-full p-2 shadow-lg animate-pulse">
-                          <Download className="w-4 h-4 md:w-5 md:h-5" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-sm md:text-base font-semibold text-[hsl(var(--navy))]">
-                      {app.name}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-sm md:text-base text-muted-foreground font-medium">
-                    {app.name}
-                  </span>
-                )}
-              </div>
+                app={app}
+                isInstallable={isInstallable}
+                onInstall={handlePWAInstall}
+                onNavigate={handleNavigate}
+                onOpenUrl={handleOpenUrl}
+                variant="large"
+              />
             ))}
           </div>
         </div>
