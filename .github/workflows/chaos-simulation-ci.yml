@@ -38,18 +38,16 @@ env:
   SANDBOX_TENANT: 'ci-test'
 
 # Explicit least-privilege permissions for workflow
-# Prevents 403 errors when commenting on PRs
-permissions:
-  contents: read          # Required: Clone repository
-  pull-requests: write    # Required: Comment on PRs
-  issues: write           # Required: Comment on PRs (via issues API)
-  # All other permissions: none (implicit)
+# Job-level permissions are preferred over workflow-level (SonarQube S6770)
+# See: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/security-hardening-for-github-actions
 
 jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -82,6 +80,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: unit-tests
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -115,6 +115,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: unit-tests
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -148,6 +150,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [unit-tests, quick-smoke-test]
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
 
     strategy:
       fail-fast: false
@@ -284,6 +290,8 @@ jobs:
     timeout-minutes: 20
     needs: [unit-tests, dry-run-simulation]
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -336,6 +344,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: unit-tests
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -394,6 +404,8 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: [unit-tests, quick-smoke-test, dry-run-simulation, full-chaos-simulation, determinism-check]
+    permissions:
+      contents: read
 
     steps:
       - name: Generate summary
