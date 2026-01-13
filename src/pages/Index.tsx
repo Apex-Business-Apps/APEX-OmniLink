@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
-import { Download } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
+import { AppTile, AppData } from '@/components/AppTile';
 const placeholderIcon = '/placeholder.svg';
 
 const Index = () => {
@@ -14,6 +14,14 @@ const Index = () => {
   const handlePWAInstall = () => {
     installPWA();
     toast.success('Installing APEX App...');
+  };
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
+  const handleOpenUrl = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
@@ -31,7 +39,7 @@ const Index = () => {
     document.getElementById('apps-grid')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const apps = [
+  const apps: AppData[] = [
     { name: 'TradeLine 24/7', icon: placeholderIcon, alt: 'TradeLine 24/7 app icon', url: 'https://tradeline247ai.com' },
     { name: 'Built Canadian', icon: placeholderIcon, alt: 'Built Canadian app icon', path: '/apps/built-canadian' },
     { name: 'AutoRepAi', icon: placeholderIcon, alt: 'AutoRepAi app icon', url: 'https://autorepai.ca' },
@@ -80,7 +88,7 @@ const Index = () => {
             <div className="relative">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-[500px] mx-auto">
                 {apps.map((app, index) => (
-                  <div
+                  <AppTile
                     key={index}
                     role="group"
                     aria-label={`${app.name} tile`}
@@ -137,7 +145,7 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {apps.map((app, index) => (
-              <div
+              <AppTile
                 key={index}
                 role="group"
                 aria-label={`${app.name} tile`}
