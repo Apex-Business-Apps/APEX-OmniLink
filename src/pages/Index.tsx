@@ -90,46 +90,13 @@ const Index = () => {
                 {apps.map((app, index) => (
                   <AppTile
                     key={index}
-                    role="group"
-                    aria-label={`${app.name} tile`}
-                    className={`aspect-square rounded-xl p-4 flex flex-col items-center justify-center text-center transition-transform hover:scale-105 cursor-pointer ${app.icon
-                        ? 'bg-white border-2 border-[hsl(var(--navy))] shadow-lg'
-                        : 'bg-white border-2 border-dashed border-muted-foreground/30'
-                      }`}
-                    onClick={() => {
-                      if (app.name === 'APEX' && isInstallable) {
-                        handlePWAInstall();
-                      } else if ('url' in app) {
-                        window.open(app.url, '_blank', 'noopener,noreferrer');
-                      } else if ('path' in app) {
-                        navigate(app.path);
-                      }
-                    }}
-                  >
-                    {app.icon ? (
-                      <>
-                        <div className="relative">
-                          <img
-                            src={app.icon}
-                            alt={app.alt}
-                            className="w-icon-sm h-icon-sm md:w-icon-md md:h-icon-md mb-2 object-cover rounded-lg"
-                          />
-                          {app.name === 'APEX' && isInstallable && (
-                            <div className="absolute -top-1 -right-1 bg-[hsl(var(--navy))] text-white rounded-full p-1 shadow-lg animate-pulse">
-                              <Download className="w-3 h-3" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-[hsl(var(--navy))]">
-                          {app.name}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-xs md:text-sm text-muted-foreground">
-                        {app.name}
-                      </span>
-                    )}
-                  </div>
+                    app={app}
+                    isInstallable={isInstallable}
+                    onInstall={handlePWAInstall}
+                    onNavigate={handleNavigate}
+                    onOpenUrl={handleOpenUrl}
+                    variant="small"
+                  />
                 ))}
               </div>
             </div>
@@ -147,46 +114,13 @@ const Index = () => {
             {apps.map((app, index) => (
               <AppTile
                 key={index}
-                role="group"
-                aria-label={`${app.name} tile`}
-                className={`aspect-square rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all hover:scale-105 cursor-pointer ${app.icon
-                    ? 'bg-white border-2 border-[hsl(var(--navy))] shadow-lg hover:shadow-xl'
-                    : 'bg-white border-2 border-dashed border-muted-foreground/30'
-                  }`}
-                onClick={() => {
-                  if (app.name === 'APEX' && isInstallable) {
-                    handlePWAInstall();
-                  } else if ('url' in app) {
-                    window.open(app.url, '_blank', 'noopener,noreferrer');
-                  } else if ('path' in app) {
-                    navigate(app.path);
-                  }
-                }}
-              >
-                {app.icon ? (
-                  <>
-                    <div className="relative">
-                      <img
-                        src={app.icon}
-                        alt={app.alt}
-                        className="w-icon-lg h-icon-lg md:w-icon-xl md:h-icon-xl mb-3 object-cover rounded-lg"
-                      />
-                      {app.name === 'APEX' && isInstallable && (
-                        <div className="absolute -top-2 -right-2 bg-[hsl(var(--navy))] text-white rounded-full p-2 shadow-lg animate-pulse">
-                          <Download className="w-4 h-4 md:w-5 md:h-5" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-sm md:text-base font-semibold text-[hsl(var(--navy))]">
-                      {app.name}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-sm md:text-base text-muted-foreground font-medium">
-                    {app.name}
-                  </span>
-                )}
-              </div>
+                app={app}
+                isInstallable={isInstallable}
+                onInstall={handlePWAInstall}
+                onNavigate={handleNavigate}
+                onOpenUrl={handleOpenUrl}
+                variant="large"
+              />
             ))}
           </div>
         </div>
