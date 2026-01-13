@@ -145,14 +145,12 @@ jobs:
         run: npm run test:assets
         env:
           BASE_URL: ${{ steps.vercel-preview.outputs.url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
       - name: Run Playwright tests against preview
         if: steps.vercel-preview.outputs.url != ''
         run: npm run test:e2e
         env:
           BASE_URL: ${{ steps.vercel-preview.outputs.url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
       - name: Upload preview test artifacts
         uses: actions/upload-artifact@v4
