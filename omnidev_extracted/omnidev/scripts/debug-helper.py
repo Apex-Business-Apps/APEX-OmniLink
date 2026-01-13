@@ -10,6 +10,7 @@ Usage: python debug-helper.py <error-file> [--analyze]
 Analyzes error messages and stack traces to suggest fixes.
 Exit: 0=success, 1=input error, 2=system error
 """
+
 import sys
 import re
 import argparse
@@ -59,7 +60,6 @@ ERROR_PATTERNS: Dict[str, Dict] = {
         "fix": "Increase timeout, check network, optimize query",
         "check": "Add retry logic with exponential backoff",
     },
-    
     # JavaScript/Node errors
     r"TypeError: Cannot read propert(?:y|ies) of (undefined|null)": {
         "type": "Null reference",
@@ -76,7 +76,6 @@ ERROR_PATTERNS: Dict[str, Dict] = {
         "fix": "Check for missing brackets, commas, or quotes",
         "check": "Run: eslint --fix file.js",
     },
-    
     # Database errors
     r"(duplicate key|unique constraint|UNIQUE constraint failed)": {
         "type": "Duplicate key violation",
@@ -93,7 +92,6 @@ ERROR_PATTERNS: Dict[str, Dict] = {
         "fix": "Transactions conflicting. Use shorter transactions, retry",
         "check": "SHOW PROCESSLIST; or pg_stat_activity",
     },
-    
     # HTTP errors
     r"HTTP (\d{3})": {
         "type": "HTTP error",
@@ -120,14 +118,14 @@ def analyze_error(text: str) -> List[Tuple[str, Dict]]:
             if match.groups():
                 fix = fix.format(*match.groups())
                 check = check.format(*match.groups())
-            
-            matches.append((info["type"], {
-                "pattern": pattern,
-                "fix": fix,
-                "check": check,
-                "match": match.group(0)
-            }))
-    
+
+            matches.append(
+                (
+                    info["type"],
+                    {"pattern": pattern, "fix": fix, "check": check, "match": match.group(0)},
+                )
+            )
+
     return matches
 
 
@@ -138,12 +136,12 @@ def extract_stacktrace(text: str) -> List[str]:
     py_pattern = r'File "([^"]+)", line (\d+)'
     for match in re.finditer(py_pattern, text):
         locations.append(f"{match.group(1)}:{match.group(2)}")
-    
+
     # JavaScript style
-    js_pattern = r'at .+ \(([^)]+):(\d+):\d+\)'
+    js_pattern = r"at .+? \(([^)]+):(\d+):\d+\)"
     for match in re.finditer(js_pattern, text):
         locations.append(f"{match.group(1)}:{match.group(2)}")
-    
+
     return locations
 
 
@@ -154,7 +152,7 @@ def main():
     parser.add_argument("input", nargs="?", help="Error file or text")
     parser.add_argument("--analyze", action="store_true", help="Detailed analysis")
     args = parser.parse_args()
-    
+
     # Read error text
     if args.input:
         path = Path(args.input)
@@ -164,17 +162,17 @@ def main():
             text = args.input
     else:
         text = sys.stdin.read()
-    
+
     if not text.strip():
         print("❌ No error text provided", file=sys.stderr)
         sys.exit(1)
-    
+
     print("\n🔍 Debug Analysis")
     print("=" * 60)
-    
+
     # Analyze errors
     matches = analyze_error(text)
-    
+
     if not matches:
         print("⚠️  No known patterns matched")
         print("\nGeneral debugging steps:")
@@ -188,14 +186,14 @@ def main():
             print(f"   Match: {info['match']}")
             print(f"   Fix: {info['fix']}")
             print(f"   Check: {info['check']}")
-    
+
     # Extract locations
     locations = extract_stacktrace(text)
     if locations:
         print("\n📍 Stack trace locations:")
         for loc in locations[:5]:
             print(f"   {loc}")
-    
+
     print("\n" + "=" * 60)
     print("© 2025 APEX Business Systems Ltd.")
 
