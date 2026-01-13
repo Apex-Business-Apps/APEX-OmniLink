@@ -40,24 +40,6 @@ export default tseslint.config(
     rules: {
       "no-console": "off",
       "@typescript-eslint/no-explicit-any": "warn",  // Allow any in simulation code
-      "@typescript-eslint/no-unused-vars": "off",  // Simulation code may have intentional unused vars
-    },
-  },
-  // Relaxed rules for test files
-  {
-    files: ["tests/**/*.ts", "tests/**/*.spec.ts", "**/*.test.ts", "**/*.spec.ts"],
-    rules: {
-      "@typescript-eslint/no-unused-vars": "off",  // Test files may have fixtures/mocks
-    },
-  },
-  // Relaxed rules for Supabase functions
-  {
-    files: ["supabase/functions/**/*.ts"],
-    rules: {
-      "@typescript-eslint/no-unused-vars": ["warn", {
-        argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_|^createClient$|^checkRateLimit$|^rateLimitExceededResponse$|^RATE_LIMIT_PROFILES$"
-      }],
     },
   },
   // Allow console.log in monitoring/debugging infrastructure (legacy code)

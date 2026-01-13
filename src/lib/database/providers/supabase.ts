@@ -51,7 +51,7 @@ export class SupabaseDatabase implements IDatabase {
   // HELPER: Apply filters to query
   // -------------------------------------------------------------------------
 
-  private applyFilters<_T = unknown>(query: unknown, filters?: QueryFilter[]) {
+  private applyFilters<T>(query: unknown, filters?: QueryFilter[]) {
     if (!filters || filters.length === 0) return query
 
     let modifiedQuery = query
@@ -100,7 +100,7 @@ export class SupabaseDatabase implements IDatabase {
   // HELPER: Apply query options
   // -------------------------------------------------------------------------
 
-  private applyOptions<_T = unknown>(query: unknown, options?: QueryOptions) {
+  private applyOptions<T>(query: unknown, options?: QueryOptions) {
     let modifiedQuery = query
 
     // Apply filters
