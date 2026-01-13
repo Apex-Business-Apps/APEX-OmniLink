@@ -1,4 +1,4 @@
-import { Browser, BrowserContext, Page } from '@playwright/test';
+import { Browser, BrowserContext } from '@playwright/test';
 
 export interface OmnidashContextOptions {
     viewport: { width: number; height: number };
@@ -26,8 +26,8 @@ export async function setupOmnidashContext(
 
     // Set OMNIDASH_ENABLED=1 and mock admin access
     await page.addInitScript(() => {
-        window.localStorage.setItem('OMNIDASH_ENABLED', '1');
-        Object.defineProperty(window, 'sessionStorage', {
+        globalThis.localStorage.setItem('OMNIDASH_ENABLED', '1');
+        Object.defineProperty(globalThis, 'sessionStorage', {
             value: {
                 getItem: () => JSON.stringify({ user: { email: 'admin@example.com' } }),
                 setItem: () => { },

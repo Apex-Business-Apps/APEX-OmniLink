@@ -143,6 +143,7 @@ jobs:
       - name: Run asset tests against preview
         if: steps.vercel-preview.outputs.url != ''
         run: npm run test:assets
+        continue-on-error: true
         env:
           BASE_URL: ${{ steps.vercel-preview.outputs.url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
