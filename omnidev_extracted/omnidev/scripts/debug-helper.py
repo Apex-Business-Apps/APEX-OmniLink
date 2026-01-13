@@ -138,7 +138,7 @@ def extract_stacktrace(text: str) -> List[str]:
         locations.append(f"{match.group(1)}:{match.group(2)}")
 
     # JavaScript style
-    js_pattern = r"at .+? \(([^)]+):(\d+):\d+\)"
+    js_pattern = r"at [^(]+\(([^)]+):(\d+):\d+\)"
     for match in re.finditer(js_pattern, text):
         locations.append(f"{match.group(1)}:{match.group(2)}")
 
