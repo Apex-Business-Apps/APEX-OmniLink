@@ -32,7 +32,7 @@ export const AppTile = ({
 
     let borderShadowClass = 'bg-white border-2 border-dashed border-muted-foreground/30';
     if (app.icon) {
-        borderShadowClass = `bg-white border-2 border-[hsl(var(--navy))] shadow-lg ${isSmall ? '' : 'hover:shadow-xl'}`;
+        borderShadowClass = `bg-white border-2 border-[hsl(var(--navy))] shadow-lg ${!isSmall ? 'hover:shadow-xl' : ''}`;
     }
 
     const containerClasses = [baseClasses, paddingClass, borderShadowClass].join(' ');
