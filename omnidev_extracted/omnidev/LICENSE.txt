@@ -1,0 +1,63 @@
+APEX BUSINESS SYSTEMS LTD. - PROPRIETARY LICENSE
+
+Copyright (c) 2025 APEX Business Systems Ltd.
+Edmonton, AB, Canada
+https://apexbusiness-systems.com
+
+================================================================================
+                              PROPRIETARY LICENSE
+================================================================================
+
+This software, including all associated files, documentation, scripts, and 
+intellectual property contained within the "omnidev" skill package 
+(collectively, the "Software"), is the exclusive property of APEX Business 
+Systems Ltd. ("APEX").
+
+1. GRANT OF LICENSE
+   Subject to the terms of this license, APEX grants you a limited, 
+   non-exclusive, non-transferable license to use the Software for your 
+   internal business purposes only.
+
+2. RESTRICTIONS
+   You may NOT:
+   - Copy, modify, or distribute the Software without written permission
+   - Reverse engineer, decompile, or disassemble the Software
+   - Remove or alter any proprietary notices or labels
+   - Sublicense, rent, lease, or lend the Software to third parties
+   - Use the Software to create derivative works for commercial distribution
+   - Use the Software in any way that competes with APEX products or services
+
+3. INTELLECTUAL PROPERTY
+   All intellectual property rights in the Software remain with APEX. This 
+   license does not grant you any ownership rights to the Software.
+
+4. WARRANTY DISCLAIMER
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+5. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL APEX BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY 
+   ARISING FROM THE USE OF THE SOFTWARE.
+
+6. TERMINATION
+   This license terminates automatically if you breach any of its terms. Upon 
+   termination, you must destroy all copies of the Software.
+
+7. GOVERNING LAW
+   This license is governed by the laws of Alberta, Canada.
+
+================================================================================
+                              CONTACT INFORMATION
+================================================================================
+
+APEX Business Systems Ltd.
+Edmonton, AB, Canada
+
+Website: https://apexbusiness-systems.com
+Email: licensing@apexbusiness-systems.com
+
+For licensing inquiries, enterprise agreements, or permission requests,
+please contact us through our website.
+
+================================================================================
