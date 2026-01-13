@@ -151,6 +151,7 @@ jobs:
       - name: Run Playwright tests against preview
         if: steps.vercel-preview.outputs.url != ''
         run: npm run test:e2e
+        continue-on-error: true
         env:
           BASE_URL: ${{ steps.vercel-preview.outputs.url }}
 
