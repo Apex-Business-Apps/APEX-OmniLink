@@ -11,15 +11,15 @@ export type Environment = 'development' | 'staging' | 'production';
  */
 export function getEnvironment(): Environment {
   const hostname = window.location.hostname;
-  
+
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'development';
   }
-  
+
   if (hostname.includes('staging') || hostname.includes('preview')) {
     return 'staging';
   }
-  
+
   return 'production';
 }
 
@@ -82,7 +82,7 @@ const stagingFlags: FeatureFlags = {
  */
 export function getFeatureFlags(): FeatureFlags {
   const env = getEnvironment();
-  
+
   switch (env) {
     case 'production':
       return productionFlags;
@@ -117,7 +117,7 @@ export function getConfigValue<K extends keyof FeatureFlags>(
  * Application configuration
  */
 export const appConfig = {
-  name: 'APEX Business Systems',
+  name: 'APEX OmniHub',
   version: '1.0.0',
   apiTimeout: 30000, // 30 seconds
   maxRetries: 3,
@@ -134,28 +134,28 @@ export function validateEnvironment(): { valid: boolean; missing: string[]; warn
   const log = createDebugLogger('config.ts', 'E');
   const missing: string[] = [];
   const warnings: string[] = [];
-  
+
   // #region agent log
   log('Environment validation entry');
   // #endregion
-  
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  
+
   // #region agent log
   log('Environment variables check', {
     hasSupabaseUrl: !!supabaseUrl,
     hasSupabaseKey: !!supabaseKey,
   });
   // #endregion
-  
+
   if (!supabaseUrl) {
     missing.push('VITE_SUPABASE_URL');
   }
   if (!supabaseKey) {
     missing.push('VITE_SUPABASE_ANON_KEY or VITE_SUPABASE_PUBLISHABLE_KEY');
   }
-  
+
   // #region agent log
   log('Environment validation result', {
     valid: missing.length === 0,
@@ -163,7 +163,7 @@ export function validateEnvironment(): { valid: boolean; missing: string[]; warn
     warningsCount: warnings.length,
   });
   // #endregion
-  
+
   return { valid: missing.length === 0, missing, warnings };
 }
 
@@ -172,22 +172,22 @@ export function validateEnvironment(): { valid: boolean; missing: string[]; warn
  */
 export function logConfiguration(): void {
   const log = createDebugLogger('config.ts', 'A');
-  
+
   // #region agent log
   log('logConfiguration entry');
   // #endregion
-  
+
   const env = getEnvironment();
   if (import.meta.env.DEV) {
     console.log(`🌍 Environment: ${env}`);
   }
-  
+
   // Validate environment
   const validation = validateEnvironment();
   if (!validation.valid && import.meta.env.DEV) {
     console.warn('⚠️ Missing environment variables:', validation.missing);
   }
-  
+
   if (isDevelopment()) {
     console.log('📋 Configuration:', {
       environment: env,
@@ -196,9 +196,9 @@ export function logConfiguration(): void {
       validation,
     });
   }
-  
+
   // Lovable config logging removed - app now uses Supabase directly
-  
+
   // #region agent log
   log('logConfiguration complete');
   // #endregion
