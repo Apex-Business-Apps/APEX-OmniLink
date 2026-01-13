@@ -251,7 +251,7 @@ export class SimulationRunner {
 
         // Execute with idempotency
         // Only apply chaos on first attempt - retries should be clean
-        const { wasCached: cached, attemptCount: _attemptCount } = await executeEventIdempotently(
+        const { wasCached: cached, attemptCount } = await executeEventIdempotently(
           event,
           async (evt) => {
             return await this.executeEvent(evt, beat, chaosDecision, attempt);
