@@ -1,0 +1,35 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Playwright configuration for visual regression testing
+ * Tests homepage against reference mockups at specific viewports
+ */
+export default defineConfig({
+    testDir: './tests/visual',
+    snapshotDir: './tests/visual/snapshots',
+    updateSnapshots: 'missing',
+    fullyParallel: true,
+    forbidOnly: !!process.env.CI,
+    retries: process.env.CI ? 2 : 0,
+    workers: process.env.CI ? 1 : undefined,
+    reporter: 'html',
+
+    use: {
+        baseURL: 'http://localhost:5173',
+        trace: 'on-first-retry',
+    },
+
+    projects: [
+        {
+            name: 'chromium',
+            use: { ...devices['Desktop Chrome'] },
+        },
+    ],
+
+    webServer: {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120000,
+    },
+});
