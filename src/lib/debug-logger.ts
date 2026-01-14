@@ -58,3 +58,20 @@ export function createDebugLogger(location: string, hypothesisId?: string) {
   };
 }
 
+/**
+ * Log an error via the debug logger
+ * Provides a lightweight fallback when monitoring is unavailable
+ */
+export function logError(error: unknown, context?: Record<string, unknown>): void {
+  const message = error instanceof Error ? error.message : String(error);
+  const data =
+    error instanceof Error
+      ? { stack: error.stack, ...context }
+      : { error, ...context };
+
+  debugLog({ location: 'logError', message, data });
+
+  if (import.meta.env.DEV) {
+    console.error('Debug logError:', error, context);
+  }
+}
