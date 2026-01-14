@@ -87,6 +87,11 @@ npm dedupe
 | `/assets/js/*.js` | 200 | App won't load |
 | `/assets/css/*.css` | 200 | App unstyled/broken |
 
+**Vercel-protected previews:**
+If a preview deployment is behind Vercel protection, set `VERCEL_AUTOMATION_BYPASS_SECRET`
+to allow the smoke test to pass. The check sends the bypass secret via both the
+`x-vercel-protection-bypass` header and query parameter for compatibility.
+
 ---
 
 ### 3. Playwright Render Tests (`npm run test:e2e`)
