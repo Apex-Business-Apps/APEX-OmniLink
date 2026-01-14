@@ -10,10 +10,11 @@ Usage: python quality-check.py <path> [--fix] [--strict]
 Runs all quality checks: lint, type check, format, security scan.
 Exit: 0=pass, 1=issues found, 2=system error
 """
-import argparse
-import subprocess
 import sys
+import subprocess
+import argparse
 from pathlib import Path
+from typing import List, Tuple
 
 CHECKS = {
     "python": {
@@ -56,7 +57,7 @@ def detect_language(path: Path) -> str:
     return max(counts, key=counts.get)
 
 
-def run_check(name: str, cmd: list[str], path: Path) -> tuple[bool, str]:
+def run_check(name: str, cmd: List[str], path: Path) -> Tuple[bool, str]:
     """Run a single check."""
     cmd = [c.format(path=str(path)) for c in cmd]
     
