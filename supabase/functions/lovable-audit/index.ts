@@ -1,5 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
-import { createAnonClient, createServiceClient } from "../_shared/supabaseClient.ts";
 
 interface AuditEventPayload {
   id: string;
@@ -15,12 +15,18 @@ interface AuditEventEnvelope {
   event: AuditEventPayload;
 }
 
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
 /**
  * Write audit event directly to Supabase audit_logs table
  * Replaces Lovable API dependency
  */
 async function writeAuditEvent(payload: AuditEventPayload): Promise<void> {
-  const supabase = createServiceClient();
+  const supabase = getSupabaseClient();
   const { error } = await supabase.from('audit_logs').insert({
     id: payload.id,
     actor_id: payload.actorId || null,
@@ -63,7 +69,11 @@ Deno.serve(async (req) => {
     if (!userId) {
       const authHeader = req.headers.get('Authorization');
       if (authHeader) {
-        const supabase = createAnonClient(authHeader);
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.id) {
           userId = user.id;
@@ -99,5 +109,6 @@ Deno.serve(async (req) => {
     );
   }
 });
+
 
 

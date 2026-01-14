@@ -46,11 +46,6 @@ const OmniDashToday = lazy(() => import("./pages/OmniDash/Today"));
 const OmniDashPipeline = lazy(() => import("./pages/OmniDash/Pipeline"));
 const OmniDashKpis = lazy(() => import("./pages/OmniDash/Kpis"));
 const OmniDashOps = lazy(() => import("./pages/OmniDash/Ops"));
-const OmniDashIntegrations = lazy(() => import("./pages/OmniDash/Integrations"));
-const OmniDashEvents = lazy(() => import("./pages/OmniDash/Events"));
-const OmniDashEntities = lazy(() => import("./pages/OmniDash/Entities"));
-const OmniDashRuns = lazy(() => import("./pages/OmniDash/Runs"));
-const OmniDashApprovals = lazy(() => import("./pages/OmniDash/Approvals"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -200,11 +195,6 @@ const App = () => (
                   <Route path="pipeline" element={<OmniDashPipeline />} />
                   <Route path="kpis" element={<OmniDashKpis />} />
                   <Route path="ops" element={<OmniDashOps />} />
-                  <Route path="integrations" element={<OmniDashIntegrations />} />
-                  <Route path="events" element={<OmniDashEvents />} />
-                  <Route path="entities" element={<OmniDashEntities />} />
-                  <Route path="runs" element={<OmniDashRuns />} />
-                  <Route path="approvals" element={<OmniDashApprovals />} />
                 </Route>
               )}
                 <Route path="*" element={<NotFound />} />

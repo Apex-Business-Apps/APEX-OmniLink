@@ -21,14 +21,39 @@
  * Date: 2026-01-01
  */
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { createSiweMessage } from 'https://esm.sh/viem@2.43.4/siwe';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 import { encodeHex } from 'https://deno.land/std@0.177.0/encoding/hex.ts';
 
-import { buildCorsHeaders, corsErrorResponse, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { addRateLimitHeaders, checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES } from "../_shared/ratelimit.ts";
-import { createServiceClient } from "../_shared/supabaseClient.ts";
-import { isValidWalletAddress, parseChainId, resolveOriginFromUri } from "../_shared/validation.ts";
+const DEMO_MODE = Deno.env.get('DEMO_MODE')?.toLowerCase() === 'true';
+const ALLOWED_ORIGINS = (Deno.env.get('SIWE_ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ''));
+
+function isOriginAllowed(origin: string | null): boolean {
+  if (DEMO_MODE) return true;
+  if (!origin) return false;
+  const normalized = origin.replace(/\/$/, '');
+  return ALLOWED_ORIGINS.includes(normalized);
+}
+
+function buildCorsHeaders(origin: string | null): HeadersInit {
+  if (!origin) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
+}
+
+// Rate limiting in-memory store (resets on cold start)
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 
 // Nonce configuration
 const NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
@@ -40,6 +65,56 @@ const NONCE_LENGTH = 32; // 32 bytes = 64 hex characters
 function generateSecureNonce(): string {
   const randomBytes = crypto.getRandomValues(new Uint8Array(NONCE_LENGTH));
   return encodeHex(randomBytes);
+}
+
+/**
+ * Validate Ethereum wallet address format
+ */
+function isValidWalletAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+function parseChainId(value: unknown): number {
+  if (value === undefined || value === null) {
+    return 1;
+  }
+
+  const numeric = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  if (!Number.isInteger(numeric) || numeric <= 0) {
+    throw new Error('Invalid chain_id');
+  }
+  return numeric;
+}
+
+function resolveOriginFromUri(uri: string): string {
+  return new URL(uri).origin.replace(/\/$/, '');
+}
+
+/**
+ * Check rate limit for IP address
+ */
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const key = `nonce:${ip}`;
+
+  const record = rateLimitStore.get(key);
+
+  if (!record || now >= record.resetAt) {
+    // First request or window expired - create new record
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) {
+    // Rate limit exceeded
+    return { allowed: false, remaining: 0, resetIn: record.resetAt - now };
+  }
+
+  // Increment counter
+  record.count++;
+  rateLimitStore.set(key, record);
+
+  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count, resetIn: record.resetAt - now };
 }
 
 /**
@@ -75,11 +150,11 @@ Deno.serve(async (req) => {
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return handlePreflight(req);
-  }
+    if (!isOriginAllowed(requestOrigin)) {
+      return new Response(null, { status: 403 });
+    }
 
-  if (!isOriginAllowed(requestOrigin)) {
-    return corsErrorResponse('origin_not_allowed', 'CORS policy: Origin not allowed', 403, requestOrigin);
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   // Only allow POST requests
@@ -91,15 +166,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (!DEMO_MODE && ALLOWED_ORIGINS.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'configuration_error', message: 'SIWE_ALLOWED_ORIGINS not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get client IP for rate limiting
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] ||
                      req.headers.get('x-real-ip') ||
                      'unknown';
 
     // Check rate limit
-    const rateLimit = await checkRateLimit(clientIp, RATE_LIMIT_PROFILES.nonce);
+    const rateLimit = checkRateLimit(clientIp);
     if (!rateLimit.allowed) {
-      return rateLimitExceededResponse(rateLimit, RATE_LIMIT_PROFILES.nonce, corsHeaders);
+      return new Response(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          message: `Too many requests. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds.`,
+          retry_after: Math.ceil(rateLimit.resetIn / 1000),
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': new Date(Date.now() + rateLimit.resetIn).toISOString(),
+            'Retry-After': Math.ceil(rateLimit.resetIn / 1000).toString(),
+          },
+        }
+      );
     }
 
     // Parse request body
@@ -175,7 +274,9 @@ Deno.serve(async (req) => {
     }
 
     // Initialize Supabase client with service role
-    const supabase = createServiceClient();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check for existing active nonce (idempotency)
     const { data: existingNonce, error: fetchError } = await supabase
@@ -218,11 +319,12 @@ Deno.serve(async (req) => {
         }),
         {
           status: 200,
-          headers: addRateLimitHeaders(
-            { ...corsHeaders, 'Content-Type': 'application/json' },
-            rateLimit,
-            RATE_LIMIT_PROFILES.nonce
-          ),
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          },
         }
       );
     }
@@ -271,11 +373,12 @@ Deno.serve(async (req) => {
       }),
       {
         status: 200,
-        headers: addRateLimitHeaders(
-          { ...corsHeaders, 'Content-Type': 'application/json' },
-          rateLimit,
-          RATE_LIMIT_PROFILES.nonce
-        ),
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        },
       }
     );
 
