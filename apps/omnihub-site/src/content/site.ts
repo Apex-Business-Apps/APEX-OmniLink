@@ -12,17 +12,74 @@ export const siteConfig = {
   nav: {
     logo: 'APEX OmniHub',
     links: [
-      { label: 'Demo', href: '/demo.html' },
-      { label: 'Tech Specs', href: '/tech-specs.html' },
-      { label: 'Request Access', href: '/request-access.html' },
+      { label: 'Features', href: '/#features' },
+      { label: 'Solutions', href: '/#solutions' },
+      { label: 'Integrations', href: '/#integrations' },
+      { label: 'Pricing', href: '/#pricing' },
     ],
+    login: { label: 'Log In', href: '/restricted.html' },
+    primaryCta: { label: 'Get Started', href: '/request-access.html' },
   },
 
   hero: {
-    title: 'APEX OmniHub',
-    tagline: 'Intelligence, Designed.',
-    subtitle: 'Understand Everything. Communicate Anything, to Every Platform.',
-    description: 'The universal translator + orchestrator that connects AI, enterprise systems, and Web3 through a single controlled port - grounded in facts, truth, and audited proof.',
+    title: 'Intelligence Designed',
+    tagline: 'IT SEES YOU',
+    subtitle:
+      'Translate intent into audited execution across AI agents, enterprise systems, and Web3.',
+    description:
+      'APEX OmniHub is the vendor-independent control plane that governs data flow, policy, and deterministic execution through a single controlled port. Secure, observable, reversible.',
+  },
+
+  highlights: {
+    title: '',
+    items: [
+      {
+        title: 'Unified Workspace',
+        description:
+          'Combine tasks, communications, and data in one seamless interface.',
+      },
+      {
+        title: 'AI-Powered Insights',
+        description:
+          'Smart predictions and recommendations to keep you ahead of the curve.',
+      },
+      {
+        title: 'Cross-Platform Sync',
+        description:
+          'Sync across all your devices—desktop, tablet, and mobile.',
+      },
+    ],
+  },
+
+  integrations: {
+    title: 'Integrations that don’t compromise your stack',
+    subtitle:
+      'Adapters stay modular, portable, and optional-by-default. OmniHub stays the control tower.',
+    items: [
+      {
+        title: 'Enterprise Systems',
+        description: 'CRMs, ERPs, ticketing, calendars, messaging, storage, data warehouses.',
+      },
+      {
+        title: 'AI Apps & Agents',
+        description: 'Model providers, agent frameworks, RAG pipelines, tool routers, eval gates.',
+      },
+      {
+        title: 'Web3 & Onchain',
+        description: 'Wallet ops, tokenization, proofs, attestations, chain event listeners.',
+      },
+    ],
+  },
+
+  showcase: {
+    title: 'Ready for the Future of Productivity?',
+    subtitle: 'Unite. Automate. Excel.',
+    items: [
+      { title: 'Project Management', image: '/placeholder-project.png' },
+      { title: 'Team Collaboration', image: '/placeholder-team.png' },
+      { title: 'Personal Dashboard', image: '/placeholder-dashboard.png' },
+      { title: 'Workflow Automation', image: '/placeholder-workflow.png' },
+    ],
   },
 
   stamp: {
@@ -31,9 +88,9 @@ export const siteConfig = {
   },
 
   ctas: {
-    primary: { label: 'View Demo', href: '/demo.html' },
-    secondary: { label: 'Read Tech Specs', href: '/tech-specs.html' },
-    link: { label: 'Request Access', href: '/request-access.html' },
+    primary: { label: 'Get Started', href: '/request-access.html' },
+    secondary: { label: 'Watch Demo', href: '/demo.html' },
+    link: { label: 'Read Tech Specs', href: '/tech-specs.html' },
   },
 
   howItWorks: {
