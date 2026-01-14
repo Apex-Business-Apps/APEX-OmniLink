@@ -3,7 +3,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getOmniLinkIntegrationBrainPrompt } from "../_shared/omnilinkIntegrationBrain.ts";
 import { evaluatePromptSafety, validateLLMOutput } from "../_shared/promptDefense.ts";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES } from "../_shared/ratelimit.ts";
 
 // Maximum request body size (100KB)
 const MAX_REQUEST_SIZE = 100 * 1024;
