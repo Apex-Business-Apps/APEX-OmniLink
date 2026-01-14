@@ -5,9 +5,8 @@
  * Wraps Supabase Storage client with generic storage interface
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/integrations/supabase/types'
-import { createSupabaseClient } from '@/lib/supabase/client'
 import type {
   IStorage,
   UploadOptions,
@@ -35,12 +34,19 @@ export class SupabaseStorage implements IStorage {
   }) {
     const key = options.serviceRoleKey || options.apiKey
 
-    this.debug = options.debug || false
-    this.client = createSupabaseClient({
-      url: options.url,
-      apiKey: key,
-      debug: this.debug,
+    this.client = createClient<Database>(options.url, key, {
+      auth: {
+        storage: typeof window !== 'undefined' ? localStorage : undefined,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
     })
+
+    this.debug = options.debug || false
+
+    if (this.debug) {
+      console.log('[SupabaseStorage] Initialized with URL:', options.url)
+    }
   }
 
   // -------------------------------------------------------------------------
