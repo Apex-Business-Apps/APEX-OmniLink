@@ -9,7 +9,7 @@ interface ShowcaseCardProps {
     alt: string;
 }
 
-export function ShowcaseCard({ image, label, alt }: ShowcaseCardProps) {
+export function ShowcaseCard({ image, label, alt }: Readonly<ShowcaseCardProps>) {
     return (
         <div className="showcase-card">
             <img src={image} alt={alt} className="showcase-card__image" />

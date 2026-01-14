@@ -11,7 +11,7 @@ export function ReferenceOverlay() {
     const [overlayType, setOverlayType] = useState<string | null>(null);
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams(globalThis.location.search);
         const overlay = params.get('overlay');
         if (overlay === 'light' || overlay === 'night') {
             setOverlayType(overlay);
@@ -25,8 +25,8 @@ export function ReferenceOverlay() {
                 setIsVisible((prev) => !prev);
             }
         };
-        window.addEventListener('keydown', handleKeydown);
-        return () => window.removeEventListener('keydown', handleKeydown);
+        globalThis.addEventListener('keydown', handleKeydown);
+        return () => globalThis.removeEventListener('keydown', handleKeydown);
     }, []);
 
     if (!overlayType || !isVisible) return null;
@@ -85,7 +85,7 @@ export function ReferenceOverlay() {
                     max="1"
                     step="0.05"
                     value={opacity}
-                    onChange={(e) => setOpacity(parseFloat(e.target.value))}
+                    onChange={(e) => setOpacity(Number.parseFloat(e.target.value))}
                     style={{ width: '100px' }}
                 />
                 <div style={{ color: '#aaa', fontSize: '10px' }}>Press 'o' to toggle</div>

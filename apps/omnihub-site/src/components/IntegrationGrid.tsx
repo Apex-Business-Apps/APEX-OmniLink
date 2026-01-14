@@ -28,18 +28,18 @@ function LinkIcon() {
   );
 }
 
-export function IntegrationGrid({ items }: IntegrationGridProps) {
+export function IntegrationGrid({ items }: Readonly<IntegrationGridProps>) {
   return (
-    <div className="integration-grid" role="list">
+    <ul className="integration-grid">
       {items.map((item) => (
-        <div key={item.title} className="card integration-card" role="listitem">
+        <li key={item.title} className="card integration-card">
           <div className="integration-card__icon">
             <LinkIcon />
           </div>
           <h3 className="heading-4 integration-card__title">{item.title}</h3>
           <p className="text-sm text-secondary mt-4">{item.description}</p>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

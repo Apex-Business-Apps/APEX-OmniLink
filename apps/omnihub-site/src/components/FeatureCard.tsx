@@ -9,7 +9,7 @@ interface FeatureCardProps {
     description: string;
 }
 
-export function FeatureCard({ icon, title, description }: FeatureCardProps) {
+export function FeatureCard({ icon, title, description }: Readonly<FeatureCardProps>) {
     return (
         <div className="feature-card">
             <div className="feature-card__icon">{icon}</div>

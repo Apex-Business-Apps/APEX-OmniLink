@@ -7,9 +7,9 @@ interface LayoutProps {
 }
 
 function getInitialTheme(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof globalThis.window === 'undefined') return false;
   const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const prefersDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
   return saved === 'dark' || (!saved && prefersDark);
 }
 
@@ -18,21 +18,21 @@ function ThemeToggle() {
 
   useEffect(() => {
     // Sync DOM attribute with state on mount
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
   }, [isDark]);
 
   const setTheme = (dark: boolean) => {
     const newTheme = dark ? 'dark' : 'light';
     setIsDark(dark);
     localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    document.documentElement.dataset.theme = newTheme;
   };
 
   return (
     <div className="theme-toggle-segmented" role="radiogroup" aria-label="Theme selection">
       <button
         type="button"
-        className={`theme-toggle-segmented__option ${!isDark ? 'theme-toggle-segmented__option--active' : ''}`}
+        className={`theme-toggle-segmented__option ${isDark ? '' : 'theme-toggle-segmented__option--active'}`}
         onClick={() => setTheme(false)}
         aria-checked={!isDark}
         role="radio"
@@ -133,7 +133,7 @@ function Footer() {
   );
 }
 
-export function Layout({ children, title }: LayoutProps) {
+export function Layout({ children, title }: Readonly<LayoutProps>) {
   useEffect(() => {
     if (title) {
       document.title = `${title} | ${siteConfig.name}`;

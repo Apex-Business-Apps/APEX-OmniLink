@@ -10,9 +10,9 @@ interface SpecSectionProps {
   details: readonly string[];
 }
 
-function SpecSection({ title, description, details }: SpecSectionProps) {
+function SpecSection({ title, description, details, id }: SpecSectionProps) {
   return (
-    <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+    <div id={id} className="card" style={{ marginBottom: 'var(--space-6)' }}>
       <h3 className="heading-3">{title}</h3>
       <p className="text-secondary mt-4">{description}</p>
       <ul

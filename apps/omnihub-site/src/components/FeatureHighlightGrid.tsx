@@ -25,18 +25,18 @@ function SparkIcon() {
   );
 }
 
-export function FeatureHighlightGrid({ items }: FeatureHighlightGridProps) {
+export function FeatureHighlightGrid({ items }: Readonly<FeatureHighlightGridProps>) {
   return (
-    <div className="feature-grid" role="list">
+    <ul className="feature-grid">
       {items.map((item) => (
-        <div key={item.title} className="card feature-card" role="listitem">
+        <li key={item.title} className="card feature-card">
           <div className="feature-card__icon">
             <SparkIcon />
           </div>
           <h3 className="heading-4 feature-card__title">{item.title}</h3>
           <p className="text-sm text-secondary mt-4">{item.description}</p>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

@@ -12,7 +12,7 @@ export function Section({
   id,
   variant = 'default',
   className = '',
-}: SectionProps) {
+}: Readonly<SectionProps>) {
   const variantClass = variant === 'default' ? '' : `section--${variant}`;
 
   return (
@@ -32,7 +32,7 @@ export function SectionHeader({
   title,
   subtitle,
   centered = true,
-}: SectionHeaderProps) {
+}: Readonly<SectionHeaderProps>) {
   return (
     <div className={`mb-8 ${centered ? 'text-center' : ''}`}>
       <h2 className="heading-2">{title}</h2>
