@@ -77,7 +77,7 @@ Premium, high-whitespace design with crisp typography. Engineer-focused aestheti
 ### Night Watch (Toggle)
 Control-room aesthetic with restrained dark palette. No neon—professional and readable.
 
-Toggle via the sun/moon button in navigation. Preference persists in localStorage.
+Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navigation. Preference persists in localStorage.
 
 ## Configuration
 
