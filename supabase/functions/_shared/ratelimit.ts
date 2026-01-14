@@ -245,6 +245,9 @@ export const RATE_LIMIT_PROFILES = {
   /** Verification attempts: 10 per hour */
   verify: { maxRequests: 10, windowMs: 3_600_000, prefix: 'verify' },
 
+  /** NFT verification: 30 per minute */
+  nftVerify: { maxRequests: 30, windowMs: 60_000, prefix: 'nft' },
+
   /** File uploads: 20 per minute */
   upload: { maxRequests: 20, windowMs: 60_000, prefix: 'upload' },
 } as const;
