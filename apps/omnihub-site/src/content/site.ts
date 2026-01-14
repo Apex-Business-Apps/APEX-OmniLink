@@ -123,74 +123,88 @@ export const techSpecsConfig = {
   title: 'Technical Specifications',
   subtitle: 'Evidence-first architecture and security posture',
   sections: [
-    {
-      id: 'single-port',
-      title: 'Single-Port Protocol',
-      description: 'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.',
-      details: [
+    buildTechSpecSection(
+      'single-port',
+      'Single-Port Protocol',
+      'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.',
+      [
         'One ingress/egress point for all adapter traffic',
         'Protocol-agnostic envelope format',
         'Built-in rate limiting and throttling',
         'Automatic TLS termination',
-      ],
-    },
-    {
-      id: 'modular-adapters',
-      title: 'Modular Adapters',
-      description: 'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'modular-adapters',
+      'Modular Adapters',
+      'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.',
+      [
         'Hot-swappable adapter architecture',
         'Typed contracts for each adapter',
         'Isolated failure domains',
         'Community and enterprise adapter ecosystem',
-      ],
-    },
-    {
-      id: 'man-mode',
-      title: 'MAN Mode (Manual Authorization Needed)',
-      description: 'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'man-mode',
+      'MAN Mode (Manual Authorization Needed)',
+      'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.',
+      [
         'Configurable risk thresholds',
         'Async approval queue with notifications',
         'Audit trail for all approval decisions',
         'Timeout policies with safe defaults',
-      ],
-    },
-    {
-      id: 'receipts-idempotency',
-      title: 'Receipts & Idempotency',
-      description: 'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'receipts-idempotency',
+      'Receipts & Idempotency',
+      'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.',
+      [
         'Unique operation IDs for every request',
         'Cryptographic receipts for audit',
         'Automatic deduplication',
         'Replay capability for debugging',
-      ],
-    },
-    {
-      id: 'security-posture',
-      title: 'Security Posture',
-      description: 'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'security-posture',
+      'Security Posture',
+      'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.',
+      [
         'mTLS for service-to-service communication',
         'RBAC with attribute-based extensions',
         'Comprehensive security headers',
         'Regular third-party security audits',
-      ],
-    },
-    {
-      id: 'rollback-portability',
-      title: 'Rollback & Portability',
-      description: 'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'rollback-portability',
+      'Rollback & Portability',
+      'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.',
+      [
         'Database-agnostic data layer',
         'Configuration as code',
         'Compensation transactions for rollback',
         'Documented migration runbooks',
-      ],
-    },
+      ]
+    ),
   ],
 } as const;
+
+function buildTechSpecSection(
+  id: string,
+  title: string,
+  description: string,
+  details: string[]
+) {
+  return {
+    id,
+    title,
+    description,
+    details,
+  };
+}
 
 /**
  * Demo page content

@@ -1,5 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
+import { createAnonClient, createServiceClient } from "../_shared/supabaseClient.ts";
 
 interface DeviceInfo {
   device_info: Record<string, unknown>;
@@ -13,18 +13,12 @@ interface DeviceRegistryResponse {
   devices: DeviceInfo[];
 }
 
-function getSupabaseClient() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
-
 /**
  * Fetch device registry directly from Supabase device_registry table
  * Replaces Lovable API dependency
  */
 async function getDeviceRegistry(userId: string): Promise<DeviceRegistryResponse> {
-  const supabase = getSupabaseClient();
+  const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('device_registry')
     .select('*')
@@ -51,7 +45,7 @@ async function getDeviceRegistry(userId: string): Promise<DeviceRegistryResponse
  * Replaces Lovable API dependency
  */
 async function upsertDevice(userId: string, device: DeviceInfo): Promise<void> {
-  const supabase = getSupabaseClient();
+  const supabase = createServiceClient();
   const { error } = await supabase
     .from('device_registry')
     .upsert({
@@ -96,11 +90,7 @@ Deno.serve(async (req) => {
     if (!userId) {
       const authHeader = req.headers.get('Authorization');
       if (authHeader) {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
+        const supabase = createAnonClient(authHeader);
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.id) {
           userId = user.id;
@@ -167,4 +157,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-

@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES } from "../_shared/ratelimit.ts";
+import { createServiceClient } from "../_shared/supabaseClient.ts";
 
 serve(async (req) => {
   // Handle CORS preflight with origin validation
@@ -21,9 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServiceClient();
 
     const { integrationId } = await req.json();
 
