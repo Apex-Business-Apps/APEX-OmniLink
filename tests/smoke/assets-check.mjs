@@ -33,13 +33,19 @@ function log(status, message) {
 
 async function checkAsset(url, description, expectStatus = 200) {
   try {
-    const response = await fetch(url, {
+    const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    const querySeparator = url.includes('?') ? '&' : '?';
+    const targetUrl = bypassSecret
+      ? `${url}${querySeparator}x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}`
+      : url;
+    const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
         'User-Agent': 'OmniLink-APEX-CI-AssetCheck/1.0',
         // Include Vercel protection bypass if provided
-        ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET && {
-          'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+        ...(bypassSecret && {
+          'x-vercel-protection-bypass': bypassSecret,
+          'x-vercel-set-bypass-cookie': 'true',
         }),
       },
     });
