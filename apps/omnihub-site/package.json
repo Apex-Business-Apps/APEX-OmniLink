@@ -9,8 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
-    "smoke": "node scripts/smoke-test.mjs",
-    "test:visual": "playwright test"
+    "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -18,7 +17,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@playwright/test": "^1.42.0",
     "@supabase/supabase-js": "^2.90.1",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",

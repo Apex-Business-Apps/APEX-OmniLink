@@ -11,13 +11,14 @@ Analyzes error messages and stack traces to suggest fixes.
 Exit: 0=success, 1=input error, 2=system error
 """
 
-import argparse
-import re
 import sys
+import re
+import argparse
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 # Common error patterns and fixes
-ERROR_PATTERNS: dict[str, dict] = {
+ERROR_PATTERNS: Dict[str, Dict] = {
     # Python errors
     r"ModuleNotFoundError: No module named '(\w+)'": {
         "type": "Missing dependency",
@@ -105,7 +106,7 @@ ERROR_PATTERNS: dict[str, dict] = {
 }
 
 
-def analyze_error(text: str) -> list[tuple[str, dict]]:
+def analyze_error(text: str) -> List[Tuple[str, Dict]]:
     """Analyze error text and return matching patterns."""
     matches = []
     for pattern, info in ERROR_PATTERNS.items():
@@ -128,7 +129,7 @@ def analyze_error(text: str) -> list[tuple[str, dict]]:
     return matches
 
 
-def extract_stacktrace(text: str) -> list[str]:
+def extract_stacktrace(text: str) -> List[str]:
     """Extract file locations from stack trace."""
     locations = []
     # Python style
