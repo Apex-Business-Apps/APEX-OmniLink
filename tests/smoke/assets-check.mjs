@@ -34,10 +34,9 @@ function log(status, message) {
 async function checkAsset(url, description, expectStatus = 200) {
   try {
     const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    const querySeparator = url.includes('?') ? '&' : '?';
     const targetUrl = bypassSecret
-      ? `${url}${url.includes('?') ? '&' : '?'}x-vercel-protection-bypass=${encodeURIComponent(
-          bypassSecret,
-        )}`
+      ? `${url}${querySeparator}x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}`
       : url;
     const response = await fetch(targetUrl, {
       method: 'GET',
