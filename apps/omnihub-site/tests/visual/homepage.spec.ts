@@ -26,7 +26,7 @@ test.describe('Homepage Visual Regression', () => {
         // Full page screenshot comparison
         await expect(page).toHaveScreenshot('home-light.png', {
             fullPage: true,
-            maxDiffPixelRatio: 0.02, // Allow 2% difference for anti-aliasing
+            maxDiffPixelRatio: 0.02,
             animations: 'disabled',
         });
     });
@@ -50,31 +50,9 @@ test.describe('Homepage Visual Regression', () => {
         // Full page screenshot comparison
         await expect(page).toHaveScreenshot('home-night.png', {
             fullPage: true,
-            maxDiffPixelRatio: 0.02, // Allow 2% difference for anti-aliasing
+            maxDiffPixelRatio: 0.02,
             animations: 'disabled',
         });
-    });
-
-    test('Overlay mode works - light', async ({ page }) => {
-        await page.goto('/?overlay=light');
-        await page.waitForLoadState('networkidle');
-
-        // Verify overlay image is present
-        const overlay = page.locator('img[src="/reference/home-light.png"]');
-        await expect(overlay).toBeVisible();
-        await expect(overlay).toHaveCSS('opacity', '0.5');
-        await expect(overlay).toHaveCSS('pointer-events', 'none');
-    });
-
-    test('Overlay mode works - night', async ({ page }) => {
-        await page.goto('/?overlay=night');
-        await page.waitForLoadState('networkidle');
-
-        // Verify overlay image is present
-        const overlay = page.locator('img[src="/reference/home-night.png"]');
-        await expect(overlay).toBeVisible();
-        await expect(overlay).toHaveCSS('opacity', '0.5');
-        await expect(overlay).toHaveCSS('pointer-events', 'none');
     });
 
     test('Theme toggle works correctly', async ({ page }) => {

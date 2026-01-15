@@ -471,22 +471,6 @@
   color: var(--color-navy);
 }
 
-/* === REFERENCE OVERLAY === */
-.reference-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-.reference-overlay__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
-}
-
 /* === FORM === */
 .form-group {
   margin-bottom: var(--space-5);
@@ -841,25 +825,6 @@
     radial-gradient(circle at 30% 30%, rgba(14, 165, 233, 0.18), transparent 55%),
     radial-gradient(circle at 70% 70%, rgba(196, 87, 28, 0.14), transparent 55%),
     var(--color-surface);
-  border: 1px solid var(--color-border);
-  display: grid;
-  place-items: center;
-  color: var(--color-accent);
-}
-
-/* === INTEGRATIONS GRID === */
-.integration-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-6);
-  text-align: left;
-}
-
-.integration-card__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--border-radius-md);
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
   display: grid;
   place-items: center;
