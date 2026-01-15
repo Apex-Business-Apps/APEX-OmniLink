@@ -1,7 +1,27 @@
 # Security Advisories
 
-**Last Updated**: 2026-01-10
+**Last Updated**: 2026-01-15
 **Audit Reference**: [PLATFORM_AUDIT_2026_01_10.md](docs/audits/PLATFORM_AUDIT_2026_01_10.md)
+
+---
+
+## Recently Resolved Vulnerabilities
+
+### RESOLVED: h3 Request Smuggling (GHSA-mp2g-9vg9-f4cg)
+- **Status**: FIXED (2026-01-15)
+- **Package**: `h3@1.15.4` → `h3@1.15.5`
+- **Severity**: High
+- **Description**: Request Smuggling (TE.TE) issue in h3 v1
+- **Resolution**: Updated via `npm audit fix`
+- **PR**: #202 - Pixel-perfect landing page with new sections and navigation
+
+### RESOLVED: Hono JWT Algorithm Confusion (GHSA-3vhc-576x-3qv4, GHSA-f67f-6cw9-8mq4)
+- **Status**: FIXED (2026-01-15)
+- **Package**: `hono@4.11.3` → `hono@4.11.4`
+- **Severity**: High
+- **Description**: JWK Auth Middleware JWT algorithm confusion allowing token forgery and auth bypass
+- **Resolution**: Updated via `npm audit fix`
+- **PR**: #202 - Pixel-perfect landing page with new sections and navigation
 
 ---
 
@@ -57,7 +77,8 @@
 
 ## Current Audit Snapshot
 - `npm run security:audit` generates `security/npm-audit-latest.json`.
-- Latest review: 1 HIGH severity vulnerability (React Router XSS)
+- Latest review (2026-01-15): **0 vulnerabilities** - All transitive dependency issues resolved
+- Previously resolved: h3 Request Smuggling, Hono JWT Algorithm Confusion (2 HIGH)
 - Previous: 7 dev-only vulnerabilities (esbuild/dev-server toolchain)
 
 ## How to Re-run

@@ -1,0 +1,42 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {},
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "dependencies": {
+      "prod": 166,
+      "dev": 0,
+      "optional": 0,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 979
+    }
+  },
+  "auditTimestamp": "2026-01-15T22:13:00.000Z",
+  "note": "All vulnerabilities resolved via npm audit fix on 2026-01-15",
+  "resolvedVulnerabilities": [
+    {
+      "package": "h3",
+      "previousVersion": "1.15.4",
+      "fixedVersion": "1.15.5",
+      "severity": "high",
+      "advisory": "GHSA-mp2g-9vg9-f4cg",
+      "title": "Request Smuggling (TE.TE) issue"
+    },
+    {
+      "package": "hono",
+      "previousVersion": "4.11.3",
+      "fixedVersion": "4.11.4",
+      "severity": "high",
+      "advisory": "GHSA-3vhc-576x-3qv4, GHSA-f67f-6cw9-8mq4",
+      "title": "JWT Algorithm Confusion vulnerabilities"
+    }
+  ]
+}
