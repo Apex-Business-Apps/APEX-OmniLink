@@ -204,6 +204,32 @@ npm run lint      # ESLint check
 npm run smoke     # Smoke tests (requires build)
 ```
 
+### Pixel-Perfect Development Mode
+
+The site includes a reference overlay system for pixel-perfect alignment during development:
+
+```bash
+# Enable light theme reference overlay
+http://localhost:3000/?ref=light
+
+# Enable dark theme reference overlay
+http://localhost:3000/?ref=night
+```
+
+**Keyboard Controls:**
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Toggle overlay visibility |
+| `Shift+Up` | Increase opacity (+5%) |
+| `Shift+Down` | Decrease opacity (-5%) |
+
+**Reference Images:**
+
+Place design reference images in `public/reference/`:
+- `home-light.png` - Light theme (White Fortress) reference
+- `home-night.png` - Dark theme (Night Watch) reference
+
 ### Code Quality
 
 - **TypeScript**: Strict mode enabled
@@ -276,10 +302,11 @@ Remove `preload` from HSTS header before submitting to preload list.
 
 | Metric | Target | Actual |
 |--------|--------|--------|
-| Total JS (gzipped) | < 100 KB | ~95 KB |
-| Total CSS (gzipped) | < 5 KB | ~3.4 KB |
+| Total JS (gzipped) | < 100 KB | ~96 KB |
+| Total CSS (gzipped) | < 10 KB | ~6.4 KB |
 | LCP | < 2.5s | < 1s |
 | FID | < 100ms | < 50ms |
+| Build Time | < 10s | ~3s |
 
 ## Contributing
 
