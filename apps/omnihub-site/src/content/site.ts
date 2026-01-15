@@ -24,30 +24,28 @@ export const siteConfig = {
   hero: {
     eyebrow: 'APEX OMNIHUB',
     title: 'Intelligence Designed',
-    tagline: 'IT SEES YOU',
+    tagline: 'It Sees You',
     subtitle:
-      'Translate intent into audited execution across AI agents, enterprise systems, and Web3.',
-    description:
-      'APEX OmniHub is the vendor-independent control plane that governs data flow, policy, and deterministic execution through a single controlled port. Secure, observable, reversible.',
+      'Welcome to the future of workflow automation and business intelligence.',
   },
 
   highlights: {
     title: '',
     items: [
       {
-        title: 'Unified Workspace',
+        title: 'AI-Powered Automation',
         description:
-          'Combine tasks, communications, and data in one seamless interface.',
+          'Imagine a platform that anticipates your needs and streamlines your operations effortlessly.',
       },
       {
-        title: 'AI-Powered Insights',
+        title: 'Smart Integrations',
         description:
-          'Smart predictions and recommendations to keep you ahead of the curve.',
+          'Unify your tools and data into one intelligent system. Say goodbye to silos and productivity bottlenecks.',
       },
       {
-        title: 'Cross-Platform Sync',
+        title: 'Advanced Analytics',
         description:
-          'Sync across all your devices—desktop, tablet, and mobile.',
+          'Gain a 360° view of your organization. Make data-driven decisions with cutting-edge insights.',
       },
     ],
   },
@@ -73,7 +71,7 @@ export const siteConfig = {
   },
 
   showcase: {
-    title: 'Ready for the Future of Productivity?',
+    title: 'Experience APEX OmniHub Today',
     subtitle: 'Unite. Automate. Excel.',
     items: [
       { title: 'Project Management', image: '/placeholder-project.png' },

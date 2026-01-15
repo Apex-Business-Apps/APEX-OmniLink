@@ -87,14 +87,14 @@ All marketing copy lives in `src/content/site.ts`:
 
 ```typescript
 // Hero section
-siteConfig.hero.title      // "APEX OmniHub"
-siteConfig.hero.tagline    // "Intelligence, Designed."
+siteConfig.hero.title      // "Intelligence Designed"
+siteConfig.hero.tagline    // "It Sees You"
 
-// Proof tiles (SonarCloud metrics)
-proofConfig.tiles          // Configurable without code changes
+// Feature highlights
+siteConfig.highlights      // AI-Powered Automation, Smart Integrations, Advanced Analytics
 
 // Navigation
-siteConfig.nav.links       // Site navigation links
+siteConfig.nav.links       // Features, Solutions, Integrations, Pricing
 ```
 
 ### Environment Variables

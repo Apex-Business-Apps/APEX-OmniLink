@@ -4,7 +4,6 @@ import { CTAGroup } from '@/components/CTAGroup';
 import { HeroVisual } from '@/components/HeroVisual';
 import { FeatureHighlightGrid } from '@/components/FeatureHighlightGrid';
 import { ShowcaseStrip } from '@/components/ShowcaseStrip';
-import { ReferenceOverlay } from '@/components/ReferenceOverlay';
 import { siteConfig } from '@/content/site';
 
 function Hero() {
@@ -77,7 +76,6 @@ function CTASection() {
 export function HomePage() {
   return (
     <Layout>
-      <ReferenceOverlay />
       <Hero />
       <HighlightsSection />
       <ShowcaseSection />

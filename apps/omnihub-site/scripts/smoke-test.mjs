@@ -53,9 +53,10 @@ const PAGE_CHECKS = [
 const CONTENT_CHECKS = [
   { content: 'APEX OmniHub', description: 'Brand name' },
   { content: 'Intelligence Designed', description: 'Hero title' },
-  { content: 'IT SEES YOU', description: 'Hero tagline' },
-
-  { content: 'MAN Mode', description: 'MAN Mode section' },
+  { content: 'It Sees You', description: 'Hero tagline' },
+  { content: 'AI-Powered Automation', description: 'Feature highlight' },
+  { content: 'Smart Integrations', description: 'Feature highlight' },
+  { content: 'Advanced Analytics', description: 'Feature highlight' },
   { content: 'See It In Action', description: 'Demo page title' },
   { content: 'Single-Port Protocol', description: 'Tech spec section' },
   { content: 'Technical Specifications', description: 'Tech specs page title' },
