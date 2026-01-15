@@ -50,28 +50,28 @@ APEX OmniHub is **production-ready** with enterprise-grade security, performance
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
+│                              CLIENT LAYER                                   │
 │  React 18 + TypeScript + Vite + Tailwind + shadcn/ui                        │
 │  OmniDash Dashboard | Web3 Wallet | Guardian Security | Voice Interface     │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           EDGE FUNCTIONS LAYER                               │
+│                           EDGE FUNCTIONS LAYER                              │
 │  Supabase Edge Functions (Deno Runtime) — 15 Functions                      │
 │  omnilink-agent | web3-verify | web3-nonce | alchemy-webhook | verify-nft   │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         ORCHESTRATION LAYER                                  │
+│                         ORCHESTRATION LAYER                                 │
 │  Temporal.io Workflow Engine (Python 3.11+)                                 │
 │  Event Sourcing | Saga Pattern | Semantic Cache (70% hit) | MAN Mode        │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                             DATA LAYER                                       │
+│                             DATA LAYER                                      │
 │  PostgreSQL (pgvector) | Redis Stack | Alchemy RPC (ETH/Polygon)            │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -84,7 +84,7 @@ APEX OmniHub is **production-ready** with enterprise-grade security, performance
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        GUARDIAN NODE                             │
+│                        GUARDIAN NODE                            │
 │  Layer 1: Regex Pre-Filter (22 injection patterns)              │
 │  Layer 2: Constitutional AI (LLM-powered evaluation)            │
 │  Layer 3: PII Redaction (SSN, cards, phones, emails)            │
@@ -92,14 +92,14 @@ APEX OmniHub is **production-ready** with enterprise-grade security, performance
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                        PLANNER NODE                              │
+│                        PLANNER NODE                             │
 │  Cognitive Decoupling | DAG Construction | Plan Validation      │
 │  Max 5 steps per request | RAG-based skill matching             │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                        EXECUTOR NODE                             │
+│                        EXECUTOR NODE                            │
 │  Dependency-ordered execution | 30s timeout protection          │
 │  Audit logging | Fail-safe responses (never returns 500)        │
 └─────────────────────────────────────────────────────────────────┘
