@@ -12,17 +12,73 @@ export const siteConfig = {
   nav: {
     logo: 'APEX OmniHub',
     links: [
-      { label: 'Demo', href: '/demo.html' },
-      { label: 'Tech Specs', href: '/tech-specs.html' },
-      { label: 'Request Access', href: '/request-access.html' },
+      { label: 'Features', href: '/#features' },
+      { label: 'Solutions', href: '/#solutions' },
+      { label: 'Integrations', href: '/#integrations' },
+      { label: 'Pricing', href: '/#pricing' },
     ],
+    login: { label: 'Log In', href: '/restricted.html' },
+    primaryCta: { label: 'Get Started', href: '/request-access.html' },
   },
 
   hero: {
-    title: 'APEX OmniHub',
-    tagline: 'Intelligence, Designed.',
-    subtitle: 'Understand Everything. Communicate Anything, to Every Platform.',
-    description: 'The universal translator + orchestrator that connects AI, enterprise systems, and Web3 through a single controlled port - grounded in facts, truth, and audited proof.',
+    eyebrow: 'APEX OMNIHUB',
+    title: 'Intelligence Designed',
+    tagline: 'It Sees You',
+    subtitle:
+      'Welcome to the future of workflow automation and business intelligence.',
+  },
+
+  highlights: {
+    title: '',
+    items: [
+      {
+        title: 'AI-Powered Automation',
+        description:
+          'Imagine a platform that anticipates your needs and streamlines your operations effortlessly.',
+      },
+      {
+        title: 'Smart Integrations',
+        description:
+          'Unify your tools and data into one intelligent system. Say goodbye to silos and productivity bottlenecks.',
+      },
+      {
+        title: 'Advanced Analytics',
+        description:
+          'Gain a 360° view of your organization. Make data-driven decisions with cutting-edge insights.',
+      },
+    ],
+  },
+
+  integrations: {
+    title: 'Integrations that don’t compromise your stack',
+    subtitle:
+      'Adapters stay modular, portable, and optional-by-default. OmniHub stays the control tower.',
+    items: [
+      {
+        title: 'Enterprise Systems',
+        description: 'CRMs, ERPs, ticketing, calendars, messaging, storage, data warehouses.',
+      },
+      {
+        title: 'AI Apps & Agents',
+        description: 'Model providers, agent frameworks, RAG pipelines, tool routers, eval gates.',
+      },
+      {
+        title: 'Web3 & Onchain',
+        description: 'Wallet ops, tokenization, proofs, attestations, chain event listeners.',
+      },
+    ],
+  },
+
+  showcase: {
+    title: 'Experience APEX OmniHub Today',
+    subtitle: 'Unite. Automate. Excel.',
+    items: [
+      { title: 'Project Management', image: '/placeholder-project.png' },
+      { title: 'Team Collaboration', image: '/placeholder-team.png' },
+      { title: 'Personal Dashboard', image: '/placeholder-dashboard.png' },
+      { title: 'Workflow Automation', image: '/placeholder-workflow.png' },
+    ],
   },
 
   stamp: {
@@ -31,9 +87,9 @@ export const siteConfig = {
   },
 
   ctas: {
-    primary: { label: 'View Demo', href: '/demo.html' },
-    secondary: { label: 'Read Tech Specs', href: '/tech-specs.html' },
-    link: { label: 'Request Access', href: '/request-access.html' },
+    primary: { label: 'Get Started', href: '/request-access.html' },
+    secondary: { label: 'Watch Demo', href: '/demo.html' },
+    link: { label: 'Read Tech Specs', href: '/tech-specs.html' },
   },
 
   howItWorks: {
@@ -123,74 +179,88 @@ export const techSpecsConfig = {
   title: 'Technical Specifications',
   subtitle: 'Evidence-first architecture and security posture',
   sections: [
-    {
-      id: 'single-port',
-      title: 'Single-Port Protocol',
-      description: 'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.',
-      details: [
+    buildTechSpecSection(
+      'single-port',
+      'Single-Port Protocol',
+      'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.',
+      [
         'One ingress/egress point for all adapter traffic',
         'Protocol-agnostic envelope format',
         'Built-in rate limiting and throttling',
         'Automatic TLS termination',
-      ],
-    },
-    {
-      id: 'modular-adapters',
-      title: 'Modular Adapters',
-      description: 'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'modular-adapters',
+      'Modular Adapters',
+      'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.',
+      [
         'Hot-swappable adapter architecture',
         'Typed contracts for each adapter',
         'Isolated failure domains',
         'Community and enterprise adapter ecosystem',
-      ],
-    },
-    {
-      id: 'man-mode',
-      title: 'MAN Mode (Manual Authorization Needed)',
-      description: 'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'man-mode',
+      'MAN Mode (Manual Authorization Needed)',
+      'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.',
+      [
         'Configurable risk thresholds',
         'Async approval queue with notifications',
         'Audit trail for all approval decisions',
         'Timeout policies with safe defaults',
-      ],
-    },
-    {
-      id: 'receipts-idempotency',
-      title: 'Receipts & Idempotency',
-      description: 'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'receipts-idempotency',
+      'Receipts & Idempotency',
+      'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.',
+      [
         'Unique operation IDs for every request',
         'Cryptographic receipts for audit',
         'Automatic deduplication',
         'Replay capability for debugging',
-      ],
-    },
-    {
-      id: 'security-posture',
-      title: 'Security Posture',
-      description: 'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'security-posture',
+      'Security Posture',
+      'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.',
+      [
         'mTLS for service-to-service communication',
         'RBAC with attribute-based extensions',
         'Comprehensive security headers',
         'Regular third-party security audits',
-      ],
-    },
-    {
-      id: 'rollback-portability',
-      title: 'Rollback & Portability',
-      description: 'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.',
-      details: [
+      ]
+    ),
+    buildTechSpecSection(
+      'rollback-portability',
+      'Rollback & Portability',
+      'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.',
+      [
         'Database-agnostic data layer',
         'Configuration as code',
         'Compensation transactions for rollback',
         'Documented migration runbooks',
-      ],
-    },
+      ]
+    ),
   ],
 } as const;
+
+function buildTechSpecSection(
+  id: string,
+  title: string,
+  description: string,
+  details: string[]
+) {
+  return {
+    id,
+    title,
+    description,
+    details,
+  };
+}
 
 /**
  * Demo page content

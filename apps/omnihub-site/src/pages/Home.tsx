@@ -1,94 +1,70 @@
 import { Layout } from '@/components/Layout';
-import { Section, SectionHeader } from '@/components/Section';
-import { Stamp } from '@/components/Stamp';
+import { Section } from '@/components/Section';
 import { CTAGroup } from '@/components/CTAGroup';
-import { ProofGrid } from '@/components/ProofGrid';
-import { SignalTrace } from '@/components/SignalTrace';
-import { Steps } from '@/components/Steps';
-import { FortressList } from '@/components/FortressList';
-import { siteConfig, proofConfig } from '@/content/site';
+import { HeroVisual } from '@/components/HeroVisual';
+import { FeatureHighlightGrid } from '@/components/FeatureHighlightGrid';
+import { ShowcaseStrip } from '@/components/ShowcaseStrip';
+import { siteConfig } from '@/content/site';
 
 function Hero() {
   return (
-    <section className="hero" style={{ position: 'relative' }}>
-      <SignalTrace />
-      <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-        <p className="hero__tagline">{siteConfig.hero.tagline}</p>
-        <h1 className="heading-hero hero__title">{siteConfig.hero.title}</h1>
-        <p className="hero__subtitle">{siteConfig.hero.subtitle}</p>
-        <p className="hero__description">{siteConfig.hero.description}</p>
-        <CTAGroup
-          primary={siteConfig.ctas.primary}
-          secondary={siteConfig.ctas.secondary}
-          link={siteConfig.ctas.link}
-          centered
-        />
+    <section className="hero hero--mission">
+      <div className="container hero__grid">
+        <div className="hero__content">
+          <p className="hero__eyebrow">{siteConfig.hero.eyebrow}</p>
+          <h1 className="heading-hero hero__title">{siteConfig.hero.title}</h1>
+          <p className="hero__tagline">{siteConfig.hero.tagline}</p>
+          <p className="hero__subtitle">{siteConfig.hero.subtitle}</p>
+          <div className="hero__actions">
+            <CTAGroup
+              primary={siteConfig.ctas.primary}
+              secondary={siteConfig.ctas.secondary}
+            />
+          </div>
+        </div>
+
+        <div className="hero__visual" aria-hidden="true">
+          <HeroVisual />
+        </div>
       </div>
     </section>
   );
 }
 
-function HowItWorksSection() {
+function HighlightsSection() {
   return (
-    <Section id="how-it-works" variant="surface">
-      <SectionHeader title={siteConfig.howItWorks.title} />
-      <Steps />
+    <Section id="features" variant="surface">
+      <FeatureHighlightGrid items={siteConfig.highlights.items} />
     </Section>
   );
 }
 
-function FortressSection() {
-  return (
-    <Section id="fortress">
-      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-        <SectionHeader title={siteConfig.fortress.title} />
-        <FortressList />
-      </div>
-    </Section>
-  );
-}
-
-function ManModeSection() {
-  return (
-    <Section id="man-mode" variant="surface">
-      <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
-        <h2 className="heading-2">{siteConfig.manMode.title}</h2>
-        <p className="text-lg text-accent mt-4">{siteConfig.manMode.subtitle}</p>
-        <p className="text-secondary mt-4">{siteConfig.manMode.description}</p>
-      </div>
-    </Section>
-  );
-}
-
-function ProofSection() {
-  return (
-    <Section id="proof">
-      <SectionHeader title={proofConfig.title} />
-      <ProofGrid />
-    </Section>
-  );
-}
-
-function StampSection() {
+function ShowcaseSection() {
   return (
     <Section variant="surface">
-      <Stamp />
+      <div style={{ textAlign: 'center' }}>
+        <h2 className="heading-2">{siteConfig.showcase.title}</h2>
+        <p className="text-secondary mt-4">{siteConfig.showcase.subtitle}</p>
+        <div className="mt-8">
+          <ShowcaseStrip items={siteConfig.showcase.items} />
+        </div>
+      </div>
     </Section>
   );
 }
 
 function CTASection() {
   return (
-    <Section id="cta" variant="navy">
+    <Section id="pricing" variant="navy">
       <div style={{ textAlign: 'center' }}>
-        <h2 className="heading-2">Ready to get started?</h2>
+        <h2 className="heading-2">Experience APEX OmniHub Today</h2>
         <p className="text-lg mt-4" style={{ color: 'var(--color-text-muted)' }}>
-          Request access to explore the APEX OmniHub platform.
+          Unite. Automate. Excel.
         </p>
         <div className="mt-8">
           <CTAGroup
-            primary={siteConfig.ctas.link}
-            secondary={siteConfig.ctas.secondary}
+            primary={{ label: 'Get Started for Free', href: '/request-access.html' }}
+            secondary={{ label: 'Schedule a Demo', href: '/demo.html' }}
             centered
           />
         </div>
@@ -101,12 +77,10 @@ export function HomePage() {
   return (
     <Layout>
       <Hero />
-      <HowItWorksSection />
-      <FortressSection />
-      <ManModeSection />
-      <ProofSection />
-      <StampSection />
+      <HighlightsSection />
+      <ShowcaseSection />
       <CTASection />
     </Layout>
   );
 }
+

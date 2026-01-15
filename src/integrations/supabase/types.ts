@@ -134,6 +134,288 @@ export type Database = {
         }
         Relationships: []
       }
+      omnilink_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          integration_id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string | null
+          revoked_at: string | null
+          scopes: Json
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integration_id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string | null
+          revoked_at?: string | null
+          scopes?: Json
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integration_id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string | null
+          revoked_at?: string | null
+          scopes?: Json
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      omnilink_entities: {
+        Row: {
+          display_name: string | null
+          entity_type: string
+          external_id: string
+          id: string
+          integration_id: string
+          last_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          display_name?: string | null
+          entity_type: string
+          external_id: string
+          id?: string
+          integration_id: string
+          last_event_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          display_name?: string | null
+          entity_type?: string
+          external_id?: string
+          id?: string
+          integration_id?: string
+          last_event_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      omnilink_events: {
+        Row: {
+          api_key_id: string
+          data: Json
+          dataschema: string | null
+          entity: Json | null
+          envelope_id: string
+          id: string
+          idempotency_key: string
+          integration_id: string
+          received_at: string
+          source: string
+          subject: string | null
+          tenant_id: string
+          time: string
+          type: string
+        }
+        Insert: {
+          api_key_id: string
+          data: Json
+          dataschema?: string | null
+          entity?: Json | null
+          envelope_id: string
+          id?: string
+          idempotency_key: string
+          integration_id: string
+          received_at?: string
+          source: string
+          subject?: string | null
+          tenant_id: string
+          time: string
+          type: string
+        }
+        Update: {
+          api_key_id?: string
+          data?: Json
+          dataschema?: string | null
+          entity?: Json | null
+          envelope_id?: string
+          id?: string
+          idempotency_key?: string
+          integration_id?: string
+          received_at?: string
+          source?: string
+          subject?: string | null
+          tenant_id?: string
+          time?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      omnilink_orchestration_requests: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          envelope_id: string
+          id: string
+          idempotency_key: string
+          integration_id: string
+          params: Json | null
+          policy: Json | null
+          request_type: string
+          source: string
+          status: string
+          target: Json | null
+          tenant_id: string
+          time: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          envelope_id: string
+          id?: string
+          idempotency_key: string
+          integration_id: string
+          params?: Json | null
+          policy?: Json | null
+          request_type: string
+          source: string
+          status?: string
+          target?: Json | null
+          tenant_id: string
+          time: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          envelope_id?: string
+          id?: string
+          idempotency_key?: string
+          integration_id?: string
+          params?: Json | null
+          policy?: Json | null
+          request_type?: string
+          source?: string
+          status?: string
+          target?: Json | null
+          tenant_id?: string
+          time?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      omnilink_rate_limits: {
+        Row: {
+          api_key_id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          api_key_id: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          api_key_id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      omnilink_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          external_run_id: string | null
+          finished_at: string | null
+          id: string
+          integration_id: string
+          orchestration_request_id: string | null
+          output: Json | null
+          policy: Json | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          external_run_id?: string | null
+          finished_at?: string | null
+          id?: string
+          integration_id: string
+          orchestration_request_id?: string | null
+          output?: Json | null
+          policy?: Json | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          external_run_id?: string | null
+          finished_at?: string | null
+          id?: string
+          integration_id?: string
+          orchestration_request_id?: string | null
+          output?: Json | null
+          policy?: Json | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      omnilink_run_steps: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          output: Json | null
+          run_id: string
+          started_at: string | null
+          status: string
+          step_name: string
+          finished_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          output?: Json | null
+          run_id: string
+          started_at?: string | null
+          status?: string
+          step_name: string
+          finished_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          output?: Json | null
+          run_id?: string
+          started_at?: string | null
+          status?: string
+          step_name?: string
+          finished_at?: string | null
+        }
+        Relationships: []
+      }
       links: {
         Row: {
           created_at: string | null
@@ -591,6 +873,27 @@ export type Database = {
       get_user_tier: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_tier"]
+      }
+      omnilink_ingest: {
+        Args: {
+          p_api_key_id: string
+          p_integration_id: string
+          p_tenant_id: string
+          p_request_type: string
+          p_envelope: Json
+          p_idempotency_key: string
+          p_max_rpm: number
+          p_entity?: Json | null
+        }
+        Returns: Json
+      }
+      omnilink_revoke_key: {
+        Args: { p_key_id: string; p_user_id: string }
+        Returns: void
+      }
+      omnilink_set_approval: {
+        Args: { p_request_id: string; p_user_id: string; p_decision: string }
+        Returns: void
       }
     }
     Enums: {

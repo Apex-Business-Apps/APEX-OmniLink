@@ -47,27 +47,38 @@ npm run smoke
 ```
 apps/omnihub-site/
 ├── src/
-│   ├── components/     # Reusable UI components
-│   ├── content/        # Centralized content configuration
-│   ├── pages/          # Page components
-│   ├── styles/         # CSS (theme + components)
+│   ├── components/     # UI components (12 files)
+│   │   ├── Layout.tsx          # Nav + Footer wrapper, theme toggle
+│   │   ├── HeroVisual.tsx      # Central hub visual with orbiting icons
+│   │   ├── FeatureHighlightGrid.tsx  # 3-column feature cards
+│   │   ├── ShowcaseStrip.tsx   # 4-column image showcase
+│   │   ├── CTAGroup.tsx        # Button group (primary/secondary)
+│   │   ├── Section.tsx         # Section container with variants
+│   │   ├── ProofGrid.tsx       # Verification metrics tiles
+│   │   ├── Steps.tsx           # How-it-works step cards
+│   │   ├── FortressList.tsx    # Zero-trust principles list
+│   │   ├── SignalTrace.tsx     # Animated SVG background
+│   │   └── Stamp.tsx           # Brand tagline display
+│   ├── content/        # Centralized content (site.ts)
+│   ├── pages/          # Page components (5 pages)
+│   ├── styles/         # CSS (theme.css + components.css)
 │   └── *.tsx           # Entry points per page
-├── public/             # Static assets
-├── docs/               # Documentation
-├── supabase/           # Database migrations
+├── public/             # Static assets (images, favicon)
+├── docs/               # Security headers documentation
+├── tests/              # Visual regression tests (Playwright)
 ├── scripts/            # Build/test scripts
-└── *.html              # HTML entry points
+└── *.html              # HTML entry points (5 pages)
 ```
 
 ## Pages
 
-| Route | Description | SEO |
-|-------|-------------|-----|
-| `/` | Landing page with hero, features, proof modules | index |
-| `/demo.html` | Demo video/interactive placeholders | index |
-| `/tech-specs.html` | Technical specifications and architecture | index |
-| `/request-access.html` | Early access request form | index |
-| `/restricted.html` | Restricted area fallback | noindex |
+| Route | Description | Sections |
+|-------|-------------|----------|
+| `/` | Landing page | Hero, Feature Highlights, Showcase, CTA |
+| `/demo.html` | Demo video/interactive | Video placeholder, Interactive demo |
+| `/tech-specs.html` | Technical specifications | 6 spec sections with details |
+| `/request-access.html` | Early access form | Form with anti-abuse protection |
+| `/restricted.html` | Restricted fallback | Access denied with CTAs |
 
 ## Themes
 
@@ -77,7 +88,7 @@ Premium, high-whitespace design with crisp typography. Engineer-focused aestheti
 ### Night Watch (Toggle)
 Control-room aesthetic with restrained dark palette. No neon—professional and readable.
 
-Toggle via the sun/moon button in navigation. Preference persists in localStorage.
+Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navigation. Preference persists in localStorage.
 
 ## Configuration
 
@@ -87,14 +98,14 @@ All marketing copy lives in `src/content/site.ts`:
 
 ```typescript
 // Hero section
-siteConfig.hero.title      // "APEX OmniHub"
-siteConfig.hero.tagline    // "Intelligence, Designed."
+siteConfig.hero.title      // "Intelligence Designed"
+siteConfig.hero.tagline    // "It Sees You"
 
-// Proof tiles (SonarCloud metrics)
-proofConfig.tiles          // Configurable without code changes
+// Feature highlights
+siteConfig.highlights      // AI-Powered Automation, Smart Integrations, Advanced Analytics
 
 // Navigation
-siteConfig.nav.links       // Site navigation links
+siteConfig.nav.links       // Features, Solutions, Integrations, Pricing
 ```
 
 ### Environment Variables
@@ -189,11 +200,22 @@ npm run smoke     # Smoke tests (requires build)
 
 ### Testing
 
-Smoke tests verify all pages contain expected content:
+**Smoke Tests** - Verify all pages contain expected content:
 
 ```bash
 npm run build && npm run smoke
 ```
+
+**Visual Regression Tests** - Compare screenshots against baselines:
+
+```bash
+npm run test:visual
+```
+
+Visual tests check:
+- White Fortress theme at 1024x1536
+- Night Watch theme at 1196x2048
+- Theme toggle functionality
 
 ## Deployment
 
