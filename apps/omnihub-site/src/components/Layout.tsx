@@ -7,6 +7,16 @@ interface LayoutProps {
   title?: string;
 }
 
+/** Navigation links for the mobile drawer menu */
+const NAV_LINKS = [
+  { label: 'Features', href: '/#features' },
+  { label: 'Tri-Force Protocol', href: '/#tri-force' },
+  { label: 'Integrations', href: '/#integrations' },
+  { label: 'Tech Specs', href: '/tech-specs.html' },
+  { label: 'Demo', href: '/demo.html' },
+  { label: 'Request Access', href: '/request-access.html' },
+] as const;
+
 function getInitialTheme(): boolean {
   if (typeof window === 'undefined') return false;
   const saved = localStorage.getItem('theme');
@@ -148,19 +158,17 @@ function MobileDrawer({
 
   if (!isOpen) return null;
 
-  const navLinks = [
-    { label: 'Features', href: '/#features' },
-    { label: 'Tri-Force Protocol', href: '/#tri-force' },
-    { label: 'Integrations', href: '/#integrations' },
-    { label: 'Tech Specs', href: '/tech-specs.html' },
-    { label: 'Demo', href: '/demo.html' },
-    { label: 'Request Access', href: '/request-access.html' },
-  ];
-
   return (
     <>
-      <div className="drawer-backdrop" onClick={onClose} />
-      <div className="drawer">
+      <div
+        className="drawer-backdrop"
+        onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+        role="button"
+        tabIndex={0}
+        aria-label="Close menu"
+      />
+      <div className="drawer" role="dialog" aria-modal="true">
         <div className="drawer__header">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <LogoMark />
@@ -175,8 +183,8 @@ function MobileDrawer({
             <CloseIcon />
           </button>
         </div>
-        <nav className="drawer__nav">
-          {navLinks.map((link) => (
+        <nav className="drawer__nav" aria-label="Main navigation">
+          {NAV_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}

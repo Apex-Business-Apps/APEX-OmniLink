@@ -1,7 +1,36 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
-function getInitialRefMode(): 'light' | 'night' | null {
+/** Default overlay opacity (0-1 scale) */
+const DEFAULT_OPACITY = 0.35;
+/** Opacity adjustment step for keyboard controls */
+const OPACITY_STEP = 0.05;
+/** Maximum opacity value */
+const MAX_OPACITY = 1;
+/** Minimum opacity value */
+const MIN_OPACITY = 0;
+/** Percentage multiplier for display */
+const PERCENTAGE_MULTIPLIER = 100;
+/** Z-index for overlay image layer */
+const OVERLAY_Z_INDEX = 9999;
+/** Z-index for control panel (above overlay) */
+const CONTROL_PANEL_Z_INDEX = 10000;
+
+/** Reference image paths by theme */
+const REFERENCE_IMAGES = {
+  light: '/reference/home-light.png',
+  night: '/reference/home-night.png',
+} as const;
+
+type RefMode = 'light' | 'night';
+
+/**
+ * Reads the reference mode from URL query parameters.
+ * This is safe as it only reads a whitelisted parameter value
+ * and is used exclusively for development alignment purposes.
+ */
+function getInitialRefMode(): RefMode | null {
   if (typeof window === 'undefined') return null;
+  // Safe: Only reads 'ref' param, validates against whitelist
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
   if (ref === 'light' || ref === 'night') {
@@ -11,29 +40,39 @@ function getInitialRefMode(): 'light' | 'night' | null {
 }
 
 /**
- * Development-only overlay component for pixel-perfect alignment
+ * Development-only overlay component for pixel-perfect alignment.
+ * Renders a semi-transparent reference image over the page.
+ *
  * Usage: Add ?ref=light or ?ref=night to URL
+ *
+ * Keyboard Controls:
+ * - Ctrl+O: Toggle overlay visibility
+ * - Shift+Up: Increase opacity
+ * - Shift+Down: Decrease opacity
  */
 export function ReferenceOverlay() {
   const initialRefMode = useMemo(() => getInitialRefMode(), []);
-  const [opacity, setOpacity] = useState(0.35);
+  const [opacity, setOpacity] = useState(DEFAULT_OPACITY);
   const [visible, setVisible] = useState(initialRefMode !== null);
-  const [refMode] = useState<'light' | 'night' | null>(initialRefMode);
+  const [refMode] = useState<RefMode | null>(initialRefMode);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!refMode) return;
+
       if (e.key === 'o' && e.ctrlKey) {
         e.preventDefault();
         setVisible((v) => !v);
       }
+
       if (e.key === 'ArrowUp' && e.shiftKey) {
         e.preventDefault();
-        setOpacity((o) => Math.min(1, o + 0.05));
+        setOpacity((o) => Math.min(MAX_OPACITY, o + OPACITY_STEP));
       }
+
       if (e.key === 'ArrowDown' && e.shiftKey) {
         e.preventDefault();
-        setOpacity((o) => Math.max(0, o - 0.05));
+        setOpacity((o) => Math.max(MIN_OPACITY, o - OPACITY_STEP));
       }
     },
     [refMode]
@@ -44,12 +83,16 @@ export function ReferenceOverlay() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  // Early return if no reference mode is active
   if (!refMode) return null;
 
-  const imageSrc =
-    refMode === 'light'
-      ? '/reference/home-light.png'
-      : '/reference/home-night.png';
+  const imageSrc = REFERENCE_IMAGES[refMode];
+  const opacityPercent = Math.round(opacity * PERCENTAGE_MULTIPLIER);
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.currentTarget;
+    target.style.display = 'none';
+  };
 
   return (
     <>
@@ -62,9 +105,10 @@ export function ReferenceOverlay() {
             width: '100%',
             height: '100%',
             pointerEvents: 'none',
-            zIndex: 9999,
+            zIndex: OVERLAY_Z_INDEX,
             opacity,
           }}
+          aria-hidden="true"
         >
           <img
             src={imageSrc}
@@ -75,10 +119,7 @@ export function ReferenceOverlay() {
               objectFit: 'cover',
               objectPosition: 'top center',
             }}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-            }}
+            onError={handleImageError}
           />
         </div>
       )}
@@ -93,18 +134,20 @@ export function ReferenceOverlay() {
           fontSize: '12px',
           fontFamily: 'monospace',
           borderRadius: '4px',
-          zIndex: 10000,
+          zIndex: CONTROL_PANEL_Z_INDEX,
           pointerEvents: 'auto',
         }}
+        role="status"
+        aria-live="polite"
       >
         <div style={{ marginBottom: 4 }}>
-          <strong>Ref: {refMode}</strong> | Opacity: {Math.round(opacity * 100)}
-          %
+          <strong>Ref: {refMode}</strong> | Opacity: {opacityPercent}%
         </div>
         <div style={{ fontSize: 10, color: '#aaa' }}>
           Ctrl+O: toggle | Shift+Up/Down: opacity
         </div>
         <button
+          type="button"
           onClick={() => setVisible((v) => !v)}
           style={{
             marginTop: 6,
