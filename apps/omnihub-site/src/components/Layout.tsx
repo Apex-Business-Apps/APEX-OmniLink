@@ -6,6 +6,46 @@ interface LayoutProps {
   title?: string;
 }
 
+function BurgerMenu() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="nav__burger">
+      <button
+        type="button"
+        className="nav__burger-btn"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle menu"
+        aria-expanded={isOpen}
+      >
+        <span className={`nav__burger-icon ${isOpen ? 'nav__burger-icon--open' : ''}`}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      {isOpen && (
+        <div className="nav__mobile-menu">
+          <ul className="nav__mobile-links">
+            {siteConfig.nav.links.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} className="nav__mobile-link">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a href={siteConfig.nav.primaryCta.href} className="btn btn--primary btn--sm nav__mobile-cta">
+                {siteConfig.nav.primaryCta.label}
+              </a>
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getInitialTheme(): boolean {
   if (typeof window === 'undefined') return false;
   const saved = localStorage.getItem('theme');
@@ -87,10 +127,13 @@ function Nav() {
   return (
     <nav className="nav">
       <div className="container nav__inner">
-        <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
-          <LogoMark />
-          <span className="nav__logo-text">{siteConfig.nav.logo}</span>
-        </a>
+        <div className="nav__left">
+          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
+            <LogoMark />
+            <span className="nav__logo-text">{siteConfig.nav.logo}</span>
+          </a>
+          <BurgerMenu />
+        </div>
         <ul className="nav__links">
           {siteConfig.nav.links.map((link) => (
             <li key={link.href}>
@@ -101,13 +144,13 @@ function Nav() {
           ))}
         </ul>
         <div className="nav__actions">
-          <a href={siteConfig.nav.login.href} className="nav__link nav__link--action">
-            {siteConfig.nav.login.label}
-          </a>
-          <a href={siteConfig.nav.primaryCta.href} className="btn btn--primary btn--sm">
+          <a href={siteConfig.nav.primaryCta.href} className="btn btn--primary btn--sm nav__cta-desktop">
             {siteConfig.nav.primaryCta.label}
           </a>
           <ThemeToggle />
+          <a href={siteConfig.nav.login.href} className="nav__link nav__link--action nav__login">
+            {siteConfig.nav.login.label}
+          </a>
         </div>
       </div>
     </nav>

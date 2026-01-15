@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
+  "git": {
+    "deploymentEnabled": false
+  },
+  "buildCommand": "echo 'DEPRECATED: omni-link-apex deployment disabled - use main app' && exit 1",
   "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
