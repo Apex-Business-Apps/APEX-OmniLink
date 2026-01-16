@@ -168,7 +168,7 @@ function MobileDrawer({
             <LogoMark />
             <img
               className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.png"
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
             />
           </a>
@@ -238,7 +238,7 @@ function Nav() {
             <LogoMark />
             <img
               className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.png"
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
             />
           </a>
