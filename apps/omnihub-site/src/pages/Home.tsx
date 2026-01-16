@@ -174,8 +174,8 @@ function FortressSection() {
           Security isn&apos;t an afterthought—it&apos;s the foundation
         </p>
         <div className="fortress__grid">
-          {siteConfig.fortress.items.map((item, index) => (
-            <div key={index} className="fortress__item">
+          {siteConfig.fortress.items.map((item) => (
+            <div key={item} className="fortress__item">
               <div className="fortress__bullet" />
               <span>{item}</span>
             </div>

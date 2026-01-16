@@ -2,10 +2,10 @@ import { ReactNode, useEffect, useState } from 'react';
 import { siteConfig } from '@/content/site';
 import { ReferenceOverlay } from './ReferenceOverlay';
 
-interface LayoutProps {
+type LayoutProps = Readonly<{
   children: ReactNode;
   title?: string;
-}
+}>;
 
 function BurgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,54 +48,60 @@ function BurgerMenu() {
 }
 
 function getInitialTheme(): boolean {
-  if (typeof window === 'undefined') return false;
-  const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (typeof globalThis.window === 'undefined') return false;
+  const saved = globalThis.localStorage.getItem('theme');
+  const prefersDark =
+    globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches;
   return saved === 'dark' || (!saved && prefersDark);
 }
 
 function ThemeToggle() {
   const [isDark, setIsDark] = useState(getInitialTheme);
+  const isLight = !isDark;
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
   }, [isDark]);
 
   const setTheme = (dark: boolean) => {
     const newTheme = dark ? 'dark' : 'light';
     setIsDark(dark);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    globalThis.localStorage.setItem('theme', newTheme);
+    document.documentElement.dataset.theme = newTheme;
   };
 
   return (
-    <div
-      className="theme-toggle-segmented"
-      role="radiogroup"
-      aria-label="Theme selection"
-    >
-      <button
-        type="button"
+    <div className="theme-toggle-segmented" aria-label="Theme selection">
+      <label
         className={`theme-toggle-segmented__option ${
-          !isDark ? 'theme-toggle-segmented__option--active' : ''
+          isLight ? 'theme-toggle-segmented__option--active' : ''
         }`}
-        onClick={() => setTheme(false)}
-        aria-checked={!isDark}
-        role="radio"
       >
+        <input
+          className="theme-toggle-segmented__input"
+          type="radio"
+          name="theme"
+          value="light"
+          checked={isLight}
+          onChange={() => setTheme(false)}
+        />
         WHITE FORTRESS
-      </button>
-      <button
-        type="button"
+      </label>
+      <label
         className={`theme-toggle-segmented__option ${
           isDark ? 'theme-toggle-segmented__option--active' : ''
         }`}
-        onClick={() => setTheme(true)}
-        aria-checked={isDark}
-        role="radio"
       >
+        <input
+          className="theme-toggle-segmented__input"
+          type="radio"
+          name="theme"
+          value="dark"
+          checked={isDark}
+          onChange={() => setTheme(true)}
+        />
         NIGHT WATCH
-      </button>
+      </label>
     </div>
   );
 }
@@ -182,14 +188,14 @@ function BurgerIcon() {
             {siteConfig.nav.login.label}
           </a>
         </div>
-      </div>
+      </dialog>
     </>
   );
 }
 
 function getInitialAuthState(): boolean {
-  if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem('omnihub_session');
+  if (typeof globalThis.window === 'undefined') return false;
+  return Boolean(globalThis.localStorage.getItem('omnihub_session'));
 }
 
 function Nav() {
@@ -198,11 +204,11 @@ function Nav() {
 
   const handleAuthClick = () => {
     if (isAuthenticated) {
-      localStorage.removeItem('omnihub_session');
+      globalThis.localStorage.removeItem('omnihub_session');
       setIsAuthenticated(false);
-      window.location.href = '/';
+      globalThis.window.location.href = '/';
     } else {
-      window.location.href = '/restricted.html';
+      globalThis.window.location.href = '/restricted.html';
     }
   };
 

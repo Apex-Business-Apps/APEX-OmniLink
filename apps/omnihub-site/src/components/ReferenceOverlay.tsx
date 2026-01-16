@@ -29,9 +29,9 @@ type RefMode = 'light' | 'night';
  * and is used exclusively for development alignment purposes.
  */
 function getInitialRefMode(): RefMode | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof globalThis.window === 'undefined') return null;
   // Safe: Only reads 'ref' param, validates against whitelist
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(globalThis.window.location.search);
   const ref = params.get('ref');
   if (ref === 'light' || ref === 'night') {
     return ref;
@@ -79,6 +79,7 @@ export function ReferenceOverlay() {
   );
 
   useEffect(() => {
+    const { window } = globalThis;
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
@@ -123,7 +124,7 @@ export function ReferenceOverlay() {
           />
         </div>
       )}
-      <div
+      <output
         style={{
           position: 'fixed',
           bottom: 16,
@@ -137,7 +138,7 @@ export function ReferenceOverlay() {
           zIndex: CONTROL_PANEL_Z_INDEX,
           pointerEvents: 'auto',
         }}
-        role="status"
+        aria-label="Reference overlay controls"
         aria-live="polite"
       >
         <div style={{ marginBottom: 4 }}>
@@ -162,7 +163,7 @@ export function ReferenceOverlay() {
         >
           {visible ? 'Hide Overlay' : 'Show Overlay'}
         </button>
-      </div>
+      </output>
     </>
   );
 }
