@@ -157,9 +157,7 @@ function OrchestratorSection() {
           <div className="orchestrator__hub">
             <div className="orchestrator__pulse" />
             <div className="orchestrator__core">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-              </svg>
+              <IconOrchestrator size={48} />
             </div>
           </div>
         </div>
@@ -195,9 +193,7 @@ function ManModeSection() {
       <div className="manmode">
         <div className="manmode__visual" aria-hidden="true">
           <div className="manmode__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.96l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z" />
-            </svg>
+            <IconManMode size={56} />
           </div>
         </div>
         <div className="manmode__content">
