@@ -10,12 +10,15 @@ Design Principles:
 4. Strict validation with no implicit coercion
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator
+
+# Constant for UTC offset string (used in ISO 8601 timestamp parsing)
+UTC_OFFSET_SUFFIX = "+00:00"
 
 # ============================================================================
 # ENUMS (Matching TypeScript Union Types)
@@ -135,7 +138,7 @@ class EventEnvelope(BaseModel):
     event_type: EventType = Field(..., description="Event type: {app}:{domain}.{action}")
     payload: dict[str, Any] = Field(..., description="Event payload (app-specific)")
     timestamp: str = Field(
-        default_factory=lambda: datetime.utcnow().isoformat() + "Z",
+        default_factory=lambda: datetime.now(UTC).isoformat().replace(UTC_OFFSET_SUFFIX, "Z"),
         description="ISO 8601 timestamp",
     )
     source: AppName = Field(..., description="Source app that emitted the event")
@@ -151,7 +154,7 @@ class EventEnvelope(BaseModel):
     def validate_iso8601(cls, v: str) -> str:
         """Ensure timestamp is valid ISO 8601."""
         try:
-            datetime.fromisoformat(v.replace("Z", "+00:00"))
+            datetime.fromisoformat(v.replace("Z", UTC_OFFSET_SUFFIX))
         except ValueError as e:
             raise ValueError(f"Invalid ISO 8601 timestamp: {v}") from e
         return v
@@ -191,7 +194,9 @@ class AgentEvent(BaseModel):
     """
 
     event_id: str = Field(default_factory=lambda: str(uuid4()))
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp: str = Field(
+        default_factory=lambda: datetime.now(UTC).isoformat().replace(UTC_OFFSET_SUFFIX, "Z")
+    )
     correlation_id: str = Field(..., description="Links all events in a workflow instance")
 
     model_config = {"frozen": True}
