@@ -29,7 +29,7 @@ type RefMode = 'light' | 'night';
  * and is used exclusively for development alignment purposes.
  */
 function getInitialRefMode(): RefMode | null {
-  if (typeof globalThis.window === 'undefined') return null;
+  if (globalThis.window === undefined) return null;
   // Safe: Only reads 'ref' param, validates against whitelist
   const params = new URLSearchParams(globalThis.window.location.search);
   const ref = params.get('ref');
