@@ -1,0 +1,3 @@
+# Vercel deployment disabled; keep file to prevent packaging.
+*
+!.vercelignore

@@ -141,9 +141,13 @@ function CloseIcon() {
 function MobileDrawer({
   isOpen,
   onClose,
+  isAuthenticated,
+  onAuthClick,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  isAuthenticated: boolean;
+  onAuthClick: () => void;
 }) {
   useEffect(() => {
     if (isOpen) {
@@ -172,7 +176,11 @@ function MobileDrawer({
         <div className="drawer__header">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <LogoMark />
-            <span className="nav__logo-text">{siteConfig.nav.logo}</span>
+            <img
+              className="nav__logo-wordmark"
+              src="/apex-omnihub-wordmark.png"
+              alt="APEX OmniHub"
+            />
           </a>
           <button
             type="button"
@@ -197,6 +205,16 @@ function MobileDrawer({
         </nav>
         <div className="drawer__footer">
           <ThemeToggle />
+          <button
+            type="button"
+            className="nav__link nav__link--action nav__auth-btn"
+            onClick={() => {
+              onAuthClick();
+              onClose();
+            }}
+          >
+            {isAuthenticated ? 'Log out' : 'Log in'}
+          </button>
         </div>
       </div>
     </>
@@ -228,20 +246,24 @@ function Nav() {
         <div className="container nav__inner">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <LogoMark />
-            <span className="nav__logo-text">{siteConfig.nav.logo}</span>
+            <img
+              className="nav__logo-wordmark"
+              src="/apex-omnihub-wordmark.png"
+              alt="APEX OmniHub"
+            />
           </a>
 
-          <button
-            type="button"
-            className="nav__burger"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={drawerOpen}
-          >
-            <BurgerIcon />
-          </button>
-
           <div className="nav__actions">
+            <button
+              type="button"
+              className="nav__burger"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+            >
+              <BurgerIcon />
+            </button>
+            <ThemeToggle />
             <button
               type="button"
               className="nav__link nav__link--action nav__auth-btn"
@@ -249,11 +271,15 @@ function Nav() {
             >
               {isAuthenticated ? 'Log out' : 'Log in'}
             </button>
-            <ThemeToggle />
           </div>
         </div>
       </nav>
-      <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <MobileDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        isAuthenticated={isAuthenticated}
+        onAuthClick={handleAuthClick}
+      />
     </>
   );
 }
