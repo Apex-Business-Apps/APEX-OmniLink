@@ -1,6 +1,9 @@
+import type { ReactNode } from 'react';
+
 interface FeatureItem {
   title: string;
   description: string;
+  icon?: ReactNode;
 }
 
 type FeatureHighlightGridProps = Readonly<{
@@ -31,7 +34,7 @@ export function FeatureHighlightGrid({ items }: FeatureHighlightGridProps) {
       {items.map((item) => (
         <li key={item.title} className="card feature-card">
           <div className="feature-card__icon">
-            <SparkIcon />
+            {item.icon ?? <SparkIcon />}
           </div>
           <h3 className="heading-4 feature-card__title">{item.title}</h3>
           <p className="text-sm text-secondary mt-4">{item.description}</p>

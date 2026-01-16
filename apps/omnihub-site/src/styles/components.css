@@ -1163,9 +1163,9 @@
   color: var(--color-text-primary);
 }
 
-/* Standalone BurgerMenu component */
+/* Standalone BurgerMenu component - visible on ALL platforms */
 .burger-menu {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
@@ -1201,11 +1201,7 @@
   transition: all 0.3s ease;
 }
 
-@media (max-width: 768px) {
-  .burger-menu {
-    display: flex;
-  }
-}
+/* Burger menu is now visible on all screen sizes - no media query override needed */
 
 .drawer__title {
   font-size: var(--font-size-lg);
