@@ -34,7 +34,7 @@ function Hero() {
           <p className="hero__subtitle">{siteConfig.hero.subtitle}</p>
           <p className="hero__description">
             Understand Everything. Communicate Anything, to Every Platform.
-            OmniHub is your universal translator and orchestrator—connecting AI,
+            OmniHub is your universal translator and orchestrator, connecting AI,
             enterprise systems, and Web3 through a single controlled port.
           </p>
           <div className="hero__actions">
@@ -90,7 +90,7 @@ function TriForceSection() {
       title: 'Connect',
       icon: <IconConnect size={32} />,
       description:
-        'Modular adapters plug into any system with an interface—API, webhook, or events.',
+        'Modular adapters plug into any system with an interface: API, webhook, or events.',
     },
     {
       id: 'translate',
@@ -142,7 +142,7 @@ function OrchestratorSection() {
         <div className="orchestrator__content">
           <h2 className="heading-2">The Orchestrator</h2>
           <p className="text-secondary mt-4">
-            OmniHub doesn&apos;t just connect—it coordinates. Every workflow
+            OmniHub does more than connect. It coordinates. Every workflow
             flows through the central orchestrator, ensuring consistent
             execution, comprehensive logging, and intelligent routing.
           </p>
@@ -172,7 +172,7 @@ function FortressSection() {
       <div className="fortress">
         <h2 className="heading-2">Zero-Trust Fortress Protocol</h2>
         <p className="fortress__subtitle">
-          Security isn&apos;t an afterthought—it&apos;s the foundation
+          Security is not an afterthought. It is the foundation.
         </p>
         <div className="fortress__grid">
           {siteConfig.fortress.items.map((item) => (

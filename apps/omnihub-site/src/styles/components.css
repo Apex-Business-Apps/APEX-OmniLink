@@ -368,8 +368,28 @@
   text-decoration: none;
 }
 
-.nav__logo-mark {
-  color: var(--color-accent);
+.nav__logo-badge {
+  height: 32px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(234, 88, 12, 0.6));
+  transition: filter var(--transition-fast);
+}
+
+.nav__logo-badge:hover {
+  filter: drop-shadow(0 0 12px rgba(234, 88, 12, 0.8));
+}
+
+/* Responsive badge sizing */
+@media (max-width: 768px) {
+  .nav__logo-badge {
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav__logo-badge {
+    height: 24px;
+  }
 }
 
 .nav__logo-text {
