@@ -240,7 +240,7 @@ function Nav() {
       setIsAuthenticated(false);
       globalThis.window.location.href = '/';
     } else {
-      globalThis.window.location.href = '/restricted.html';
+      globalThis.window.location.href = '/login.html';
     }
   };
 
