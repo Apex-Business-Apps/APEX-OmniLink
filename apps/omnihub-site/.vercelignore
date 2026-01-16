@@ -1,3 +1,17 @@
-# Vercel deployment disabled; keep file to prevent packaging.
-*
-!.vercelignore
+# Development files
+.env.local
+.env.development
+*.log
+
+# Test files
+tests/
+*.test.ts
+*.spec.ts
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development reference images
+public/reference/
