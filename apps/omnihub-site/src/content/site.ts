@@ -12,17 +12,24 @@ export const siteConfig = {
   nav: {
     logo: 'APEX OmniHub',
     links: [
-      { label: 'Demo', href: '/demo.html' },
-      { label: 'Tech Specs', href: '/tech-specs.html' },
-      { label: 'Request Access', href: '/request-access.html' },
+      { label: 'Features', href: '#features' },
+      { label: 'Solutions', href: '#solutions' },
+      { label: 'Integrations', href: '#integrations' },
+      { label: 'Pricing', href: '#pricing' },
     ],
+    actions: {
+      login: { label: 'Log In', href: '/request-access.html' },
+      primary: { label: 'Get Started', href: '#cta' },
+    },
   },
 
   hero: {
-    title: 'APEX OmniHub',
-    tagline: 'Intelligence, Designed.',
-    subtitle: 'Understand Everything. Communicate Anything, to Every Platform.',
-    description: 'The universal translator + orchestrator that connects AI, enterprise systems, and Web3 through a single controlled port - grounded in facts, truth, and audited proof.',
+    title: 'Intelligence Designed',
+    emphasis: 'It Sees You',
+    tagline: 'APEX OmniHub',
+    subtitle: 'A unified command center for operational intelligence, workflow orchestration, and real-time execution.',
+    description:
+      'Connect teams, systems, and data into a single living workspace that adapts, learns, and drives measurable outcomes.',
   },
 
   stamp: {
@@ -31,9 +38,50 @@ export const siteConfig = {
   },
 
   ctas: {
-    primary: { label: 'View Demo', href: '/demo.html' },
-    secondary: { label: 'Read Tech Specs', href: '/tech-specs.html' },
+    primary: { label: 'Get Started', href: '#cta' },
+    secondary: { label: 'View Platform', href: '/demo.html' },
     link: { label: 'Request Access', href: '/request-access.html' },
+  },
+
+  features: [
+    {
+      title: 'Unified Workspace',
+      description:
+        'Bring tasks, knowledge, and telemetry into one command layer so every team stays aligned.',
+    },
+    {
+      title: 'AI-Powered Insights',
+      description:
+        'Surface anomalies, opportunities, and next-best actions before they impact performance.',
+    },
+    {
+      title: 'Cross-Platform Sync',
+      description:
+        'Keep workflows consistent across apps, devices, and environments with zero manual drift.',
+    },
+  ],
+
+  integrations: [
+    'Slack',
+    'Google Workspace',
+    'GitHub',
+    'Jira',
+    'Salesforce',
+    'Notion',
+  ],
+
+  showcase: [
+    { title: 'Project Management' },
+    { title: 'Team Collaboration' },
+    { title: 'Personal Dashboard' },
+    { title: 'Workflow Automation' },
+  ],
+
+  finalCta: {
+    title: 'Experience APEX OmniHub Today',
+    subtitle: 'Unite. Automate. Excel.',
+    primary: { label: 'Get Started', href: '#cta' },
+    secondary: { label: 'Request Access', href: '/request-access.html' },
   },
 
   howItWorks: {

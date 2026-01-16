@@ -6,76 +6,41 @@ interface LayoutProps {
   title?: string;
 }
 
-function SunIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="theme-toggle__icon"
-    >
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-    </svg>
-  );
-}
+type Theme = 'light' | 'dark';
 
-function MoonIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="theme-toggle__icon"
-    >
-      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-    </svg>
-  );
-}
-
-function getInitialTheme(): boolean {
-  if (typeof window === 'undefined') return false;
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'light';
   const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return saved === 'dark' || (!saved && prefersDark);
+  return saved === 'dark' ? 'dark' : 'light';
 }
 
 function ThemeToggle() {
-  const [isDark, setIsDark] = useState(getInitialTheme);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
-    // Sync DOM attribute with state on mount
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    setIsDark(!isDark);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-  };
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   return (
-    <button
-      className="theme-toggle"
-      onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'White Fortress' : 'Night Watch'}
-    >
-      {isDark ? <SunIcon /> : <MoonIcon />}
-    </button>
+    <div className="theme-toggle" role="group" aria-label="Theme toggle">
+      <button
+        type="button"
+        className={`theme-toggle__option ${theme === 'light' ? 'is-active' : ''}`}
+        onClick={() => setTheme('light')}
+        aria-pressed={theme === 'light'}
+      >
+        WHITE FORTRESS
+      </button>
+      <button
+        type="button"
+        className={`theme-toggle__option ${theme === 'dark' ? 'is-active' : ''}`}
+        onClick={() => setTheme('dark')}
+        aria-pressed={theme === 'dark'}
+      >
+        NIGHT WATCH
+      </button>
+    </div>
   );
 }
 
@@ -84,7 +49,17 @@ function Nav() {
     <nav className="nav">
       <div className="container nav__inner">
         <a href="/" className="nav__logo">
-          {siteConfig.nav.logo}
+          <img
+            className="nav__wordmark nav__wordmark--light"
+            src="/assets/wordmark-light.svg"
+            alt={siteConfig.nav.logo}
+          />
+          <img
+            className="nav__wordmark nav__wordmark--dark"
+            src="/assets/wordmark-night.svg"
+            alt=""
+            aria-hidden="true"
+          />
         </a>
         <ul className="nav__links">
           {siteConfig.nav.links.map((link) => (
@@ -96,6 +71,12 @@ function Nav() {
           ))}
         </ul>
         <div className="nav__actions">
+          <a href={siteConfig.nav.actions.login.href} className="btn btn--ghost btn--sm">
+            {siteConfig.nav.actions.login.label}
+          </a>
+          <a href={siteConfig.nav.actions.primary.href} className="btn btn--primary btn--sm">
+            {siteConfig.nav.actions.primary.label}
+          </a>
           <ThemeToggle />
         </div>
       </div>
@@ -122,6 +103,28 @@ function Footer() {
   );
 }
 
+function OverlayGuide() {
+  const [overlay, setOverlay] = useState<'light' | 'dark' | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('overlay');
+    if (value === 'night') {
+      setOverlay('dark');
+    } else if (value === 'light') {
+      setOverlay('light');
+    }
+  }, []);
+
+  if (!overlay) return null;
+
+  const src =
+    overlay === 'dark' ? '/reference/home-night.png' : '/reference/home-light.png';
+
+  return <img className="overlay-guide" src={src} alt="" aria-hidden="true" />;
+}
+
 export function Layout({ children, title }: LayoutProps) {
   useEffect(() => {
     if (title) {
@@ -136,6 +139,7 @@ export function Layout({ children, title }: LayoutProps) {
       <Nav />
       <main>{children}</main>
       <Footer />
+      <OverlayGuide />
     </>
   );
 }

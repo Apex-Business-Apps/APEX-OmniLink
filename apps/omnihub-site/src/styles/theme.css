@@ -35,6 +35,8 @@
   --color-border-subtle: #f1f5f9;
   --color-accent: var(--color-orange);
   --color-accent-hover: var(--color-orange-light);
+  --color-hero-accent: #2563eb;
+  --color-hero-glow: rgba(59, 130, 246, 0.35);
 
   /* Interactive states */
   --color-interactive: var(--color-navy);
@@ -138,6 +140,8 @@
   --color-text-muted: #64748b;
   --color-border: #334155;
   --color-border-subtle: #1e293b;
+  --color-hero-accent: #5ee4ff;
+  --color-hero-glow: rgba(94, 228, 255, 0.4);
 
   /* Interactive states - restrained, not neon */
   --color-interactive: #f8fafc;

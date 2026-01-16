@@ -14,6 +14,17 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet" />
   <title>APEX OmniHub - Intelligence, Designed.</title>
+  <script>
+    (function () {
+      try {
+        var storedTheme = localStorage.getItem('theme');
+        var theme = storedTheme === 'dark' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
 
   <!-- Open Graph -->
   <meta property="og:title" content="APEX OmniHub — Intelligence, Designed." />
