@@ -525,18 +525,18 @@ class SemanticCacheService:
     def _generate_plan_id(goal: str) -> str:
         """Generate unique plan instance ID."""
         import uuid
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         nonce = str(uuid.uuid4())[:8]
         return f"plan_{timestamp}_{nonce}"
 
     @staticmethod
     def _iso_now() -> str:
         """Get current time as ISO 8601 string."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return datetime.utcnow().isoformat() + "Z"
+        return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     async def close(self) -> None:
         """Close Redis connection."""

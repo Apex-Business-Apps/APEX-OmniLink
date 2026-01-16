@@ -1666,9 +1666,9 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wider);
-  color: #92400e;
-  background-color: rgba(234, 179, 8, 0.2);
-  border: var(--border-width) solid rgba(146, 64, 14, 0.35);
+  color: #78350f;
+  background-color: rgba(234, 179, 8, 0.25);
+  border: var(--border-width) solid rgba(120, 53, 15, 0.4);
   border-radius: var(--border-radius-md);
   margin-bottom: var(--space-4);
 }

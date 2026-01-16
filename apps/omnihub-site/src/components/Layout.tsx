@@ -44,8 +44,8 @@ function ThemeToggle() {
           value="light"
           checked={isLight}
           onChange={() => setTheme(false)}
-        />
-        WHITE FORTRESS
+        />{' '}
+        <span>WHITE FORTRESS</span>
       </label>
       <label
         className={`theme-toggle-segmented__option ${
@@ -59,8 +59,8 @@ function ThemeToggle() {
           value="dark"
           checked={isDark}
           onChange={() => setTheme(true)}
-        />
-        NIGHT WATCH
+        />{' '}
+        <span>NIGHT WATCH</span>
       </label>
     </div>
   );
