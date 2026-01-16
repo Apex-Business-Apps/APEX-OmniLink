@@ -68,32 +68,12 @@ function ThemeToggle() {
 
 function LogoMark() {
   return (
-    <svg
+    <img
+      src="/apex-badge.png"
+      alt=""
       aria-hidden="true"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="nav__logo-mark"
-    >
-      <path
-        d="M12 2 2 20h20L12 2Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 6 6.8 16.5h10.4L12 6Z"
-        fill="currentColor"
-        opacity="0.12"
-      />
-      <path
-        d="M12 10.2 9.2 16h5.6L12 10.2Z"
-        fill="currentColor"
-        opacity="0.28"
-      />
-    </svg>
+      className="nav__logo-badge"
+    />
   );
 }
 

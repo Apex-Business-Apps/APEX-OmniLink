@@ -109,8 +109,9 @@ Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navig
 
 ## Branding & Navigation
 
+- **Header badge** uses `public/apex-badge.png` with a subtle orange glow effect for brand recognition.
+- **Header wordmark** uses `public/apex-omnihub-wordmark.svg` (optimized SVG) beside the badge in both desktop and mobile nav.
 - **App icon** lives at `public/apex-omnihub-icon.png` and is referenced in `index.html`.
-- **Header wordmark** uses `public/apex-omnihub-wordmark.svg` (optimized SVG) in both desktop and mobile nav.
 - **Hero image** uses `public/assets/hero.svg`, a single theme-agnostic SVG for both White Fortress and Night Watch.
 - **Login placement** sits to the right of the theme toggle on desktop, and in the drawer footer on mobile.
 - **Burger menu** controls navigation on mobile, replacing inline nav links.
