@@ -422,11 +422,7 @@
   gap: var(--space-4);
 }
 
-/* === BURGER MENU === */
-.nav__burger {
-  display: none;
-}
-
+/* === BURGER MENU (Mobile Override) === */
 @media (max-width: 768px) {
   .nav__burger {
     display: block;

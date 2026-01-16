@@ -12,7 +12,7 @@ export function createSupabaseClient(options: SupabaseClientOptions): SupabaseCl
   const key = options.serviceRoleKey || options.apiKey;
   const client = createClient<Database>(options.url, key, {
     auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
+      storage: globalThis.window !== undefined ? globalThis.localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,
     },
