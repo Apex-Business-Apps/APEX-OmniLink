@@ -22,7 +22,7 @@ export const Header = () => {
         {/* Center - Wordmark */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <img
-            src="/apex-omnihub-wordmark.png"
+            src="/apex-omnihub-wordmark.svg"
             alt="APEX OmniHub"
             className="h-[48px] w-auto"
           />
