@@ -2,6 +2,29 @@
 
 All notable changes to the APEX OmniHub Marketing Site.
 
+## [1.3.0] - 2026-01-16
+
+### Added
+- **SVG wordmark** (`apex-omnihub-wordmark.svg`) - Optimized vector format for crisp rendering at all sizes
+- **SVG hero image** (`assets/hero.svg`) - Theme-agnostic hero visual that works for both White Fortress and Night Watch
+
+### Changed
+- Header wordmark upgraded from PNG to optimized SVG (244 KB)
+- Hero visual simplified to single SVG, removing theme-dependent image switching
+- All browser API access now uses `globalThis.window` and `globalThis.localStorage` for SSR compatibility
+- ReferenceOverlay uses semantic `<output>` element for accessibility compliance
+- MobileDrawer uses native `<dialog>` element with proper `onCancel` handling
+- Removed duplicate `.nav__burger` CSS selector
+
+### Fixed
+- SonarQube S1128: Removed unused `useSyncExternalStore` import from HeroVisual
+- SonarQube style: Changed `typeof globalThis.window === 'undefined'` to direct comparison
+- CSS duplicate selector warning for `.nav__burger`
+- Improved accessibility with proper ARIA labels and semantic HTML elements
+
+### Security
+- All components now use `globalThis` for safe server-side rendering without `ReferenceError`
+
 ## [1.2.0] - 2026-01-15
 
 ### Added
