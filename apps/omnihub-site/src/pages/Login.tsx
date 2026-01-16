@@ -20,10 +20,27 @@ export function LoginPage() {
       return;
     }
 
-    // Simulate authentication (replace with real auth later)
-    // For now, accept any valid email format with password length >= 6
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Validate email format using simple checks (avoids regex DoS vulnerabilities)
+    // Max email length per RFC 5321 is 254 characters
+    const MAX_EMAIL_LENGTH = 254;
+    if (email.length > MAX_EMAIL_LENGTH) {
+      setError('Email address is too long');
+      setIsLoading(false);
+      return;
+    }
+
+    // Simple email validation: must have exactly one @, something before and after
+    const atIndex = email.indexOf('@');
+    const lastAtIndex = email.lastIndexOf('@');
+    const dotAfterAt = email.lastIndexOf('.');
+    const isValidEmail =
+      atIndex > 0 &&
+      atIndex === lastAtIndex &&
+      dotAfterAt > atIndex + 1 &&
+      dotAfterAt < email.length - 1 &&
+      !email.includes(' ');
+
+    if (!isValidEmail) {
       setError('Please enter a valid email address');
       setIsLoading(false);
       return;
