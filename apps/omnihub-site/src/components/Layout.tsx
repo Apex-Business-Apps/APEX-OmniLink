@@ -7,15 +7,45 @@ type LayoutProps = Readonly<{
   title?: string;
 }>;
 
-/** Navigation links for the mobile drawer menu */
-const NAV_LINKS = [
-  { label: 'Features', href: '/#features' },
-  { label: 'Tri-Force Protocol', href: '/#tri-force' },
-  { label: 'Integrations', href: '/#integrations' },
-  { label: 'Tech Specs', href: '/tech-specs.html' },
-  { label: 'Demo', href: '/demo.html' },
-  { label: 'Request Access', href: '/request-access.html' },
-] as const;
+function BurgerMenu() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="nav__burger">
+      <button
+        type="button"
+        className="nav__burger-btn"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle menu"
+        aria-expanded={isOpen}
+      >
+        <span className={`nav__burger-icon ${isOpen ? 'nav__burger-icon--open' : ''}`}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      {isOpen && (
+        <div className="nav__mobile-menu">
+          <ul className="nav__mobile-links">
+            {siteConfig.nav.links.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} className="nav__mobile-link">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a href={siteConfig.nav.primaryCta.href} className="btn btn--primary btn--sm nav__mobile-cta">
+                {siteConfig.nav.primaryCta.label}
+              </a>
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function getInitialTheme(): boolean {
   if (typeof globalThis.window === 'undefined') return false;
