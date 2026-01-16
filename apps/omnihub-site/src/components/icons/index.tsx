@@ -208,19 +208,19 @@ export const IconManMode: React.FC<IconProps> = ({
     aria-label="MAN Mode"
   >
     <title>MAN Mode</title>
-    <circle cx="12" cy="5" r="2" />
-    <path d="M12 7V13" />
-    <path d="M8 10H16" />
-    <path d="M12 13L9 20" />
-    <path d="M12 13L15 20" />
-    <path d="M3 3H7V21H3" />
-    <path d="M17 3H21V21H17" />
-    <circle cx="5" cy="7" r="1" />
-    <circle cx="5" cy="11" r="1" />
-    <circle cx="5" cy="15" r="1" />
-    <circle cx="19" cy="7" r="1" />
-    <circle cx="19" cy="11" r="1" />
-    <circle cx="19" cy="15" r="1" />
+    {/* Warning triangle */}
+    <path d="M12 2L22 20H2L12 2Z" />
+    {/* Stop hand - palm */}
+    <path d="M12 8V14" />
+    {/* Stop hand - fingers spread */}
+    <path d="M9 10V8" />
+    <path d="M10.5 9V7" />
+    <path d="M13.5 9V7" />
+    <path d="M15 10V8" />
+    {/* Palm base */}
+    <path d="M9 14H15" />
+    <path d="M9 10C9 10 9 12 9 14" />
+    <path d="M15 10C15 10 15 12 15 14" />
   </svg>
 );
 

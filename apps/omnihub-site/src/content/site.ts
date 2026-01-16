@@ -5,6 +5,40 @@
 
 import { getSiteUrl } from '@/lib/site-url';
 
+// ============================================================================
+// Helper functions to reduce duplication in config objects
+// ============================================================================
+
+/** Build a navigation link */
+function buildLink(label: string, href: string) {
+  return { label, href };
+}
+
+/** Build an action button with primary flag */
+function buildAction(label: string, href: string, primary: boolean) {
+  return { label, href, primary };
+}
+
+/** Build a titled item with description */
+function buildItem(title: string, description: string) {
+  return { title, description };
+}
+
+/** Build a proof tile */
+function buildProofTile(id: string, label: string, value: string, verified: boolean) {
+  return { id, label, value, verified };
+}
+
+/** Build a form field config */
+function buildField(label: string, placeholder: string, maxLength: number) {
+  return { label, placeholder, maxLength };
+}
+
+/** Build a tech spec section */
+function buildTechSpecSection(id: string, title: string, description: string, details: string[]) {
+  return { id, title, description, details };
+}
+
 export const siteConfig = {
   name: 'APEX OmniHub',
   domain: new URL(getSiteUrl()).hostname,
@@ -12,13 +46,13 @@ export const siteConfig = {
   nav: {
     logo: 'APEX OmniHub',
     links: [
-      { label: 'Features', href: '/#features' },
-      { label: 'Solutions', href: '/#solutions' },
-      { label: 'Integrations', href: '/#integrations' },
-      { label: 'Pricing', href: '/#pricing' },
+      buildLink('Features', '/#features'),
+      buildLink('Solutions', '/#solutions'),
+      buildLink('Integrations', '/#integrations'),
+      buildLink('Pricing', '/#pricing'),
     ],
-    login: { label: 'Log In', href: '/restricted.html' },
-    primaryCta: { label: 'Get Started', href: '/request-access.html' },
+    login: buildLink('Log In', '/restricted.html'),
+    primaryCta: buildLink('Get Started', '/request-access.html'),
   },
 
   hero: {
@@ -32,41 +66,20 @@ export const siteConfig = {
   highlights: {
     title: '',
     items: [
-      {
-        title: 'AI-Powered Automation',
-        description:
-          'Imagine a platform that anticipates your needs and streamlines your operations effortlessly.',
-      },
-      {
-        title: 'Smart Integrations',
-        description:
-          'Unify your tools and data into one intelligent system. Say goodbye to silos and productivity bottlenecks.',
-      },
-      {
-        title: 'Advanced Analytics',
-        description:
-          'Gain a 360° view of your organization. Make data-driven decisions with cutting-edge insights.',
-      },
+      buildItem('AI-Powered Automation', 'Imagine a platform that anticipates your needs and streamlines your operations effortlessly.'),
+      buildItem('Smart Integrations', 'Unify your tools and data into one intelligent system. Say goodbye to silos and productivity bottlenecks.'),
+      buildItem('Advanced Analytics', 'Gain a 360° view of your organization. Make data-driven decisions with cutting-edge insights.'),
     ],
   },
 
   integrations: {
-    title: 'Integrations that don’t compromise your stack',
+    title: "Integrations that don't compromise your stack",
     subtitle:
       'Adapters stay modular, portable, and optional-by-default. OmniHub stays the control tower.',
     items: [
-      {
-        title: 'Enterprise Systems',
-        description: 'CRMs, ERPs, ticketing, calendars, messaging, storage, data warehouses.',
-      },
-      {
-        title: 'AI Apps & Agents',
-        description: 'Model providers, agent frameworks, RAG pipelines, tool routers, eval gates.',
-      },
-      {
-        title: 'Web3 & Onchain',
-        description: 'Wallet ops, tokenization, proofs, attestations, chain event listeners.',
-      },
+      buildItem('Enterprise Systems', 'CRMs, ERPs, ticketing, calendars, messaging, storage, data warehouses.'),
+      buildItem('AI Apps & Agents', 'Model providers, agent frameworks, RAG pipelines, tool routers, eval gates.'),
+      buildItem('Web3 & Onchain', 'Wallet ops, tokenization, proofs, attestations, chain event listeners.'),
     ],
   },
 
@@ -87,26 +100,17 @@ export const siteConfig = {
   },
 
   ctas: {
-    primary: { label: 'Get Started', href: '/request-access.html' },
-    secondary: { label: 'Watch Demo', href: '/demo.html' },
-    link: { label: 'Read Tech Specs', href: '/tech-specs.html' },
+    primary: buildLink('Get Started', '/request-access.html'),
+    secondary: buildLink('Watch Demo', '/demo.html'),
+    link: buildLink('Read Tech Specs', '/tech-specs.html'),
   },
 
   howItWorks: {
     title: 'How It Works',
     steps: [
-      {
-        title: 'Connect',
-        description: 'Modular adapters plug into any system with an interface (API, webhook, events).',
-      },
-      {
-        title: 'Translate',
-        description: 'Canonical, typed semantic events so platforms actually understand each other.',
-      },
-      {
-        title: 'Execute',
-        description: 'Deterministic workflows with receipts, retries, rollback paths, and MAN Mode gates.',
-      },
+      buildItem('Connect', 'Modular adapters plug into any system with an interface (API, webhook, events).'),
+      buildItem('Translate', 'Canonical, typed semantic events so platforms actually understand each other.'),
+      buildItem('Execute', 'Deterministic workflows with receipts, retries, rollback paths, and MAN Mode gates.'),
     ],
   },
 
@@ -132,8 +136,8 @@ export const siteConfig = {
   footer: {
     copyright: '\u00A9 2025 APEX Business Systems. All rights reserved.',
     links: [
-      { label: 'Privacy', href: '/privacy' },
-      { label: 'Terms', href: '/terms' },
+      buildLink('Privacy', '/privacy'),
+      buildLink('Terms', '/terms'),
     ],
   },
 } as const;
@@ -145,30 +149,10 @@ export const siteConfig = {
 export const proofConfig = {
   title: 'Verified',
   tiles: [
-    {
-      id: 'sonarcloud-gate',
-      label: 'SonarCloud Quality Gate',
-      value: 'PASSED',
-      verified: true,
-    },
-    {
-      id: 'new-issues',
-      label: 'New Issues',
-      value: '0',
-      verified: true,
-    },
-    {
-      id: 'security-hotspots',
-      label: 'Security Hotspots (new code)',
-      value: '0',
-      verified: true,
-    },
-    {
-      id: 'coverage',
-      label: 'Coverage tracking',
-      value: 'configurable',
-      verified: false,
-    },
+    buildProofTile('sonarcloud-gate', 'SonarCloud Quality Gate', 'PASSED', true),
+    buildProofTile('new-issues', 'New Issues', '0', true),
+    buildProofTile('security-hotspots', 'Security Hotspots (new code)', '0', true),
+    buildProofTile('coverage', 'Coverage tracking', 'configurable', false),
   ],
 } as const;
 
@@ -248,20 +232,6 @@ export const techSpecsConfig = {
   ],
 } as const;
 
-function buildTechSpecSection(
-  id: string,
-  title: string,
-  description: string,
-  details: string[]
-) {
-  return {
-    id,
-    title,
-    description,
-    details,
-  };
-}
-
 /**
  * Demo page content
  */
@@ -279,7 +249,7 @@ export const demoConfig = {
   cta: {
     title: 'Ready to get started?',
     description: 'Request access to explore the full platform',
-    button: { label: 'Request Access', href: '/request-access.html' },
+    button: buildLink('Request Access', '/request-access.html'),
   },
 } as const;
 
@@ -291,19 +261,19 @@ export const requestAccessConfig = {
   subtitle: 'Join the early access program',
   description: 'We\u2019re onboarding select partners and enterprises. Fill out the form to request access.',
   fields: {
-    name: { label: 'Name', placeholder: 'Your name', maxLength: 100 },
-    email: { label: 'Email', placeholder: 'you@company.com', maxLength: 254 },
-    company: { label: 'Company', placeholder: 'Company name', maxLength: 100 },
-    useCase: { label: 'Use Case', placeholder: 'Briefly describe your use case...', maxLength: 500 },
+    name: buildField('Name', 'Your name', 100),
+    email: buildField('Email', 'you@company.com', 254),
+    company: buildField('Company', 'Company name', 100),
+    useCase: buildField('Use Case', 'Briefly describe your use case...', 500),
   },
   submitLabel: 'Request Access',
   fallbackMessage: 'Having trouble? Email us at',
   fallbackEmail: 'access@apexomnihub.icu',
   successMessage: 'Thank you! We\u2019ll be in touch soon.',
   antiAbuse: {
-    honeypotField: 'website', // Hidden field - bots fill this
-    minSubmitTime: 3000, // Minimum 3 seconds to submit
-    cooldownTime: 300000, // 5 minutes between submissions
+    honeypotField: 'website',
+    minSubmitTime: 3000,
+    cooldownTime: 300000,
   },
 } as const;
 
@@ -315,9 +285,9 @@ export const restrictedConfig = {
   subtitle: 'This area requires authorization',
   message: 'Access to this section is limited. You have options:',
   actions: [
-    { label: 'Request Access', href: '/request-access.html', primary: true },
-    { label: 'Watch Demo', href: '/demo.html', primary: false },
-    { label: 'Read Tech Specs', href: '/tech-specs.html', primary: false },
+    buildAction('Request Access', '/request-access.html', true),
+    buildAction('Watch Demo', '/demo.html', false),
+    buildAction('Read Tech Specs', '/tech-specs.html', false),
   ],
 } as const;
 
