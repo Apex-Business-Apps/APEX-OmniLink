@@ -1668,11 +1668,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 30% 30%, rgba(234, 179, 8, 0.2), transparent 60%),
-    var(--color-surface-elevated);
-  border: 2px solid rgba(234, 179, 8, 0.5);
-  border-radius: var(--border-radius-xl);
-  color: #eab308;
+  overflow: hidden;
+}
+
+.manmode__icon picture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.manmode__icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .manmode__icon svg {
@@ -1686,9 +1696,9 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wider);
-  color: #92400e;
-  background-color: rgba(234, 179, 8, 0.2);
-  border: var(--border-width) solid rgba(146, 64, 14, 0.35);
+  color: #78350f;
+  background-color: rgba(234, 179, 8, 0.25);
+  border: var(--border-width) solid rgba(120, 53, 15, 0.4);
   border-radius: var(--border-radius-md);
   margin-bottom: var(--space-4);
 }
