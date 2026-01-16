@@ -732,7 +732,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1fr 1.2fr;
   gap: var(--space-12);
   align-items: center;
 }
@@ -782,20 +782,20 @@
 .hero-visual {
   position: relative;
   width: 100%;
-  max-width: 720px;
+  max-width: 850px;
   margin: 0 auto;
   aspect-ratio: 1 / 1;
 }
 
 @media (max-width: 1024px) {
   .hero-visual {
-    max-width: 580px;
+    max-width: 650px;
   }
 }
 
 @media (max-width: 768px) {
   .hero-visual {
-    max-width: 400px;
+    max-width: 450px;
   }
 }
 
@@ -1152,15 +1152,22 @@
 
 /* === BURGER MENU & DRAWER === */
 .nav__burger {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
   background: transparent;
-  border: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.nav__burger:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-muted);
 }
 
 /* Standalone BurgerMenu component - visible on ALL platforms */
@@ -1583,9 +1590,26 @@
 
 .fortress__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
   text-align: left;
+}
+
+/* Center the last item when it's alone on its row (odd number of items) */
+.fortress__item:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  max-width: 50%;
+}
+
+@media (max-width: 768px) {
+  .fortress__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fortress__item:last-child:nth-child(odd) {
+    max-width: 100%;
+  }
 }
 
 .fortress__item {
