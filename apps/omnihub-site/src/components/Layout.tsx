@@ -8,7 +8,7 @@ type LayoutProps = Readonly<{
 }>;
 
 function getInitialTheme(): boolean {
-  if (typeof globalThis.window === 'undefined') return false;
+  if (globalThis.window === undefined) return false;
   const saved = globalThis.localStorage.getItem('theme');
   const prefersDark =
     globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -226,7 +226,7 @@ function MobileDrawer({
 }
 
 function getInitialAuthState(): boolean {
-  if (typeof globalThis.window === 'undefined') return false;
+  if (globalThis.window === undefined) return false;
   return Boolean(globalThis.localStorage.getItem('omnihub_session'));
 }
 
