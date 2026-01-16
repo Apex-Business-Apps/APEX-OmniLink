@@ -193,7 +193,16 @@ function ManModeSection() {
       <div className="manmode">
         <div className="manmode__visual" aria-hidden="true">
           <div className="manmode__icon">
-            <IconManMode size={56} />
+            <picture>
+              {/* PNG for mobile/tablet (max-width: 768px) */}
+              <source media="(max-width: 768px)" srcSet="/manmode-icon.png" />
+              {/* SVG for desktop (min-width: 769px) */}
+              <img
+                src="/manmode-icon.svg"
+                alt="MAN Mode Icon"
+                className="manmode__icon-img"
+              />
+            </picture>
           </div>
         </div>
         <div className="manmode__content">
