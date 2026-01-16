@@ -1,3 +1,8 @@
+/**
+ * APEX OmniHub Landing Page - v1.4.0
+ * Last updated: 2026-01-16
+ * Changes: Custom icons, hero resize, mobile nav
+ */
 import { Layout } from '@/components/Layout';
 import { Section } from '@/components/Section';
 import { CTAGroup } from '@/components/CTAGroup';
