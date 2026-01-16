@@ -30,31 +30,13 @@ function getServerSnapshot(): boolean {
 }
 
 export function HeroVisual() {
-  const isDark = useSyncExternalStore(
-    subscribeToTheme,
-    getThemeSnapshot,
-    getServerSnapshot
-  );
-
-  // Use asset-based hero images for both themes
-  const heroSrc = isDark ? '/assets/hero-night.png' : '/assets/hero-light.png';
-  // Fallback to existing dark image if light doesn't exist yet
-  const fallbackSrc = isDark ? '/hero-hub-dark.png' : '/assets/hero-night.png';
-
   return (
     <div className="hero-visual" aria-hidden="true">
       <img
-        src={heroSrc}
+        src="/assets/hero.svg"
         alt=""
         className="hero-visual__image"
         loading="eager"
-        onError={(e) => {
-          // Fallback if asset doesn't exist
-          const target = e.target as HTMLImageElement;
-          if (target.src !== fallbackSrc) {
-            target.src = fallbackSrc;
-          }
-        }}
       />
     </div>
   );
