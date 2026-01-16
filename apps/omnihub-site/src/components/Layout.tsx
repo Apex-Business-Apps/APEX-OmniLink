@@ -7,46 +7,6 @@ type LayoutProps = Readonly<{
   title?: string;
 }>;
 
-function BurgerMenu() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="nav__burger">
-      <button
-        type="button"
-        className="nav__burger-btn"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle menu"
-        aria-expanded={isOpen}
-      >
-        <span className={`nav__burger-icon ${isOpen ? 'nav__burger-icon--open' : ''}`}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
-      </button>
-      {isOpen && (
-        <div className="nav__mobile-menu">
-          <ul className="nav__mobile-links">
-            {siteConfig.nav.links.map((link) => (
-              <li key={link.href}>
-                <a href={link.href} className="nav__mobile-link">
-                  {link.label}
-                </a>
-              </li>
-            ))}
-            <li>
-              <a href={siteConfig.nav.primaryCta.href} className="btn btn--primary btn--sm nav__mobile-cta">
-                {siteConfig.nav.primaryCta.label}
-              </a>
-            </li>
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function getInitialTheme(): boolean {
   if (typeof globalThis.window === 'undefined') return false;
   const saved = globalThis.localStorage.getItem('theme');
@@ -222,7 +182,7 @@ function MobileDrawer({
             <LogoMark />
             <img
               className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.png"
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
             />
           </a>
@@ -236,7 +196,7 @@ function MobileDrawer({
           </button>
         </div>
         <nav className="drawer__nav" aria-label="Main navigation">
-          {NAV_LINKS.map((link) => (
+          {siteConfig.nav.links.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -292,7 +252,7 @@ function Nav() {
             <LogoMark />
             <img
               className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.png"
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
             />
           </a>
