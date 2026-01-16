@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { siteConfig } from '@/content/site';
+import { ReferenceOverlay } from './ReferenceOverlay';
 
 interface LayoutProps {
   children: ReactNode;
@@ -57,7 +58,6 @@ function ThemeToggle() {
   const [isDark, setIsDark] = useState(getInitialTheme);
 
   useEffect(() => {
-    // Sync DOM attribute with state on mount
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
@@ -69,10 +69,16 @@ function ThemeToggle() {
   };
 
   return (
-    <div className="theme-toggle-segmented" role="radiogroup" aria-label="Theme selection">
+    <div
+      className="theme-toggle-segmented"
+      role="radiogroup"
+      aria-label="Theme selection"
+    >
       <button
         type="button"
-        className={`theme-toggle-segmented__option ${!isDark ? 'theme-toggle-segmented__option--active' : ''}`}
+        className={`theme-toggle-segmented__option ${
+          !isDark ? 'theme-toggle-segmented__option--active' : ''
+        }`}
         onClick={() => setTheme(false)}
         aria-checked={!isDark}
         role="radio"
@@ -81,7 +87,9 @@ function ThemeToggle() {
       </button>
       <button
         type="button"
-        className={`theme-toggle-segmented__option ${isDark ? 'theme-toggle-segmented__option--active' : ''}`}
+        className={`theme-toggle-segmented__option ${
+          isDark ? 'theme-toggle-segmented__option--active' : ''
+        }`}
         onClick={() => setTheme(true)}
         aria-checked={isDark}
         role="radio"
@@ -123,7 +131,7 @@ function LogoMark() {
   );
 }
 
-function Nav() {
+function BurgerIcon() {
   return (
     <nav className="nav">
       <div className="container nav__inner">
@@ -147,13 +155,98 @@ function Nav() {
           <a href={siteConfig.nav.primaryCta.href} className="btn btn--primary btn--sm nav__cta-desktop">
             {siteConfig.nav.primaryCta.label}
           </a>
+          <button
+            type="button"
+            className="drawer__close"
+            onClick={onClose}
+            aria-label="Close menu"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        <nav className="drawer__nav" aria-label="Main navigation">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="drawer__link"
+              onClick={onClose}
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+        <div className="drawer__footer">
           <ThemeToggle />
           <a href={siteConfig.nav.login.href} className="nav__link nav__link--action nav__login">
             {siteConfig.nav.login.label}
           </a>
         </div>
       </div>
-    </nav>
+    </>
+  );
+}
+
+function getInitialAuthState(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem('omnihub_session');
+}
+
+function Nav() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(getInitialAuthState);
+
+  const handleAuthClick = () => {
+    if (isAuthenticated) {
+      localStorage.removeItem('omnihub_session');
+      setIsAuthenticated(false);
+      window.location.href = '/';
+    } else {
+      window.location.href = '/restricted.html';
+    }
+  };
+
+  return (
+    <>
+      <nav className="nav">
+        <div className="container nav__inner">
+          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
+            <LogoMark />
+            <img
+              className="nav__logo-wordmark"
+              src="/apex-omnihub-wordmark.png"
+              alt="APEX OmniHub"
+            />
+          </a>
+
+          <div className="nav__actions">
+            <button
+              type="button"
+              className="nav__burger"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+            >
+              <BurgerIcon />
+            </button>
+            <ThemeToggle />
+            <button
+              type="button"
+              className="nav__link nav__link--action nav__auth-btn"
+              onClick={handleAuthClick}
+            >
+              {isAuthenticated ? 'Log out' : 'Log in'}
+            </button>
+          </div>
+        </div>
+      </nav>
+      <MobileDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        isAuthenticated={isAuthenticated}
+        onAuthClick={handleAuthClick}
+      />
+    </>
   );
 }
 
@@ -165,7 +258,7 @@ function Footer() {
         <ul className="footer__links">
           {siteConfig.footer.links.map((link) => (
             <li key={link.href}>
-              <a href={link.href} className="footer__link">
+              <a href={link.href + '.html'} className="footer__link">
                 {link.label}
               </a>
             </li>
@@ -187,6 +280,7 @@ export function Layout({ children, title }: LayoutProps) {
 
   return (
     <>
+      <ReferenceOverlay />
       <Nav />
       <main>{children}</main>
       <Footer />
