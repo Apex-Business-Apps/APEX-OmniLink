@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
+  "ignoreCommand": "exit 0",
   "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
@@ -63,7 +64,7 @@
       ]
     },
     {
-      "source": "/favicon.svg",
+      "source": "/apex-omnihub-icon.png",
       "headers": [
         {
           "key": "Cache-Control",

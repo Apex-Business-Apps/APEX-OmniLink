@@ -19,7 +19,7 @@ function subscribeToTheme(callback: () => void) {
  * Get the current theme snapshot
  */
 function getThemeSnapshot(): boolean {
-  return document.documentElement.getAttribute('data-theme') === 'dark';
+  return document.documentElement.dataset.theme === 'dark';
 }
 
 /**

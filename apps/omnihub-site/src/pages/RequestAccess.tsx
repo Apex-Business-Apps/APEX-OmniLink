@@ -72,7 +72,7 @@ function getLastSubmitTime(): number {
     if (stored === null) {
       return 0;
     }
-    const parsed = parseInt(stored, 10);
+    const parsed = Number.parseInt(stored, 10);
     return Number.isNaN(parsed) ? 0 : parsed;
   } catch {
     // localStorage may be unavailable (private browsing, etc.)
@@ -178,11 +178,16 @@ function validateEmail(email: string): boolean {
  */
 function sanitizeInput(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
+    .split('&')
+    .join('&amp;')
+    .split('<')
+    .join('&lt;')
+    .split('>')
+    .join('&gt;')
+    .split('"')
+    .join('&quot;')
+    .split("'")
+    .join('&#x27;');
 }
 
 /** Allowed protocol for mailto redirects */
@@ -205,7 +210,7 @@ function safeMailtoRedirect(url: string): void {
     throw new Error('Invalid redirect: URL must use mailto: protocol');
   }
   // Safe redirect - protocol has been validated
-  window.location.href = url;
+  globalThis.window.location.href = url;
 }
 
 /**
@@ -397,8 +402,8 @@ export function RequestAccessPage(): JSX.Element {
           // Dynamic import to avoid bundling Supabase when not used
           const { createClient } = await import('@supabase/supabase-js');
           const supabase = createClient(
-            import.meta.env.VITE_SUPABASE_URL as string,
-            import.meta.env.VITE_SUPABASE_ANON_KEY as string
+            import.meta.env.VITE_SUPABASE_URL,
+            import.meta.env.VITE_SUPABASE_ANON_KEY
           );
 
           // Upsert for idempotency - requires UNIQUE constraint on email
@@ -443,7 +448,7 @@ export function RequestAccessPage(): JSX.Element {
     try {
       await copyToClipboard(formData);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      globalThis.setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API failed, fall back to mailto with safe redirect
       safeMailtoRedirect(generateMailtoPayload(formData));
@@ -469,7 +474,6 @@ export function RequestAccessPage(): JSX.Element {
                 justifyContent: 'center',
                 margin: '0 auto var(--space-6)',
               }}
-              role="img"
               aria-label="Success"
             >
               <svg
