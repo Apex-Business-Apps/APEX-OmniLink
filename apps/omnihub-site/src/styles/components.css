@@ -782,9 +782,21 @@
 .hero-visual {
   position: relative;
   width: 100%;
-  max-width: 600px;
+  max-width: 720px;
   margin: 0 auto;
   aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 1024px) {
+  .hero-visual {
+    max-width: 580px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-visual {
+    max-width: 400px;
+  }
 }
 
 /* Image visual for dark mode */
@@ -1148,6 +1160,56 @@
   background: transparent;
   border: none;
   cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+/* Standalone BurgerMenu component */
+.burger-menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+  z-index: 50;
+}
+
+.burger-menu:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-muted);
+}
+
+.burger-menu__icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 18px;
+  height: 14px;
+}
+
+.burger-menu__line {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background-color: currentColor;
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .burger-menu {
+    display: flex;
+  }
+}
+
+.drawer__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 

@@ -4,6 +4,15 @@ import { CTAGroup } from '@/components/CTAGroup';
 import { HeroVisual } from '@/components/HeroVisual';
 import { FeatureHighlightGrid } from '@/components/FeatureHighlightGrid';
 import { siteConfig } from '@/content/site';
+import {
+  IconConnect,
+  IconTranslate,
+  IconExecute,
+  IconTriForceProtocol,
+  IconOrchestrator,
+  IconFortressProtocol,
+  IconManMode,
+} from '@/components/icons';
 
 function Hero() {
   return (
@@ -55,51 +64,21 @@ function TriForceSection() {
     {
       id: 'connect',
       title: 'Connect',
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5" />
-          <path d="M2 12l10 5 10-5" />
-        </svg>
-      ),
+      icon: <IconConnect size={32} />,
       description:
         'Modular adapters plug into any system with an interface—API, webhook, or events.',
     },
     {
       id: 'translate',
       title: 'Translate',
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10" />
-          <path d="M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-        </svg>
-      ),
+      icon: <IconTranslate size={32} />,
       description:
         'Canonical, typed semantic events so platforms actually understand each other.',
     },
     {
       id: 'execute',
       title: 'Execute',
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
+      icon: <IconExecute size={32} />,
       description:
         'Deterministic workflows with receipts, retries, rollback paths, and MAN Mode gates.',
     },
@@ -222,50 +201,28 @@ function CapabilityShowcase() {
       id: 'tri-force',
       title: 'Tri-Force Protocol',
       description: 'Connect, Translate, Execute',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-      ),
+      icon: <IconTriForceProtocol size={28} />,
       href: '#tri-force',
     },
     {
       id: 'orchestrator',
       title: 'Orchestrator',
       description: 'Central command for all workflows',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
-          <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-        </svg>
-      ),
+      icon: <IconOrchestrator size={28} />,
       href: '#orchestrator',
     },
     {
       id: 'fortress',
       title: 'Fortress Protocol',
       description: 'Zero-trust security by default',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <path d="M9 12l2 2 4-4" />
-        </svg>
-      ),
+      icon: <IconFortressProtocol size={28} />,
       href: '#fortress',
     },
     {
       id: 'man-mode',
       title: 'MAN Mode',
       description: 'Manual Authorization Needed',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-          <circle cx="8.5" cy="7" r="4" />
-          <path d="M20 8v6m3-3h-6" />
-        </svg>
-      ),
+      icon: <IconManMode size={28} />,
       href: '#man-mode',
     },
   ];
