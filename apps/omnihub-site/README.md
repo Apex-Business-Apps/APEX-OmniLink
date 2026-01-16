@@ -13,12 +13,13 @@ A static multi-page application (MPA) built for maximum portability and security
 
 ### Key Features
 
-- **Static-First Architecture**: 5 HTML entry points, works on any static host
+- **Static-First Architecture**: 7 HTML entry points, works on any static host
 - **Zero External Dependencies**: Self-hosted fonts, no third-party scripts
 - **Security-Hardened**: A+ security headers, strict CSP, HSTS preload ready
 - **Theme Toggle**: White Fortress (light) ↔ Night Watch (dark)
 - **Anti-Abuse Protection**: Honeypot, timing check, rate limiting
 - **Optional Backend**: Feature-flagged Supabase integration
+- **Pixel-Perfect Dev Mode**: Reference overlay for design alignment
 
 ## Quick Start
 
@@ -47,8 +48,9 @@ npm run smoke
 ```
 apps/omnihub-site/
 ├── src/
-│   ├── components/     # UI components (12 files)
-│   │   ├── Layout.tsx          # Nav + Footer wrapper, theme toggle
+│   ├── components/     # UI components (13 files)
+│   │   ├── Layout.tsx          # Nav + Footer wrapper, burger menu, theme toggle
+│   │   ├── ReferenceOverlay.tsx # Dev-only pixel alignment overlay
 │   │   ├── HeroVisual.tsx      # Central hub visual with orbiting icons
 │   │   ├── FeatureHighlightGrid.tsx  # 3-column feature cards
 │   │   ├── ShowcaseStrip.tsx   # 4-column image showcase
@@ -60,25 +62,36 @@ apps/omnihub-site/
 │   │   ├── SignalTrace.tsx     # Animated SVG background
 │   │   └── Stamp.tsx           # Brand tagline display
 │   ├── content/        # Centralized content (site.ts)
-│   ├── pages/          # Page components (5 pages)
+│   ├── pages/          # Page components (7 pages)
+│   │   ├── Home.tsx            # Landing page with all sections
+│   │   ├── Demo.tsx            # Demo showcase
+│   │   ├── TechSpecs.tsx       # Technical specifications
+│   │   ├── RequestAccess.tsx   # Early access form
+│   │   ├── Restricted.tsx      # Authorization required
+│   │   ├── Privacy.tsx         # Privacy Policy
+│   │   └── Terms.tsx           # Terms of Service
 │   ├── styles/         # CSS (theme.css + components.css)
 │   └── *.tsx           # Entry points per page
 ├── public/             # Static assets (images, favicon)
+│   ├── assets/         # Hero images (light/night variants)
+│   └── reference/      # Design reference images (dev only)
 ├── docs/               # Security headers documentation
 ├── tests/              # Visual regression tests (Playwright)
 ├── scripts/            # Build/test scripts
-└── *.html              # HTML entry points (5 pages)
+└── *.html              # HTML entry points (7 pages)
 ```
 
 ## Pages
 
 | Route | Description | Sections |
 |-------|-------------|----------|
-| `/` | Landing page | Hero, Feature Highlights, Showcase, CTA |
+| `/` | Landing page | Hero, Features, Tri-Force, Orchestrator, Fortress, MAN Mode, Capabilities, CTA |
 | `/demo.html` | Demo video/interactive | Video placeholder, Interactive demo |
 | `/tech-specs.html` | Technical specifications | 6 spec sections with details |
 | `/request-access.html` | Early access form | Form with anti-abuse protection |
 | `/restricted.html` | Restricted fallback | Access denied with CTAs |
+| `/privacy.html` | Privacy Policy | 10 legal sections |
+| `/terms.html` | Terms of Service | 13 legal sections |
 
 ## Themes
 
@@ -191,6 +204,32 @@ npm run lint      # ESLint check
 npm run smoke     # Smoke tests (requires build)
 ```
 
+### Pixel-Perfect Development Mode
+
+The site includes a reference overlay system for pixel-perfect alignment during development:
+
+```bash
+# Enable light theme reference overlay
+http://localhost:3000/?ref=light
+
+# Enable dark theme reference overlay
+http://localhost:3000/?ref=night
+```
+
+**Keyboard Controls:**
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Toggle overlay visibility |
+| `Shift+Up` | Increase opacity (+5%) |
+| `Shift+Down` | Decrease opacity (-5%) |
+
+**Reference Images:**
+
+Place design reference images in `public/reference/`:
+- `home-light.png` - Light theme (White Fortress) reference
+- `home-night.png` - Dark theme (Night Watch) reference
+
 ### Code Quality
 
 - **TypeScript**: Strict mode enabled
@@ -263,10 +302,11 @@ Remove `preload` from HSTS header before submitting to preload list.
 
 | Metric | Target | Actual |
 |--------|--------|--------|
-| Total JS (gzipped) | < 100 KB | ~95 KB |
-| Total CSS (gzipped) | < 5 KB | ~3.4 KB |
+| Total JS (gzipped) | < 100 KB | ~96 KB |
+| Total CSS (gzipped) | < 10 KB | ~6.4 KB |
 | LCP | < 2.5s | < 1s |
 | FID | < 100ms | < 50ms |
+| Build Time | < 10s | ~3s |
 
 ## Contributing
 
