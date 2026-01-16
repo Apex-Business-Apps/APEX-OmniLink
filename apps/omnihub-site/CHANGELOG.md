@@ -2,6 +2,18 @@
 
 All notable changes to the APEX OmniHub Marketing Site.
 
+## [1.4.0] - 2026-01-16
+
+### Added
+- **Header badge** (`apex-badge.png`) - New branded badge with subtle orange glow effect
+- **MAN Mode icon** (`manmode-icon.svg`) - Custom SVG icon for the MAN Mode section
+- **Responsive badge sizing** - Badge scales appropriately across mobile, tablet, and desktop
+
+### Changed
+- Header logo replaced with new branded badge image
+- Added orange glow effect (`drop-shadow`) to badge for brand recognition
+- Badge has hover state with enhanced glow
+
 ## [1.3.0] - 2026-01-16
 
 ### Added

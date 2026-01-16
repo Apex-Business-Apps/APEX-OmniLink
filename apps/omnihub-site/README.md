@@ -9,7 +9,7 @@
 
 ## Overview
 
-A static multi-page application (MPA) built for maximum portability and security. No external dependencies, no Google Fonts, no analytics—just clean, fast, secure HTML/CSS/JS.
+A static multi-page application (MPA) built for maximum portability and security. No external dependencies, no Google Fonts, no analytics. Just clean, fast, secure HTML/CSS/JS.
 
 ### Key Features
 
@@ -103,14 +103,15 @@ apps/omnihub-site/
 Premium, high-whitespace design with crisp typography. Engineer-focused aesthetic with subtle grid texture.
 
 ### Night Watch (Toggle)
-Control-room aesthetic with restrained dark palette. No neon—professional and readable.
+Control-room aesthetic with restrained dark palette. No neon. Professional and readable.
 
 Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navigation. Preference persists in localStorage.
 
 ## Branding & Navigation
 
+- **Header badge** uses `public/apex-badge.png` with a subtle orange glow effect for brand recognition.
+- **Header wordmark** uses `public/apex-omnihub-wordmark.svg` (optimized SVG) beside the badge in both desktop and mobile nav.
 - **App icon** lives at `public/apex-omnihub-icon.png` and is referenced in `index.html`.
-- **Header wordmark** uses `public/apex-omnihub-wordmark.svg` (optimized SVG) in both desktop and mobile nav.
 - **Hero image** uses `public/assets/hero.svg`, a single theme-agnostic SVG for both White Fortress and Night Watch.
 - **Login placement** sits to the right of the theme toggle on desktop, and in the drawer footer on mobile.
 - **Burger menu** controls navigation on mobile, replacing inline nav links.
