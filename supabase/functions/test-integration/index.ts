@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
 import { createServiceClient } from "../_shared/supabaseClient.ts";
+import {
+  type IntegrationConfig,
+  type TestResult,
+  validateConfigKey,
+  testApiConnection,
+  buildBearerAuth,
+  buildTokenAuth,
+} from "../_shared/integration-test.ts";
 
 serve(async (req) => {
   // Handle CORS preflight with origin validation
@@ -74,25 +82,28 @@ serve(async (req) => {
   }
 });
 
-async function testSlack(config: unknown) {
-  if (!config.apiKey) return { connected: false, message: 'API key missing' };
+async function testSlack(config: IntegrationConfig): Promise<TestResult> {
+  const validationError = validateConfigKey(config, 'apiKey', 'API key missing');
+  if (validationError) return validationError;
 
-  const response = await fetch('https://slack.com/api/auth.test', {
-    headers: { 'Authorization': `Bearer ${config.apiKey}` },
-  });
-
-  const data = await response.json();
-  return {
-    connected: data.ok,
-    message: data.ok ? `Connected to ${data.team}` : data.error,
-    details: data.ok ? { team: data.team, user: data.user } : null,
-  };
+  return testApiConnection(
+    {
+      url: 'https://slack.com/api/auth.test',
+      headers: buildBearerAuth(config.apiKey!),
+    },
+    (data: { ok: boolean; team?: string; user?: string; error?: string }) => ({
+      connected: data.ok,
+      message: data.ok ? `Connected to ${data.team}` : data.error ?? 'Unknown error',
+      details: data.ok ? { team: data.team, user: data.user } : null,
+    })
+  );
 }
 
-async function testZapier(config: unknown) {
-  if (!config.webhookUrl) return { connected: false, message: 'Webhook URL missing' };
+async function testZapier(config: IntegrationConfig): Promise<TestResult> {
+  const validationError = validateConfigKey(config, 'webhookUrl', 'Webhook URL missing');
+  if (validationError) return validationError;
 
-  const response = await fetch(config.webhookUrl, {
+  const response = await fetch(config.webhookUrl!, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ test: true, timestamp: new Date().toISOString() }),
@@ -104,50 +115,56 @@ async function testZapier(config: unknown) {
   };
 }
 
-async function testGitHub(config: unknown) {
-  if (!config.apiKey) return { connected: false, message: 'API token missing' };
+async function testGitHub(config: IntegrationConfig): Promise<TestResult> {
+  const validationError = validateConfigKey(config, 'apiKey', 'API token missing');
+  if (validationError) return validationError;
 
-  const response = await fetch('https://api.github.com/user', {
-    headers: { 'Authorization': `token ${config.apiKey}` },
-  });
-
-  const data = await response.json();
-  return {
-    connected: response.ok,
-    message: response.ok ? `Connected as ${data.login}` : 'Authentication failed',
-    details: response.ok ? { username: data.login, name: data.name } : null,
-  };
-}
-
-async function testNotion(config: unknown) {
-  if (!config.apiKey) return { connected: false, message: 'API key missing' };
-
-  const response = await fetch('https://api.notion.com/v1/users/me', {
-    headers: {
-      'Authorization': `Bearer ${config.apiKey}`,
-      'Notion-Version': '2022-06-28',
+  return testApiConnection(
+    {
+      url: 'https://api.github.com/user',
+      headers: buildTokenAuth(config.apiKey!),
     },
-  });
-
-  const data = await response.json();
-  return {
-    connected: response.ok,
-    message: response.ok ? 'Connected to Notion' : 'Authentication failed',
-    details: response.ok ? { type: data.type } : null,
-  };
+    (data: { login?: string; name?: string }, response) => ({
+      connected: response.ok,
+      message: response.ok ? `Connected as ${data.login}` : 'Authentication failed',
+      details: response.ok ? { username: data.login, name: data.name } : null,
+    })
+  );
 }
 
-async function testGoogleDrive(config: unknown) {
-  if (!config.apiKey) return { connected: false, message: 'API key missing' };
+async function testNotion(config: IntegrationConfig): Promise<TestResult> {
+  const validationError = validateConfigKey(config, 'apiKey', 'API key missing');
+  if (validationError) return validationError;
 
-  const response = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
-    headers: { 'Authorization': `Bearer ${config.apiKey}` },
-  });
+  return testApiConnection(
+    {
+      url: 'https://api.notion.com/v1/users/me',
+      headers: {
+        ...buildBearerAuth(config.apiKey!),
+        'Notion-Version': '2022-06-28',
+      },
+    },
+    (data: { type?: string }, response) => ({
+      connected: response.ok,
+      message: response.ok ? 'Connected to Notion' : 'Authentication failed',
+      details: response.ok ? { type: data.type } : null,
+    })
+  );
+}
 
-  const data = await response.json();
-  return {
-    connected: response.ok,
-    message: response.ok ? `Connected as ${data.user?.emailAddress}` : 'Authentication failed',
-    details: response.ok ? { email: data.user?.emailAddress } : null,
-  };
+async function testGoogleDrive(config: IntegrationConfig): Promise<TestResult> {
+  const validationError = validateConfigKey(config, 'apiKey', 'API key missing');
+  if (validationError) return validationError;
+
+  return testApiConnection(
+    {
+      url: 'https://www.googleapis.com/drive/v3/about?fields=user',
+      headers: buildBearerAuth(config.apiKey!),
+    },
+    (data: { user?: { emailAddress?: string } }, response) => ({
+      connected: response.ok,
+      message: response.ok ? `Connected as ${data.user?.emailAddress}` : 'Authentication failed',
+      details: response.ok ? { email: data.user?.emailAddress } : null,
+    })
+  );
 }
