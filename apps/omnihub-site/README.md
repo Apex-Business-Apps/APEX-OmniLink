@@ -17,6 +17,7 @@ A static multi-page application (MPA) built for maximum portability and security
 - **Zero External Dependencies**: Self-hosted fonts, no third-party scripts
 - **Security-Hardened**: A+ security headers, strict CSP, HSTS preload ready
 - **Theme Toggle**: White Fortress (light) ↔ Night Watch (dark)
+- **Responsive Navigation**: Burger menu controls nav links on mobile; login moves to the drawer footer
 - **Anti-Abuse Protection**: Honeypot, timing check, rate limiting
 - **Optional Backend**: Feature-flagged Supabase integration
 - **Pixel-Perfect Dev Mode**: Reference overlay for design alignment
@@ -74,6 +75,8 @@ apps/omnihub-site/
 │   └── *.tsx           # Entry points per page
 ├── public/             # Static assets (images, favicon)
 │   ├── assets/         # Hero images (light/night variants)
+│   ├── apex-omnihub-icon.png     # App icon referenced by index.html
+│   ├── apex-omnihub-wordmark.png # Header wordmark image
 │   └── reference/      # Design reference images (dev only)
 ├── docs/               # Security headers documentation
 ├── tests/              # Visual regression tests (Playwright)
@@ -102,6 +105,14 @@ Premium, high-whitespace design with crisp typography. Engineer-focused aestheti
 Control-room aesthetic with restrained dark palette. No neon—professional and readable.
 
 Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navigation. Preference persists in localStorage.
+
+## Branding & Navigation
+
+- **App icon** lives at `public/apex-omnihub-icon.png` and is referenced in `index.html`.
+- **Header wordmark** uses `public/apex-omnihub-wordmark.png` in both desktop and mobile nav.
+- **Login placement** sits to the right of the theme toggle on desktop, and in the drawer footer on mobile.
+- **Burger menu** controls navigation on mobile, replacing inline nav links.
+- **Favicon** is consistently referenced as `/apex-omnihub-icon.png` across all HTML entry points.
 
 ## Configuration
 
@@ -258,12 +269,11 @@ Visual tests check:
 
 ## Deployment
 
-### Vercel (Recommended)
+### Vercel (Deprecated)
 
-```bash
-# From repo root
-vercel --cwd apps/omnihub-site
-```
+Vercel deployment is intentionally disabled for this app. The `vercel.json` file remains only
+to document security headers and caching behavior, and `.vercelignore` prevents packaging. Use
+static hosting instead.
 
 ### Static Hosting
 

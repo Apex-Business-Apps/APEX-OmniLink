@@ -94,10 +94,10 @@ To disable preload (before submission):
 
 ### Vercel
 
-Configuration is in `vercel.json`. Deployed automatically with:
+Configuration is in `vercel.json` for header parity only. Vercel deployment is intentionally disabled, but the file documents:
 - All security headers
 - Asset caching (1 year for `/assets/*`)
-- Favicon caching (24 hours)
+- App icon caching (24 hours)
 
 ### IONOS / Apache
 
