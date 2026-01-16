@@ -9,7 +9,7 @@
 
 ## Overview
 
-A static multi-page application (MPA) built for maximum portability and security. No external dependencies, no Google Fonts, no analytics—just clean, fast, secure HTML/CSS/JS.
+A static multi-page application (MPA) built for maximum portability and security. No external dependencies, no Google Fonts, no analytics. Just clean, fast, secure HTML/CSS/JS.
 
 ### Key Features
 
@@ -103,7 +103,7 @@ apps/omnihub-site/
 Premium, high-whitespace design with crisp typography. Engineer-focused aesthetic with subtle grid texture.
 
 ### Night Watch (Toggle)
-Control-room aesthetic with restrained dark palette. No neon—professional and readable.
+Control-room aesthetic with restrained dark palette. No neon. Professional and readable.
 
 Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navigation. Preference persists in localStorage.
 
