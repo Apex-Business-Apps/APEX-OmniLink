@@ -52,7 +52,7 @@ apps/omnihub-site/
 │   ├── components/     # UI components (13 files)
 │   │   ├── Layout.tsx          # Nav + Footer wrapper, burger menu, theme toggle
 │   │   ├── ReferenceOverlay.tsx # Dev-only pixel alignment overlay
-│   │   ├── HeroVisual.tsx      # Central hub visual with orbiting icons
+│   │   ├── HeroVisual.tsx      # Theme-agnostic SVG hero visual
 │   │   ├── FeatureHighlightGrid.tsx  # 3-column feature cards
 │   │   ├── ShowcaseStrip.tsx   # 4-column image showcase
 │   │   ├── CTAGroup.tsx        # Button group (primary/secondary)
@@ -74,9 +74,10 @@ apps/omnihub-site/
 │   ├── styles/         # CSS (theme.css + components.css)
 │   └── *.tsx           # Entry points per page
 ├── public/             # Static assets (images, favicon)
-│   ├── assets/         # Hero images (light/night variants)
+│   ├── assets/         # Hero image (theme-agnostic SVG)
+│   │   └── hero.svg    # Single SVG hero for both themes
 │   ├── apex-omnihub-icon.png     # App icon referenced by index.html
-│   ├── apex-omnihub-wordmark.png # Header wordmark image
+│   ├── apex-omnihub-wordmark.svg # Header wordmark (optimized SVG)
 │   └── reference/      # Design reference images (dev only)
 ├── docs/               # Security headers documentation
 ├── tests/              # Visual regression tests (Playwright)
@@ -109,7 +110,8 @@ Toggle via the **[ WHITE FORTRESS ] [ NIGHT WATCH ]** segmented control in navig
 ## Branding & Navigation
 
 - **App icon** lives at `public/apex-omnihub-icon.png` and is referenced in `index.html`.
-- **Header wordmark** uses `public/apex-omnihub-wordmark.png` in both desktop and mobile nav.
+- **Header wordmark** uses `public/apex-omnihub-wordmark.svg` (optimized SVG) in both desktop and mobile nav.
+- **Hero image** uses `public/assets/hero.svg`, a single theme-agnostic SVG for both White Fortress and Night Watch.
 - **Login placement** sits to the right of the theme toggle on desktop, and in the drawer footer on mobile.
 - **Burger menu** controls navigation on mobile, replacing inline nav links.
 - **Favicon** is consistently referenced as `/apex-omnihub-icon.png` across all HTML entry points.
@@ -245,8 +247,10 @@ Place design reference images in `public/reference/`:
 
 - **TypeScript**: Strict mode enabled
 - **ESLint**: React hooks + TypeScript rules
+- **SonarQube**: Grade A compliance with zero code smells
+- **SSR Compatibility**: Uses `globalThis.window` and `globalThis.localStorage` for safe server-side rendering
 - **JSDoc**: All public functions documented
-- **Accessibility**: ARIA labels, semantic HTML
+- **Accessibility**: ARIA labels, semantic HTML, proper form controls
 
 ### Testing
 
