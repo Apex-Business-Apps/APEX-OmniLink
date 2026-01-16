@@ -2,60 +2,66 @@ import { ReactNode, useEffect, useState } from 'react';
 import { siteConfig } from '@/content/site';
 import { ReferenceOverlay } from './ReferenceOverlay';
 
-interface LayoutProps {
+type LayoutProps = Readonly<{
   children: ReactNode;
   title?: string;
-}
+}>;
 
 function getInitialTheme(): boolean {
-  if (typeof window === 'undefined') return false;
-  const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (typeof globalThis.window === 'undefined') return false;
+  const saved = globalThis.localStorage.getItem('theme');
+  const prefersDark =
+    globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches;
   return saved === 'dark' || (!saved && prefersDark);
 }
 
 function ThemeToggle() {
   const [isDark, setIsDark] = useState(getInitialTheme);
+  const isLight = !isDark;
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
   }, [isDark]);
 
   const setTheme = (dark: boolean) => {
     const newTheme = dark ? 'dark' : 'light';
     setIsDark(dark);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    globalThis.localStorage.setItem('theme', newTheme);
+    document.documentElement.dataset.theme = newTheme;
   };
 
   return (
-    <div
-      className="theme-toggle-segmented"
-      role="radiogroup"
-      aria-label="Theme selection"
-    >
-      <button
-        type="button"
+    <div className="theme-toggle-segmented" aria-label="Theme selection">
+      <label
         className={`theme-toggle-segmented__option ${
-          !isDark ? 'theme-toggle-segmented__option--active' : ''
+          isLight ? 'theme-toggle-segmented__option--active' : ''
         }`}
-        onClick={() => setTheme(false)}
-        aria-checked={!isDark}
-        role="radio"
       >
+        <input
+          className="theme-toggle-segmented__input"
+          type="radio"
+          name="theme"
+          value="light"
+          checked={isLight}
+          onChange={() => setTheme(false)}
+        />
         WHITE FORTRESS
-      </button>
-      <button
-        type="button"
+      </label>
+      <label
         className={`theme-toggle-segmented__option ${
           isDark ? 'theme-toggle-segmented__option--active' : ''
         }`}
-        onClick={() => setTheme(true)}
-        aria-checked={isDark}
-        role="radio"
       >
+        <input
+          className="theme-toggle-segmented__input"
+          type="radio"
+          name="theme"
+          value="dark"
+          checked={isDark}
+          onChange={() => setTheme(true)}
+        />
         NIGHT WATCH
-      </button>
+      </label>
     </div>
   );
 }
@@ -128,17 +134,19 @@ function CloseIcon() {
   );
 }
 
+type MobileDrawerProps = Readonly<{
+  isOpen: boolean;
+  onClose: () => void;
+  isAuthenticated: boolean;
+  onAuthClick: () => void;
+}>;
+
 function MobileDrawer({
   isOpen,
   onClose,
   isAuthenticated,
   onAuthClick,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  isAuthenticated: boolean;
-  onAuthClick: () => void;
-}) {
+}: MobileDrawerProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -154,15 +162,21 @@ function MobileDrawer({
 
   return (
     <>
-      <div
+      <button
+        type="button"
         className="drawer-backdrop"
         onClick={onClose}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-        role="button"
-        tabIndex={0}
         aria-label="Close menu"
       />
-      <div className="drawer" role="dialog" aria-modal="true">
+      <dialog
+        className="drawer"
+        aria-label="Navigation menu"
+        open
+        onCancel={(event) => {
+          event.preventDefault();
+          onClose();
+        }}
+      >
         <div className="drawer__header">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <LogoMark />
@@ -206,14 +220,14 @@ function MobileDrawer({
             {isAuthenticated ? 'Log out' : 'Log in'}
           </button>
         </div>
-      </div>
+      </dialog>
     </>
   );
 }
 
 function getInitialAuthState(): boolean {
-  if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem('omnihub_session');
+  if (typeof globalThis.window === 'undefined') return false;
+  return Boolean(globalThis.localStorage.getItem('omnihub_session'));
 }
 
 function Nav() {
@@ -222,11 +236,11 @@ function Nav() {
 
   const handleAuthClick = () => {
     if (isAuthenticated) {
-      localStorage.removeItem('omnihub_session');
+      globalThis.localStorage.removeItem('omnihub_session');
       setIsAuthenticated(false);
-      window.location.href = '/';
+      globalThis.window.location.href = '/';
     } else {
-      window.location.href = '/restricted.html';
+      globalThis.window.location.href = '/restricted.html';
     }
   };
 

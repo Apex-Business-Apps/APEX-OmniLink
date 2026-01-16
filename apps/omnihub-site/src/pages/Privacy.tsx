@@ -119,9 +119,7 @@ export function PrivacyPage() {
             <h2 className="heading-3">10. Contact Us</h2>
             <p>
               If you have questions about this Privacy Policy, please contact us
-              at{' '}
-              <a href="mailto:privacy@apexomnihub.icu">privacy@apexomnihub.icu</a>
-              .
+              at <a href="mailto:privacy@apexomnihub.icu">privacy@apexomnihub.icu</a>.
             </p>
           </div>
         </div>

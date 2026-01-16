@@ -3,15 +3,15 @@ interface ShowcaseItem {
   image: string;
 }
 
-interface ShowcaseStripProps {
+type ShowcaseStripProps = Readonly<{
   items: readonly ShowcaseItem[];
-}
+}>;
 
 export function ShowcaseStrip({ items }: ShowcaseStripProps) {
   return (
-    <div className="showcase" role="list">
+    <ul className="showcase">
       {items.map((item) => (
-        <div key={item.title} className="showcase__item" role="listitem">
+        <li key={item.title} className="showcase__item">
           <div className="showcase__thumb" aria-hidden="true">
             <img
               src={item.image}
@@ -23,8 +23,8 @@ export function ShowcaseStrip({ items }: ShowcaseStripProps) {
           <div className="showcase__meta">
             <div className="showcase__title">{item.title}</div>
           </div>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
