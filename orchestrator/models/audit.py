@@ -11,7 +11,7 @@ All audit events must be logged using this schema to maintain:
 - Standardized metadata for enterprise integration
 """
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 

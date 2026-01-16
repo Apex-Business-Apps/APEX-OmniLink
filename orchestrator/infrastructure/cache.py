@@ -525,7 +525,7 @@ class SemanticCacheService:
     def _generate_plan_id(goal: str) -> str:
         """Generate unique plan instance ID."""
         import uuid
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
 
         timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
         nonce = str(uuid.uuid4())[:8]
@@ -534,7 +534,7 @@ class SemanticCacheService:
     @staticmethod
     def _iso_now() -> str:
         """Get current time as ISO 8601 string."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
 
         return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 

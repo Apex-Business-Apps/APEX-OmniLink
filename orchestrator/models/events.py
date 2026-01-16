@@ -10,7 +10,7 @@ Design Principles:
 4. Strict validation with no implicit coercion
 """
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import uuid4
