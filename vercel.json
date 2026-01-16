@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
+  "buildCommand": "cd apps/omnihub-site && npm install && npm run build",
+  "outputDirectory": "apps/omnihub-site/dist",
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
