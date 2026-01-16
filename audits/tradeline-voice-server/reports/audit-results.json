@@ -1,0 +1,110 @@
+{
+  "generated": "2026-01-16T18:39:09.893Z",
+  "repository": "apexbusiness-systems/tradeline247-railway",
+  "metrics": {
+    "linesOfCode": 331,
+    "dependencies": 11,
+    "devDependencies": 4,
+    "endpoints": [
+      "/",
+      "/media-stream (WS)",
+      "/voice-status"
+    ],
+    "tools": [
+      "check_availability",
+      "book_appointment",
+      "transfer_call"
+    ],
+    "missingEndpoints": [
+      "/voice-answer",
+      "/healthz"
+    ],
+    "criticalCount": 3,
+    "highCount": 2,
+    "mediumCount": 3,
+    "lowCount": 1
+  },
+  "findings": {
+    "critical": [
+      {
+        "id": "CRIT-001",
+        "title": "Missing /voice-answer Endpoint",
+        "description": "The Twilio voice webhook endpoint is not implemented. Incoming calls cannot be handled.",
+        "location": "server.mjs",
+        "recommendation": "Implement POST /voice-answer endpoint that returns TwiML to connect to media stream"
+      },
+      {
+        "id": "CRIT-002",
+        "title": "Missing /healthz Endpoint",
+        "description": "Health check endpoint is missing. Railway/Render deployments will fail health checks.",
+        "location": "server.mjs",
+        "recommendation": "Implement GET /healthz endpoint returning 200 OK"
+      },
+      {
+        "id": "CRIT-003",
+        "title": "Missing railway.toml",
+        "description": "Railway deployment configuration is missing despite documentation claiming it exists.",
+        "location": "Repository root",
+        "recommendation": "Create railway.toml with proper build and start commands"
+      }
+    ],
+    "high": [
+      {
+        "id": "HIGH-001",
+        "title": "Hardcoded Availability Data",
+        "description": "check_availability tool returns static data. No calendar integration exists.",
+        "location": "server.mjs:121-123",
+        "recommendation": "Integrate with Google Calendar, Cal.com, or database for real availability"
+      },
+      {
+        "id": "HIGH-002",
+        "title": "Hardcoded Booking Confirmations",
+        "description": "book_appointment returns static confirmation TL-992. No actual booking occurs.",
+        "location": "server.mjs:124-126",
+        "recommendation": "Implement booking persistence to database with unique confirmation generation"
+      }
+    ],
+    "medium": [
+      {
+        "id": "MED-001",
+        "title": "No Webhook Signature Validation",
+        "description": "Twilio webhook endpoints do not validate X-Twilio-Signature header.",
+        "location": "server.mjs:280",
+        "recommendation": "Use twilio.validateRequest() to verify webhook authenticity"
+      },
+      {
+        "id": "MED-002",
+        "title": "Unused Security Dependencies",
+        "description": "helmet and xss-clean are in package.json but not used in code.",
+        "location": "server.mjs",
+        "recommendation": "Import and use helmet() middleware for security headers"
+      },
+      {
+        "id": "MED-003",
+        "title": "No Session Cleanup for Abandoned Calls",
+        "description": "sessionStore Map grows unbounded if calls disconnect abnormally.",
+        "location": "server.mjs:29",
+        "recommendation": "Implement periodic cleanup of stale sessions (e.g., > 1 hour old)"
+      }
+    ],
+    "low": [
+      {
+        "id": "LOW-001",
+        "title": "No OpenAI Reconnection Logic",
+        "description": "If OpenAI WebSocket disconnects mid-call, no retry mechanism exists.",
+        "location": "server.mjs:147",
+        "recommendation": "Implement exponential backoff reconnection on disconnect"
+      }
+    ],
+    "info": [
+      {
+        "id": "INFO-001",
+        "title": "No RAG/Vector DB Implementation",
+        "description": "Despite potential claims, no RAG or vector database code exists.",
+        "location": "N/A",
+        "recommendation": "If knowledge retrieval is needed, integrate Pinecone/Weaviate/ChromaDB"
+      }
+    ]
+  },
+  "productionReady": false
+}

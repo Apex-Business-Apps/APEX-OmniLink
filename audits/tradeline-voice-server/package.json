@@ -1,0 +1,35 @@
+{
+  "name": "tradeline-voice-server-audit",
+  "version": "1.0.0",
+  "description": "Production audit test suite for TradeLine Voice Server",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
+    "test:endpoints": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/endpoint-validation.test.js --verbose",
+    "test:tools": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/tool-execution.test.js --verbose",
+    "test:websocket": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/websocket-simulator.test.js --verbose",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js e2e/*.test.js --verbose",
+    "test:security": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/security-audit.test.js --verbose",
+    "validate": "node validators/code-claims-validator.js",
+    "audit:full": "npm run validate && npm test",
+    "report": "node reporters/generate-audit-report.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0",
+    "fastify": "^5.7.1",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/websocket": "^11.2.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "moduleFileExtensions": ["js", "mjs"],
+    "testMatch": ["**/*.test.js", "**/*.test.mjs"],
+    "verbose": true,
+    "testTimeout": 30000
+  }
+}
