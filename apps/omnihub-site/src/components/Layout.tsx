@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { siteConfig } from '@/content/site';
+import { ReferenceOverlay } from './ReferenceOverlay';
 
 interface LayoutProps {
   children: ReactNode;
@@ -44,7 +45,25 @@ function ThemeToggle() {
   );
 }
 
+function getInitialAuthState(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem('omnihub_session');
+}
+
 function Nav() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(getInitialAuthState);
+
+  const handleAuthClick = () => {
+    if (isAuthenticated) {
+      localStorage.removeItem('omnihub_session');
+      setIsAuthenticated(false);
+      window.location.href = '/';
+    } else {
+      window.location.href = '/restricted.html';
+    }
+  };
+
   return (
     <nav className="nav">
       <div className="container nav__inner">
@@ -79,8 +98,14 @@ function Nav() {
           </a>
           <ThemeToggle />
         </div>
-      </div>
-    </nav>
+      </nav>
+      <MobileDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        isAuthenticated={isAuthenticated}
+        onAuthClick={handleAuthClick}
+      />
+    </>
   );
 }
 
@@ -92,7 +117,7 @@ function Footer() {
         <ul className="footer__links">
           {siteConfig.footer.links.map((link) => (
             <li key={link.href}>
-              <a href={link.href} className="footer__link">
+              <a href={link.href + '.html'} className="footer__link">
                 {link.label}
               </a>
             </li>
@@ -136,6 +161,7 @@ export function Layout({ children, title }: LayoutProps) {
 
   return (
     <>
+      <ReferenceOverlay />
       <Nav />
       <main>{children}</main>
       <Footer />

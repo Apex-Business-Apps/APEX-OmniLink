@@ -12,12 +12,11 @@ Analyzes errors and provides targeted fixes.
 
 Exit: 0=success, 1=input error, 2=analysis error
 """
-import sys
-import re
 import argparse
-from pathlib import Path
+import re
+import sys
 from dataclasses import dataclass
-from typing import Optional
+from pathlib import Path
 
 VERSION = "1.0.0"
 
@@ -186,8 +185,8 @@ def extract_stack_trace(content: str) -> list[str]:
 def print_analysis(error_input: str, language: str, matches: list[dict], stack_lines: list[str]):
     """Print formatted analysis."""
     print(f"\n{'═' * 60}")
-    print(f"  OMNIDEV DEBUG ANALYSIS")
-    print(f"  APEX Business Systems Ltd.")
+    print("  OMNIDEV DEBUG ANALYSIS")
+    print("  APEX Business Systems Ltd.")
     print(f"{'═' * 60}")
     print(f"  Language: {language.upper()}")
     print(f"{'═' * 60}\n")
@@ -203,10 +202,10 @@ def print_analysis(error_input: str, language: str, matches: list[dict], stack_l
             print(f"🔍 DIAGNOSIS #{i}: {match['category']}")
             print(f"   Cause: {match['cause']}")
             print(f"   Fix:   {match['fix']}")
-            print(f"\n   Example:")
-            print(f"   ```")
+            print("\n   Example:")
+            print("   ```")
             print(f"   {match['example']}")
-            print(f"   ```\n")
+            print("   ```\n")
     else:
         print("❓ No specific pattern matched.")
         print("   Suggestions:")
