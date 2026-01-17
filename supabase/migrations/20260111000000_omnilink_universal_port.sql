@@ -239,18 +239,21 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_decision_approved constant text := 'approved';
+  v_decision_denied constant text := 'denied';
 BEGIN
   IF NOT public.is_admin(p_user_id) THEN
     RAISE EXCEPTION 'Forbidden';
   END IF;
 
-  IF p_decision NOT IN ('approved', 'denied') THEN
+  IF p_decision NOT IN (v_decision_approved, v_decision_denied) THEN
     RAISE EXCEPTION 'Invalid decision';
   END IF;
 
   UPDATE public.omnilink_orchestration_requests
   SET status = CASE
-    WHEN p_decision = 'approved' THEN public.omnilink_status_queued()
+    WHEN p_decision = v_decision_approved THEN public.omnilink_status_queued()
     ELSE public.omnilink_status_denied()
   END,
       updated_at = now()
