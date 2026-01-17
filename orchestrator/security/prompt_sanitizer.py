@@ -51,9 +51,7 @@ INJECTION_PATTERNS = [
 ]
 
 # Compiled patterns for performance
-_COMPILED_PATTERNS = [
-    re.compile(pattern, re.IGNORECASE) for pattern in INJECTION_PATTERNS
-]
+_COMPILED_PATTERNS = [re.compile(pattern, re.IGNORECASE) for pattern in INJECTION_PATTERNS]
 
 
 class PromptInjectionError(Exception):
@@ -108,9 +106,7 @@ def sanitize_for_prompt(text: str, field_name: str = "input") -> str:
     is_injection, pattern = detect_injection(text)
     if is_injection:
         raise PromptInjectionError(
-            f"Potential prompt injection detected in {field_name}",
-            pattern=pattern,
-            input_text=text
+            f"Potential prompt injection detected in {field_name}", pattern=pattern, input_text=text
         )
 
     # Normalize whitespace
@@ -118,10 +114,10 @@ def sanitize_for_prompt(text: str, field_name: str = "input") -> str:
 
     # Escape characters that could be used for injection
     sanitized = sanitized.replace("\\", "\\\\")  # Escape backslashes first
-    sanitized = sanitized.replace('"', '\\"')    # Escape quotes
-    sanitized = sanitized.replace("{{", "{ {")   # Break template markers
+    sanitized = sanitized.replace('"', '\\"')  # Escape quotes
+    sanitized = sanitized.replace("{{", "{ {")  # Break template markers
     sanitized = sanitized.replace("}}", "} }")
-    sanitized = sanitized.replace("[[", "[ [")   # Break bracket markers
+    sanitized = sanitized.replace("[[", "[ [")  # Break bracket markers
     sanitized = sanitized.replace("]]", "] ]")
 
     # Truncate to prevent context overflow attacks
