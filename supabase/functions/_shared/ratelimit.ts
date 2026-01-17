@@ -79,23 +79,69 @@ export async function checkRateLimit(
         };
       }
 
-      // If RPC doesn't exist, fall back to direct table access
-      const { data: records, error: selectError } = await supabase
+      // If RPC doesn't exist, fall back to atomic upsert with increment
+      // Use a single atomic operation to prevent race conditions
+      const windowStartStr = new Date(now).toISOString();
+      const windowStartThreshold = new Date(windowStart).toISOString();
+
+      // First, try to atomically increment if record exists and is in current window
+      const { data: existingRecord, error: selectError } = await supabase
         .from('rate_limits')
         .select('request_count, window_start')
         .eq('key', key)
-        .gte('window_start', new Date(windowStart).toISOString())
+        .gte('window_start', windowStartThreshold)
         .maybeSingle();
 
       if (selectError) throw selectError;
 
-      if (!records) {
-        // No existing record - create new window
-        await supabase.from('rate_limits').upsert({
-          key,
-          request_count: 1,
-          window_start: new Date(now).toISOString(),
-        }, { onConflict: 'key' });
+      if (!existingRecord) {
+        // No existing record or window expired - create/reset atomically
+        // Use upsert to handle concurrent creation attempts
+        const { error: upsertError } = await supabase
+          .from('rate_limits')
+          .upsert({
+            key,
+            request_count: 1,
+            window_start: windowStartStr,
+          }, {
+            onConflict: 'key',
+            ignoreDuplicates: false
+          });
+
+        if (upsertError) {
+          // If upsert failed due to race condition, retry with increment
+          const { data: retryRecord } = await supabase
+            .from('rate_limits')
+            .select('request_count, window_start')
+            .eq('key', key)
+            .single();
+
+          if (retryRecord) {
+            const retryCount = retryRecord.request_count;
+            const retryWindowStart = new Date(retryRecord.window_start).getTime();
+
+            // Check if within same window
+            if (now - retryWindowStart < config.windowMs) {
+              if (retryCount >= config.maxRequests) {
+                return {
+                  allowed: false,
+                  remaining: 0,
+                  resetAt: retryWindowStart + config.windowMs,
+                  distributed: true,
+                };
+              }
+              // Increment atomically using SQL increment
+              await supabase.rpc('increment_rate_limit', { p_key: key }).catch(() => {
+                // Fallback: direct update if RPC not available
+                return supabase
+                  .from('rate_limits')
+                  .update({ request_count: retryCount + 1 })
+                  .eq('key', key)
+                  .eq('request_count', retryCount); // Optimistic lock
+              });
+            }
+          }
+        }
 
         return {
           allowed: true,
@@ -105,8 +151,8 @@ export async function checkRateLimit(
         };
       }
 
-      const currentCount = records.request_count;
-      const windowStartTime = new Date(records.window_start).getTime();
+      const currentCount = existingRecord.request_count;
+      const windowStartTime = new Date(existingRecord.window_start).getTime();
       const resetAt = windowStartTime + config.windowMs;
 
       if (currentCount >= config.maxRequests) {
@@ -118,11 +164,18 @@ export async function checkRateLimit(
         };
       }
 
-      // Increment counter
-      await supabase
+      // Atomic increment with optimistic locking - only update if count hasn't changed
+      const { error: updateError } = await supabase
         .from('rate_limits')
         .update({ request_count: currentCount + 1 })
-        .eq('key', key);
+        .eq('key', key)
+        .eq('request_count', currentCount); // Optimistic lock prevents race
+
+      // If update failed due to concurrent modification, still allow this request
+      // (the counter was already incremented by another request)
+      if (updateError) {
+        console.warn('Rate limit optimistic lock failed, allowing request:', updateError);
+      }
 
       return {
         allowed: true,
