@@ -20,20 +20,12 @@ BEGIN
   END IF;
 
   EXECUTE format(
-    'CREATE OR REPLACE FUNCTION public.omnilink_status_queued()
-     RETURNS public.omnilink_status
-     LANGUAGE sql
-     IMMUTABLE
-     AS $$ SELECT %L::public.omnilink_status $$',
+    'CREATE OR REPLACE FUNCTION public.omnilink_status_queued() RETURNS public.omnilink_status LANGUAGE sql IMMUTABLE AS $$ SELECT %L::public.omnilink_status $$',
     v_status_queued
   );
 
   EXECUTE format(
-    'CREATE OR REPLACE FUNCTION public.omnilink_status_denied()
-     RETURNS public.omnilink_status
-     LANGUAGE sql
-     IMMUTABLE
-     AS $$ SELECT %L::public.omnilink_status $$',
+    'CREATE OR REPLACE FUNCTION public.omnilink_status_denied() RETURNS public.omnilink_status LANGUAGE sql IMMUTABLE AS $$ SELECT %L::public.omnilink_status $$',
     v_status_denied
   );
 END $$;
