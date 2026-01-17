@@ -29,7 +29,7 @@ const PII_PATTERNS: Array<[RegExp, string]> = [
   [/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN REDACTED]'],
   [/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, '[CARD REDACTED]'],
   [/\b\d{10,11}\b/g, '[PHONE REDACTED]'],
-  [/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL REDACTED]'],
+  [/\b[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,24}\b/g, '[EMAIL REDACTED]'],
 ];
 
 function detectInjectionPatterns(input: string): string[] {
@@ -45,7 +45,7 @@ function detectInjectionPatterns(input: string): string[] {
 function redactPII(text: string): string {
   let result = text;
   for (const [pattern, replacement] of PII_PATTERNS) {
-    result = result.replace(pattern, replacement);
+    result = result.replaceAll(pattern, replacement);
   }
   return result;
 }
