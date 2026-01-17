@@ -4,6 +4,10 @@
 **Started**: 2025-12-18  
 **Target**: Migrate from Lovable Cloud backend to independent Supabase + Vercel deployment
 
+## Recent Updates (2026-01)
+- Standardized OmniLink status handling in migrations with a shared `omnilink_status` enum for orchestration tables.
+- Consolidated admin-role grant migration to reuse a single email constant and emit clearer audit notices.
+
 ## Checklist
 
 ### Phase 0 — Repo Recon
