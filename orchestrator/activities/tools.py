@@ -197,6 +197,7 @@ Output valid JSON matching the PlanStep schema."""
         except PromptInjectionError as e:
             activity.logger.warning(f"Prompt injection blocked: {e.pattern}")
             from temporalio.exceptions import ApplicationError
+
             raise ApplicationError(
                 "Request rejected: potential prompt injection detected",
                 non_retryable=True,  # Don't retry injection attempts
