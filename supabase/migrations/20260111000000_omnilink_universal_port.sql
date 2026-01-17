@@ -3,23 +3,40 @@
 
 -- Shared status enum to avoid duplicated literals
 DO $$
+DECLARE
+  v_status_queued constant text := 'queued';
+  v_status_denied constant text := 'denied';
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'omnilink_status') THEN
-    CREATE TYPE public.omnilink_status AS ENUM ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied');
+    EXECUTE format(
+      'CREATE TYPE public.omnilink_status AS ENUM (%L, %L, %L, %L, %L, %L)',
+      v_status_queued,
+      'running',
+      'waiting_approval',
+      'succeeded',
+      'failed',
+      v_status_denied
+    );
   END IF;
+
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION public.omnilink_status_queued()
+     RETURNS public.omnilink_status
+     LANGUAGE sql
+     IMMUTABLE
+     AS $$ SELECT %L::public.omnilink_status $$',
+    v_status_queued
+  );
+
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION public.omnilink_status_denied()
+     RETURNS public.omnilink_status
+     LANGUAGE sql
+     IMMUTABLE
+     AS $$ SELECT %L::public.omnilink_status $$',
+    v_status_denied
+  );
 END $$;
-
-CREATE OR REPLACE FUNCTION public.omnilink_status_queued()
-RETURNS public.omnilink_status
-LANGUAGE sql
-IMMUTABLE
-AS $$ SELECT 'queued'::public.omnilink_status $$;
-
-CREATE OR REPLACE FUNCTION public.omnilink_status_denied()
-RETURNS public.omnilink_status
-LANGUAGE sql
-IMMUTABLE
-AS $$ SELECT 'denied'::public.omnilink_status $$;
 
 -- OmniLink API keys (hash-only storage, show secret once)
 CREATE TABLE IF NOT EXISTS public.omnilink_api_keys (
