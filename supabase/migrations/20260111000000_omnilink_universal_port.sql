@@ -1,6 +1,43 @@
 -- Migration: OmniLink Universal Integration Plane
 -- Adds API keys, events, entities, orchestration requests, and rate limiting
 
+-- Shared status enum to avoid duplicated literals
+DO $$
+DECLARE
+  v_status_queued constant text := 'queued';
+  v_status_denied constant text := 'denied';
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'omnilink_status') THEN
+    EXECUTE format(
+      'CREATE TYPE public.omnilink_status AS ENUM (%L, %L, %L, %L, %L, %L)',
+      v_status_queued,
+      'running',
+      'waiting_approval',
+      'succeeded',
+      'failed',
+      v_status_denied
+    );
+  END IF;
+
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION public.omnilink_status_queued()
+     RETURNS public.omnilink_status
+     LANGUAGE sql
+     IMMUTABLE
+     AS $$ SELECT %L::public.omnilink_status $$',
+    v_status_queued
+  );
+
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION public.omnilink_status_denied()
+     RETURNS public.omnilink_status
+     LANGUAGE sql
+     IMMUTABLE
+     AS $$ SELECT %L::public.omnilink_status $$',
+    v_status_denied
+  );
+END $$;
+
 -- OmniLink API keys (hash-only storage, show secret once)
 CREATE TABLE IF NOT EXISTS public.omnilink_api_keys (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -106,7 +143,7 @@ CREATE TABLE IF NOT EXISTS public.omnilink_orchestration_requests (
   target jsonb,
   params jsonb,
   policy jsonb,
-  status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied')),
+  status public.omnilink_status NOT NULL DEFAULT public.omnilink_status_queued(),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (integration_id, envelope_id),
@@ -137,7 +174,7 @@ CREATE TABLE IF NOT EXISTS public.omnilink_runs (
   integration_id uuid REFERENCES public.integrations(id) ON DELETE CASCADE NOT NULL,
   orchestration_request_id uuid REFERENCES public.omnilink_orchestration_requests(id) ON DELETE CASCADE,
   external_run_id text,
-  status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied')),
+  status public.omnilink_status NOT NULL DEFAULT public.omnilink_status_queued(),
   policy jsonb,
   output jsonb,
   error_message text,
@@ -164,7 +201,7 @@ CREATE TABLE IF NOT EXISTS public.omnilink_run_steps (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   run_id uuid REFERENCES public.omnilink_runs(id) ON DELETE CASCADE NOT NULL,
   step_name text NOT NULL,
-  status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied')),
+  status public.omnilink_status NOT NULL DEFAULT public.omnilink_status_queued(),
   output jsonb,
   error_message text,
   started_at timestamptz,
@@ -219,21 +256,27 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_decision_approved constant text := 'approved';
+  v_decision_denied constant text := 'denied';
 BEGIN
   IF NOT public.is_admin(p_user_id) THEN
     RAISE EXCEPTION 'Forbidden';
   END IF;
 
-  IF p_decision NOT IN ('approved', 'denied') THEN
+  IF p_decision NOT IN (v_decision_approved, v_decision_denied) THEN
     RAISE EXCEPTION 'Invalid decision';
   END IF;
 
   UPDATE public.omnilink_orchestration_requests
-  SET status = CASE WHEN p_decision = 'approved' THEN 'queued' ELSE 'denied' END,
+  SET status = CASE
+    WHEN p_decision = v_decision_approved THEN public.omnilink_status_queued()
+    ELSE public.omnilink_status_denied()
+  END,
       updated_at = now()
   WHERE id = p_request_id
     AND tenant_id = p_user_id
-    AND status = 'waiting_approval';
+    AND status = 'waiting_approval'::public.omnilink_status;
 END;
 $$;
 
@@ -395,7 +438,7 @@ BEGIN
     INSERT INTO public.audit_logs(actor_id, action_type, resource_type, resource_id, metadata)
     VALUES (NULL, 'omnilink.orchestration.queued', 'omnilink_orchestration', v_record_id::text, jsonb_build_object('integration_id', p_integration_id));
 
-    v_status := 'queued';
+    v_status := public.omnilink_status_queued()::text;
   END IF;
 
   RETURN jsonb_build_object(

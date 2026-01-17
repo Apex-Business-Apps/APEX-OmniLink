@@ -61,83 +61,130 @@ export async function checkRateLimit(
 
   // Try distributed rate limiting first
   if (supabase) {
-    try {
-      // Clean up expired entries and count recent requests atomically
-      const { data, error } = await supabase.rpc('check_rate_limit', {
-        p_key: key,
-        p_window_start: new Date(windowStart).toISOString(),
-        p_max_requests: config.maxRequests,
-        p_window_ms: config.windowMs,
-      });
+    const distributedResult = await checkDistributedRateLimit(
+      supabase,
+      key,
+      windowStart,
+      now,
+      config
+    );
 
-      if (!error && data) {
-        return {
-          allowed: data.allowed,
-          remaining: data.remaining,
-          resetAt: new Date(data.reset_at).getTime(),
-          distributed: true,
-        };
-      }
-
-      // If RPC doesn't exist, fall back to direct table access
-      const { data: records, error: selectError } = await supabase
-        .from('rate_limits')
-        .select('request_count, window_start')
-        .eq('key', key)
-        .gte('window_start', new Date(windowStart).toISOString())
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-
-      if (!records) {
-        // No existing record - create new window
-        await supabase.from('rate_limits').upsert({
-          key,
-          request_count: 1,
-          window_start: new Date(now).toISOString(),
-        }, { onConflict: 'key' });
-
-        return {
-          allowed: true,
-          remaining: config.maxRequests - 1,
-          resetAt: now + config.windowMs,
-          distributed: true,
-        };
-      }
-
-      const currentCount = records.request_count;
-      const windowStartTime = new Date(records.window_start).getTime();
-      const resetAt = windowStartTime + config.windowMs;
-
-      if (currentCount >= config.maxRequests) {
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt,
-          distributed: true,
-        };
-      }
-
-      // Increment counter
-      await supabase
-        .from('rate_limits')
-        .update({ request_count: currentCount + 1 })
-        .eq('key', key);
-
-      return {
-        allowed: true,
-        remaining: config.maxRequests - currentCount - 1,
-        resetAt,
-        distributed: true,
-      };
-    } catch (dbError) {
-      console.warn('Rate limit DB error, falling back to memory:', dbError);
-      // Fall through to memory-based limiting
+    if (distributedResult) {
+      return distributedResult;
     }
   }
 
   // Fallback to in-memory rate limiting
   return checkMemoryRateLimit(key, config, now);
+}
+
+async function checkDistributedRateLimit(
+  supabase: SupabaseClient,
+  key: string,
+  windowStart: number,
+  now: number,
+  config: RateLimitConfig
+): Promise<RateLimitResult | null> {
+  try {
+    const rpcResult = await checkRpcRateLimit(supabase, key, windowStart, config);
+    if (rpcResult) {
+      return rpcResult;
+    }
+
+    return await checkTableRateLimit(supabase, key, windowStart, now, config);
+  } catch (dbError) {
+    console.warn('Rate limit DB error, falling back to memory:', dbError);
+    return null;
+  }
+}
+
+async function checkRpcRateLimit(
+  supabase: SupabaseClient,
+  key: string,
+  windowStart: number,
+  config: RateLimitConfig
+): Promise<RateLimitResult | null> {
+  const { data, error } = await supabase.rpc('check_rate_limit', {
+    p_key: key,
+    p_window_start: new Date(windowStart).toISOString(),
+    p_max_requests: config.maxRequests,
+    p_window_ms: config.windowMs,
+  });
+
+  if (!error && data) {
+    return {
+      allowed: data.allowed,
+      remaining: data.remaining,
+      resetAt: new Date(data.reset_at).getTime(),
+      distributed: true,
+    };
+  }
+
+  return null;
+}
+
+async function checkTableRateLimit(
+  supabase: SupabaseClient,
+  key: string,
+  windowStart: number,
+  now: number,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const { data: records, error: selectError } = await supabase
+    .from('rate_limits')
+    .select('request_count, window_start')
+    .eq('key', key)
+    .gte('window_start', new Date(windowStart).toISOString())
+    .maybeSingle();
+
+  if (selectError) {
+    throw selectError;
+  }
+
+  if (!records) {
+    // No existing record - create new window
+    await supabase.from('rate_limits').upsert(
+      {
+        key,
+        request_count: 1,
+        window_start: new Date(now).toISOString(),
+      },
+      { onConflict: 'key' }
+    );
+
+    return {
+      allowed: true,
+      remaining: config.maxRequests - 1,
+      resetAt: now + config.windowMs,
+      distributed: true,
+    };
+  }
+
+  const currentCount = records.request_count;
+  const windowStartTime = new Date(records.window_start).getTime();
+  const resetAt = windowStartTime + config.windowMs;
+
+  if (currentCount >= config.maxRequests) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt,
+      distributed: true,
+    };
+  }
+
+  // Increment counter
+  await supabase
+    .from('rate_limits')
+    .update({ request_count: currentCount + 1 })
+    .eq('key', key);
+
+  return {
+    allowed: true,
+    remaining: config.maxRequests - currentCount - 1,
+    resetAt,
+    distributed: true,
+  };
 }
 
 /**
