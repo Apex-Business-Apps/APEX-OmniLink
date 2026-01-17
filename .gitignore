@@ -56,3 +56,4 @@ __pycache__/
 .venv/
 venv/
 ENV/
+test-results/
