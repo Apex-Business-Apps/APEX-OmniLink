@@ -32,6 +32,11 @@ type IngestResult = {
   retry_after_seconds?: number;
 };
 
+type RequestContext = {
+  requestType: 'event' | 'command' | 'workflow';
+  permissionRequired: string;
+};
+
 function parseBearerToken(req: Request): string | null {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return null;
@@ -105,6 +110,55 @@ function getRequiredFields(route: OmniLinkRoute): string[] {
     case 'workflows':
       return ['specversion', 'id', 'source', 'type', 'time', 'workflow', 'input'];
   }
+}
+
+function resolveRequestContext(
+  route: OmniLinkRoute,
+  payload: Record<string, unknown>,
+  constraints: Required<NonNullable<OmniLinkScopes['constraints']>>,
+  apiKey: ApiKeyRecord
+): { context?: RequestContext; error?: string } {
+  if (route === 'commands') {
+    if (!allowAdapter(payload.target as { system?: string }, constraints.allowed_adapters)) {
+      return { error: 'adapter_not_allowed' };
+    }
+
+    if (!enforcePermission(apiKey.scopes ?? {}, 'orchestrations:request')) {
+      return { error: 'permission_denied' };
+    }
+
+    return {
+      context: {
+        requestType: 'command',
+        permissionRequired: `commands:${payload.type}`,
+      },
+    };
+  }
+
+  if (route === 'workflows') {
+    const workflow = payload.workflow as { name?: string; version?: string };
+    if (!allowWorkflow(workflow, constraints.allowed_workflows)) {
+      return { error: 'workflow_not_allowed' };
+    }
+
+    if (payload.input && !payload.params) {
+      payload.params = payload.input;
+    }
+
+    return {
+      context: {
+        requestType: 'workflow',
+        permissionRequired: 'orchestrations:request',
+      },
+    };
+  }
+
+  return {
+    context: {
+      requestType: 'event',
+      permissionRequired: 'events:write',
+    },
+  };
 }
 
 
@@ -290,36 +344,12 @@ async function processItem(
     return { status: 'denied', index, error: 'env_not_allowed' };
   }
 
-  let permissionRequired = 'events:write';
-  let requestType = 'event';
-
-  if (route === 'commands') {
-    requestType = 'command';
-    permissionRequired = `commands:${payload.type}`;
-
-    if (!allowAdapter(payload.target as { system?: string }, constraints.allowed_adapters)) {
-      return { status: 'denied', index, error: 'adapter_not_allowed' };
-    }
-
-    if (!enforcePermission(apiKey.scopes ?? {}, 'orchestrations:request')) {
-      return { status: 'denied', index, error: 'permission_denied' };
-    }
+  const { context, error } = resolveRequestContext(route, payload, constraints, apiKey);
+  if (error) {
+    return { status: 'denied', index, error };
   }
 
-  if (route === 'workflows') {
-    requestType = 'workflow';
-    permissionRequired = 'orchestrations:request';
-
-    const workflow = payload.workflow as { name?: string; version?: string };
-    if (!allowWorkflow(workflow, constraints.allowed_workflows)) {
-      return { status: 'denied', index, error: 'workflow_not_allowed' };
-    }
-    if (payload.input && !payload.params) {
-      payload.params = payload.input;
-    }
-  }
-
-  if (!enforcePermission(apiKey.scopes ?? {}, permissionRequired)) {
+  if (!context || !enforcePermission(apiKey.scopes ?? {}, context.permissionRequired)) {
     return { status: 'denied', index, error: 'permission_denied' };
   }
 
@@ -333,7 +363,7 @@ async function processItem(
     p_api_key_id: apiKey.id,
     p_integration_id: apiKey.integration_id,
     p_tenant_id: apiKey.tenant_id,
-    p_request_type: requestType,
+    p_request_type: context.requestType,
     p_envelope: payload,
     p_idempotency_key: idempotencyKey,
     p_max_rpm: constraints.max_rpm,
