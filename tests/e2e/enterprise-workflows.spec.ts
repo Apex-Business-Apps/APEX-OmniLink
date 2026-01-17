@@ -14,6 +14,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // Test Helper Utilities (extracted to reduce nesting depth)
 // =============================================================================
 
+/** Create a delayed async operation for concurrency testing */
+function createDelayedOperation(index: number): () => Promise<number> {
+  return async () => {
+    await new Promise(resolve => setTimeout(resolve, 1));
+    return index;
+  };
+}
+
 /** Injection patterns for prompt security validation */
 const INJECTION_PATTERNS = [
   /ignore\s+(previous|all|your)\s+(instructions?|prompts?)/i,
@@ -584,11 +592,8 @@ Issued At: ${params.issuedAt}`;
   describe('8. Performance & Scalability', () => {
 
     it('handles concurrent operations efficiently', async () => {
-      // Uses extracted processInParallel helper
-      const operations = Array.from({ length: 100 }, (_, i) => async () => {
-        await new Promise(resolve => setTimeout(resolve, 1));
-        return i;
-      });
+      // Uses extracted helpers to reduce nesting depth
+      const operations = Array.from({ length: 100 }, (_, i) => createDelayedOperation(i));
 
       const startTime = performance.now();
       const results = await processInParallel(operations, 10);

@@ -46,6 +46,129 @@ function getSupabaseClient(): SupabaseClient | null {
   }
 }
 
+/** Build a distributed rate limit result */
+function buildResult(allowed: boolean, remaining: number, resetAt: number): RateLimitResult {
+  return { allowed, remaining, resetAt, distributed: true };
+}
+
+/** Try RPC-based rate limiting */
+async function tryRpcRateLimit(
+  supabase: SupabaseClient,
+  key: string,
+  windowStart: number,
+  config: RateLimitConfig
+): Promise<RateLimitResult | null> {
+  const { data, error } = await supabase.rpc('check_rate_limit', {
+    p_key: key,
+    p_window_start: new Date(windowStart).toISOString(),
+    p_max_requests: config.maxRequests,
+    p_window_ms: config.windowMs,
+  });
+
+  if (error || !data) return null;
+
+  return buildResult(data.allowed, data.remaining, new Date(data.reset_at).getTime());
+}
+
+/** Handle race condition retry after upsert conflict */
+async function handleUpsertRetry(
+  supabase: SupabaseClient,
+  key: string,
+  now: number,
+  config: RateLimitConfig
+): Promise<RateLimitResult | null> {
+  const { data: retryRecord } = await supabase
+    .from('rate_limits')
+    .select('request_count, window_start')
+    .eq('key', key)
+    .single();
+
+  if (!retryRecord) return null;
+
+  const retryCount = retryRecord.request_count;
+  const retryWindowStart = new Date(retryRecord.window_start).getTime();
+  const withinWindow = now - retryWindowStart < config.windowMs;
+
+  if (!withinWindow) return null;
+
+  if (retryCount >= config.maxRequests) {
+    return buildResult(false, 0, retryWindowStart + config.windowMs);
+  }
+
+  // Increment atomically
+  await incrementRateLimit(supabase, key, retryCount);
+  return null; // Let caller return default success
+}
+
+/** Increment rate limit counter with optimistic locking */
+async function incrementRateLimit(
+  supabase: SupabaseClient,
+  key: string,
+  currentCount: number
+): Promise<void> {
+  try {
+    await supabase.rpc('increment_rate_limit', { p_key: key });
+  } catch {
+    // Fallback: direct update with optimistic lock
+    await supabase
+      .from('rate_limits')
+      .update({ request_count: currentCount + 1 })
+      .eq('key', key)
+      .eq('request_count', currentCount);
+  }
+}
+
+/** Create or reset rate limit record */
+async function upsertRateLimitRecord(
+  supabase: SupabaseClient,
+  key: string,
+  now: number,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const { error: upsertError } = await supabase
+    .from('rate_limits')
+    .upsert(
+      { key, request_count: 1, window_start: new Date(now).toISOString() },
+      { onConflict: 'key', ignoreDuplicates: false }
+    );
+
+  if (upsertError) {
+    const retryResult = await handleUpsertRetry(supabase, key, now, config);
+    if (retryResult) return retryResult;
+  }
+
+  return buildResult(true, config.maxRequests - 1, now + config.windowMs);
+}
+
+/** Process existing rate limit record */
+async function processExistingRecord(
+  supabase: SupabaseClient,
+  key: string,
+  record: { request_count: number; window_start: string },
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const currentCount = record.request_count;
+  const windowStartTime = new Date(record.window_start).getTime();
+  const resetAt = windowStartTime + config.windowMs;
+
+  if (currentCount >= config.maxRequests) {
+    return buildResult(false, 0, resetAt);
+  }
+
+  // Atomic increment with optimistic locking
+  const { error: updateError } = await supabase
+    .from('rate_limits')
+    .update({ request_count: currentCount + 1 })
+    .eq('key', key)
+    .eq('request_count', currentCount);
+
+  if (updateError) {
+    console.warn('Rate limit optimistic lock failed, allowing request:', updateError);
+  }
+
+  return buildResult(true, config.maxRequests - currentCount - 1, resetAt);
+}
+
 /**
  * Check and update rate limit using distributed storage
  */
@@ -56,141 +179,36 @@ export async function checkRateLimit(
   const key = `${config.prefix}:${identifier}`;
   const now = Date.now();
   const windowStart = now - config.windowMs;
-
   const supabase = getSupabaseClient();
 
-  // Try distributed rate limiting first
-  if (supabase) {
-    try {
-      // Clean up expired entries and count recent requests atomically
-      const { data, error } = await supabase.rpc('check_rate_limit', {
-        p_key: key,
-        p_window_start: new Date(windowStart).toISOString(),
-        p_max_requests: config.maxRequests,
-        p_window_ms: config.windowMs,
-      });
-
-      if (!error && data) {
-        return {
-          allowed: data.allowed,
-          remaining: data.remaining,
-          resetAt: new Date(data.reset_at).getTime(),
-          distributed: true,
-        };
-      }
-
-      // If RPC doesn't exist, fall back to atomic upsert with increment
-      // Use a single atomic operation to prevent race conditions
-      const windowStartStr = new Date(now).toISOString();
-      const windowStartThreshold = new Date(windowStart).toISOString();
-
-      // First, try to atomically increment if record exists and is in current window
-      const { data: existingRecord, error: selectError } = await supabase
-        .from('rate_limits')
-        .select('request_count, window_start')
-        .eq('key', key)
-        .gte('window_start', windowStartThreshold)
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-
-      if (!existingRecord) {
-        // No existing record or window expired - create/reset atomically
-        // Use upsert to handle concurrent creation attempts
-        const { error: upsertError } = await supabase
-          .from('rate_limits')
-          .upsert({
-            key,
-            request_count: 1,
-            window_start: windowStartStr,
-          }, {
-            onConflict: 'key',
-            ignoreDuplicates: false
-          });
-
-        if (upsertError) {
-          // If upsert failed due to race condition, retry with increment
-          const { data: retryRecord } = await supabase
-            .from('rate_limits')
-            .select('request_count, window_start')
-            .eq('key', key)
-            .single();
-
-          if (retryRecord) {
-            const retryCount = retryRecord.request_count;
-            const retryWindowStart = new Date(retryRecord.window_start).getTime();
-
-            // Check if within same window
-            if (now - retryWindowStart < config.windowMs) {
-              if (retryCount >= config.maxRequests) {
-                return {
-                  allowed: false,
-                  remaining: 0,
-                  resetAt: retryWindowStart + config.windowMs,
-                  distributed: true,
-                };
-              }
-              // Increment atomically using SQL increment
-              await supabase.rpc('increment_rate_limit', { p_key: key }).catch(() => {
-                // Fallback: direct update if RPC not available
-                return supabase
-                  .from('rate_limits')
-                  .update({ request_count: retryCount + 1 })
-                  .eq('key', key)
-                  .eq('request_count', retryCount); // Optimistic lock
-              });
-            }
-          }
-        }
-
-        return {
-          allowed: true,
-          remaining: config.maxRequests - 1,
-          resetAt: now + config.windowMs,
-          distributed: true,
-        };
-      }
-
-      const currentCount = existingRecord.request_count;
-      const windowStartTime = new Date(existingRecord.window_start).getTime();
-      const resetAt = windowStartTime + config.windowMs;
-
-      if (currentCount >= config.maxRequests) {
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt,
-          distributed: true,
-        };
-      }
-
-      // Atomic increment with optimistic locking - only update if count hasn't changed
-      const { error: updateError } = await supabase
-        .from('rate_limits')
-        .update({ request_count: currentCount + 1 })
-        .eq('key', key)
-        .eq('request_count', currentCount); // Optimistic lock prevents race
-
-      // If update failed due to concurrent modification, still allow this request
-      // (the counter was already incremented by another request)
-      if (updateError) {
-        console.warn('Rate limit optimistic lock failed, allowing request:', updateError);
-      }
-
-      return {
-        allowed: true,
-        remaining: config.maxRequests - currentCount - 1,
-        resetAt,
-        distributed: true,
-      };
-    } catch (dbError) {
-      console.warn('Rate limit DB error, falling back to memory:', dbError);
-      // Fall through to memory-based limiting
-    }
+  if (!supabase) {
+    return checkMemoryRateLimit(key, config, now);
   }
 
-  // Fallback to in-memory rate limiting
-  return checkMemoryRateLimit(key, config, now);
+  try {
+    // Try RPC-based rate limiting first
+    const rpcResult = await tryRpcRateLimit(supabase, key, windowStart, config);
+    if (rpcResult) return rpcResult;
+
+    // Fallback to manual check with atomic operations
+    const { data: existingRecord, error: selectError } = await supabase
+      .from('rate_limits')
+      .select('request_count, window_start')
+      .eq('key', key)
+      .gte('window_start', new Date(windowStart).toISOString())
+      .maybeSingle();
+
+    if (selectError) throw selectError;
+
+    if (!existingRecord) {
+      return upsertRateLimitRecord(supabase, key, now, config);
+    }
+
+    return processExistingRecord(supabase, key, existingRecord, config);
+  } catch (dbError) {
+    console.warn('Rate limit DB error, falling back to memory:', dbError);
+    return checkMemoryRateLimit(key, config, now);
+  }
 }
 
 /**
