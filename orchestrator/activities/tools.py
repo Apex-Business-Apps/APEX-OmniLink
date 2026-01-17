@@ -38,7 +38,7 @@ from temporalio import activity
 
 from ..models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
 from ..providers.database.factory import get_database_provider
-from ..security.prompt_sanitizer import create_safe_user_message, PromptInjectionDetected
+from ..security.prompt_sanitizer import PromptInjectionError, create_safe_user_message
 
 # Global service instances (initialized in setup_activities())
 _semantic_cache = None  # SemanticCacheService instance
@@ -194,12 +194,12 @@ Output valid JSON matching the PlanStep schema."""
         # CVE fix: Never interpolate raw user input into prompts
         try:
             safe_user_message = create_safe_user_message(goal, context)
-        except PromptInjectionDetected as e:
+        except PromptInjectionError as e:
             activity.logger.warning(f"Prompt injection blocked: {e.pattern}")
             from temporalio.exceptions import ApplicationError
             raise ApplicationError(
-                f"Request rejected: potential prompt injection detected",
-                non_retryable=True  # Don't retry injection attempts
+                "Request rejected: potential prompt injection detected",
+                non_retryable=True,  # Don't retry injection attempts
             ) from e
 
         plan = await client.chat.completions.create(

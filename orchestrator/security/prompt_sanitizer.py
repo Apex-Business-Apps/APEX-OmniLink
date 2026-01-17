@@ -11,7 +11,6 @@ interpolated directly into LLM prompts, allowing manipulation.
 import re
 from typing import Any
 
-
 # Patterns that indicate potential prompt injection attempts
 INJECTION_PATTERNS = [
     # Direct instruction override
@@ -57,7 +56,7 @@ _COMPILED_PATTERNS = [
 ]
 
 
-class PromptInjectionDetected(Exception):
+class PromptInjectionError(Exception):
     """Raised when prompt injection is detected in user input."""
 
     def __init__(self, message: str, pattern: str, input_text: str):
@@ -108,7 +107,7 @@ def sanitize_for_prompt(text: str, field_name: str = "input") -> str:
     # Check for injection patterns
     is_injection, pattern = detect_injection(text)
     if is_injection:
-        raise PromptInjectionDetected(
+        raise PromptInjectionError(
             f"Potential prompt injection detected in {field_name}",
             pattern=pattern,
             input_text=text
