@@ -10,9 +10,10 @@ type SupabaseClientOptions = {
 
 export function createSupabaseClient(options: SupabaseClientOptions): SupabaseClient<Database> {
   const key = options.serviceRoleKey || options.apiKey;
+  const hasWindow = globalThis.window !== undefined;
   const client = createClient<Database>(options.url, key, {
     auth: {
-      storage: globalThis.window !== undefined ? globalThis.localStorage : undefined,
+      storage: hasWindow ? globalThis.localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,
     },
