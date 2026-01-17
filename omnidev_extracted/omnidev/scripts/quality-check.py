@@ -15,29 +15,31 @@ import subprocess
 import sys
 from pathlib import Path
 
+PATH_TOKEN = "{path}"
+
 CHECKS = {
     "python": {
-        "lint": ["ruff", "check", "{path}"],
-        "lint_fix": ["ruff", "check", "--fix", "{path}"],
-        "format": ["black", "--check", "{path}"],
-        "format_fix": ["black", "{path}"],
-        "typecheck": ["mypy", "{path}", "--ignore-missing-imports"],
-        "security": ["bandit", "-r", "{path}", "-q"],
+        "lint": ["ruff", "check", PATH_TOKEN],
+        "lint_fix": ["ruff", "check", "--fix", PATH_TOKEN],
+        "format": ["black", "--check", PATH_TOKEN],
+        "format_fix": ["black", PATH_TOKEN],
+        "typecheck": ["mypy", PATH_TOKEN, "--ignore-missing-imports"],
+        "security": ["bandit", "-r", PATH_TOKEN, "-q"],
     },
     "javascript": {
-        "lint": ["eslint", "{path}"],
-        "lint_fix": ["eslint", "--fix", "{path}"],
-        "format": ["prettier", "--check", "{path}"],
-        "format_fix": ["prettier", "--write", "{path}"],
+        "lint": ["eslint", PATH_TOKEN],
+        "lint_fix": ["eslint", "--fix", PATH_TOKEN],
+        "format": ["prettier", "--check", PATH_TOKEN],
+        "format_fix": ["prettier", "--write", PATH_TOKEN],
         "typecheck": ["tsc", "--noEmit"],
         "security": ["npm", "audit", "--audit-level=high"],
     },
     "go": {
-        "lint": ["golangci-lint", "run", "{path}"],
-        "format": ["gofmt", "-l", "{path}"],
-        "format_fix": ["gofmt", "-w", "{path}"],
-        "typecheck": ["go", "vet", "{path}/..."],
-        "security": ["gosec", "-quiet", "{path}/..."],
+        "lint": ["golangci-lint", "run", PATH_TOKEN],
+        "format": ["gofmt", "-l", PATH_TOKEN],
+        "format_fix": ["gofmt", "-w", PATH_TOKEN],
+        "typecheck": ["go", "vet", f"{PATH_TOKEN}/..."],
+        "security": ["gosec", "-quiet", f"{PATH_TOKEN}/..."],
     },
 }
 
