@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { requireAuth, isAdmin, AuthResult } from '../_shared/auth.ts';
+import { requireAuth, isAdmin } from '../_shared/auth.ts';
 import { buildCorsHeaders, handlePreflight } from '../_shared/cors.ts';
 
 interface EvalRequest {

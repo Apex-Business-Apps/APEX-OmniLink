@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 /**
  * Edge Function Authentication Tests
@@ -290,7 +290,7 @@ describe('Rate Limiting Integration', () => {
         'Retry-After': retryAfter.toString(),
       };
 
-      expect(parseInt(headers['Retry-After'])).toBeGreaterThan(0);
+      expect(Number.parseInt(headers['Retry-After'])).toBeGreaterThan(0);
     });
   });
 });
@@ -299,28 +299,28 @@ describe('CORS Security', () => {
 
   describe('Origin Validation', () => {
 
-    const allowedOrigins = [
+    const allowedOrigins = new Set([
       'https://omnihub.dev',
       'https://www.omnihub.dev',
       'https://staging.omnihub.dev',
       'https://app.omnihub.dev',
-    ];
+    ]);
 
     it('allows production origins', () => {
       const origin = 'https://omnihub.dev';
-      const isAllowed = allowedOrigins.includes(origin.replace(/\/$/, ''));
+      const isAllowed = allowedOrigins.has(origin.replace(/\/$/, ''));
       expect(isAllowed).toBe(true);
     });
 
     it('allows app subdomain', () => {
       const origin = 'https://app.omnihub.dev';
-      const isAllowed = allowedOrigins.includes(origin.replace(/\/$/, ''));
+      const isAllowed = allowedOrigins.has(origin.replace(/\/$/, ''));
       expect(isAllowed).toBe(true);
     });
 
     it('rejects unknown origins', () => {
       const origin = 'https://malicious-site.com';
-      const isAllowed = allowedOrigins.includes(origin.replace(/\/$/, ''));
+      const isAllowed = allowedOrigins.has(origin.replace(/\/$/, ''));
       expect(isAllowed).toBe(false);
     });
 
@@ -328,7 +328,7 @@ describe('CORS Security', () => {
       const origin = 'https://omnihub.dev/';
       const normalized = origin.replace(/\/$/, '');
       expect(normalized).toBe('https://omnihub.dev');
-      expect(allowedOrigins.includes(normalized)).toBe(true);
+      expect(allowedOrigins.has(normalized)).toBe(true);
     });
   });
 

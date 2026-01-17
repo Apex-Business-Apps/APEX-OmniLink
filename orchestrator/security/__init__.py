@@ -1,7 +1,7 @@
 """Security utilities for the orchestrator."""
 
 from .prompt_sanitizer import (
-    PromptInjectionDetected,
+    PromptInjectionError,
     create_safe_user_message,
     detect_injection,
     sanitize_context,
@@ -9,7 +9,7 @@ from .prompt_sanitizer import (
 )
 
 __all__ = [
-    "PromptInjectionDetected",
+    "PromptInjectionError",
     "create_safe_user_message",
     "detect_injection",
     "sanitize_context",
