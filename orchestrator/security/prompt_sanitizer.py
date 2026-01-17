@@ -155,9 +155,11 @@ def sanitize_context(context: dict[str, Any], max_depth: int = 3) -> dict[str, A
             safe_value = sanitize_context(value, max_depth - 1)
         elif isinstance(value, list):
             safe_value = [
-                sanitize_for_prompt(str(item), f"context:{key}[{i}]")
-                if isinstance(item, str)
-                else item
+                (
+                    sanitize_for_prompt(str(item), f"context:{key}[{i}]")
+                    if isinstance(item, str)
+                    else item
+                )
                 for i, item in enumerate(value[:100])  # Limit list size
             ]
         else:
