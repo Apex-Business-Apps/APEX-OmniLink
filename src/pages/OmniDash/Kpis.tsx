@@ -78,7 +78,7 @@ export const Kpis = () => {
         <CardContent className="grid md:grid-cols-3 gap-3">
           {Object.entries(form).map(([key, value]) => (
             <div key={key} className="space-y-1">
-              <p className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</p>
+              <p className="text-sm font-medium capitalize">{key.replaceAll('_', ' ')}</p>
               <Input
                 type="number"
                 value={value ?? 0}

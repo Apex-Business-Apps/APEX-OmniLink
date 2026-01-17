@@ -32,7 +32,7 @@ serve(async (req) => {
   }
 
   // Check request size limit
-  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  const contentLength = Number.parseInt(req.headers.get('content-length') || '0', 10);
   if (contentLength > MAX_REQUEST_SIZE) {
     return new Response(
       JSON.stringify({ error: 'Request body too large', max_size: MAX_REQUEST_SIZE }),

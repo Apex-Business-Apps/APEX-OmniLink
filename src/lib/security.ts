@@ -77,7 +77,7 @@ export function isValidRedirectUrl(url: string): boolean {
  */
 export function detectSuspiciousActivity(): boolean {
   const failedAttempts = sessionStorage.getItem('failed_auth_attempts');
-  const count = failedAttempts ? parseInt(failedAttempts, 10) : 0;
+  const count = failedAttempts ? Number.parseInt(failedAttempts, 10) : 0;
   
   if (count > 5) {
     logSecurityEvent('suspicious_activity', {
@@ -95,7 +95,7 @@ export function detectSuspiciousActivity(): boolean {
  */
 export function recordFailedAuthAttempt(): void {
   const current = sessionStorage.getItem('failed_auth_attempts');
-  const count = current ? parseInt(current, 10) + 1 : 1;
+  const count = current ? Number.parseInt(current, 10) + 1 : 1;
   sessionStorage.setItem('failed_auth_attempts', count.toString());
   
   if (count > 5) {

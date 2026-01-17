@@ -11,7 +11,6 @@ interpolated directly into LLM prompts, allowing manipulation.
 import re
 from typing import Any
 
-
 # Patterns that indicate potential prompt injection attempts
 INJECTION_PATTERNS = [
     # Direct instruction override
@@ -52,12 +51,10 @@ INJECTION_PATTERNS = [
 ]
 
 # Compiled patterns for performance
-_COMPILED_PATTERNS = [
-    re.compile(pattern, re.IGNORECASE) for pattern in INJECTION_PATTERNS
-]
+_COMPILED_PATTERNS = [re.compile(pattern, re.IGNORECASE) for pattern in INJECTION_PATTERNS]
 
 
-class PromptInjectionDetected(Exception):
+class PromptInjectionDetectedError(Exception):
     """Raised when prompt injection is detected in user input."""
 
     def __init__(self, message: str, pattern: str, input_text: str):
@@ -108,10 +105,8 @@ def sanitize_for_prompt(text: str, field_name: str = "input") -> str:
     # Check for injection patterns
     is_injection, pattern = detect_injection(text)
     if is_injection:
-        raise PromptInjectionDetected(
-            f"Potential prompt injection detected in {field_name}",
-            pattern=pattern,
-            input_text=text
+        raise PromptInjectionDetectedError(
+            f"Potential prompt injection detected in {field_name}", pattern=pattern, input_text=text
         )
 
     # Normalize whitespace
@@ -119,10 +114,10 @@ def sanitize_for_prompt(text: str, field_name: str = "input") -> str:
 
     # Escape characters that could be used for injection
     sanitized = sanitized.replace("\\", "\\\\")  # Escape backslashes first
-    sanitized = sanitized.replace('"', '\\"')    # Escape quotes
-    sanitized = sanitized.replace("{{", "{ {")   # Break template markers
+    sanitized = sanitized.replace('"', '\\"')  # Escape quotes
+    sanitized = sanitized.replace("{{", "{ {")  # Break template markers
     sanitized = sanitized.replace("}}", "} }")
-    sanitized = sanitized.replace("[[", "[ [")   # Break bracket markers
+    sanitized = sanitized.replace("[[", "[ [")  # Break bracket markers
     sanitized = sanitized.replace("]]", "] ]")
 
     # Truncate to prevent context overflow attacks
@@ -160,9 +155,11 @@ def sanitize_context(context: dict[str, Any], max_depth: int = 3) -> dict[str, A
             safe_value = sanitize_context(value, max_depth - 1)
         elif isinstance(value, list):
             safe_value = [
-                sanitize_for_prompt(str(item), f"context:{key}[{i}]")
-                if isinstance(item, str)
-                else item
+                (
+                    sanitize_for_prompt(str(item), f"context:{key}[{i}]")
+                    if isinstance(item, str)
+                    else item
+                )
                 for i, item in enumerate(value[:100])  # Limit list size
             ]
         else:
