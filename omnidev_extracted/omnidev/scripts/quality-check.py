@@ -15,7 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-PATH_TOKEN = "{path}"
+PATH_TOKEN = "{path}"  # noqa: S105
 
 CHECKS = {
     "python": {
@@ -63,7 +63,7 @@ def run_check(name: str, cmd: list[str], path: Path) -> tuple[bool, str]:
     cmd = [c.format(path=str(path)) for c in cmd]
     
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603
             cmd,
             capture_output=True,
             text=True,
