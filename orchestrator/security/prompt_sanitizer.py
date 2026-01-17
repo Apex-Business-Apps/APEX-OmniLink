@@ -13,9 +13,9 @@ from typing import Any
 
 # Patterns that indicate potential prompt injection attempts
 INJECTION_PATTERNS = [
-    # Direct instruction override
-    r"ignore\s+(previous|all|your)\s+(instructions?|prompts?|rules?)",
-    r"disregard\s+(previous|all|your)\s+(instructions?|prompts?|rules?)",
+    # Direct instruction override (allows multiple modifiers like "all previous")
+    r"ignore\s+(previous\s+|all\s+|your\s+)+(instructions?|prompts?|rules?)",
+    r"disregard\s+(previous\s+|all\s+|your\s+)+(instructions?|prompts?|rules?)",
     r"forget\s+(everything|all)\s+(above|before|previous)",
     # Role manipulation
     r"you\s+are\s+now\s+(a|an)?\s*\w+",
