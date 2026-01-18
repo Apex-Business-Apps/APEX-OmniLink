@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Connector Registry Implementation
  * Manages available connectors by provider name
@@ -11,7 +12,7 @@ export interface IntegrationDef {
   name: string;
   type: string;
   description: string;
-  icon: any;
+  icon: unknown;
   requiresApiKey: boolean;
   requiresUsername?: boolean;
   scopes?: string[];

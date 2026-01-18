@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,11 +14,23 @@ import { ConnectorKit } from '@/components/ConnectorKit';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+import { Json } from '@/integrations/supabase/types';
+
+interface ConnectedIntegration {
+  id: string;
+  name: string;
+  type: string;
+  status: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: Json;
+  created_at?: string | null;
+}
+
 const Integrations = () => {
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationDef | null>(null);
-  const [connectedIntegrations, setConnectedIntegrations] = useState<any[]>([]);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<ConnectedIntegration[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Form data for external keys (outbound)
@@ -140,7 +153,7 @@ const Integrations = () => {
         {availableIntegrations.map((integration) => {
           const connected = isConnected(integration.type);
           // Cast icon for rendering
-          const Icon = integration.icon as LucideIcon;
+          const Icon = integration.icon;
 
           return (
             <Card key={integration.id}>
