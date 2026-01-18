@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
+import { Check, X, LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -26,11 +26,7 @@ const Integrations = () => {
     apiUsername: '',
   });
 
-  useEffect(() => {
-    fetchIntegrations();
-  }, [user]);
-
-  const fetchIntegrations = async () => {
+  const fetchIntegrations = useCallback(async () => {
     if (!user) return;
 
     const { data, error } = await supabase
@@ -41,7 +37,11 @@ const Integrations = () => {
     if (!error && data) {
       setConnectedIntegrations(data);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchIntegrations();
+  }, [fetchIntegrations]);
 
   const getConnectedIntegration = (type: string) => {
     return connectedIntegrations.find(int => int.type === type);
@@ -61,7 +61,7 @@ const Integrations = () => {
     if (!selectedIntegration || !user) return;
     setIsLoading(true);
     try {
-      const config: any = {};
+      const config: { apiKey?: string; apiUsername?: string } = {};
       // If we have form data filled, include it
       if (formData.apiKey) config.apiKey = formData.apiKey;
       if (formData.apiUsername) config.apiUsername = formData.apiUsername;
@@ -82,7 +82,7 @@ const Integrations = () => {
 
       await fetchIntegrations(); // Refresh list to get the new UUID
       toast.success("Integration enabled");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating integration:", error);
       toast.error("Failed to enable integration");
     } finally {
@@ -139,8 +139,8 @@ const Integrations = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {availableIntegrations.map((integration) => {
           const connected = isConnected(integration.type);
-          // Cast icon to any for rendering
-          const Icon = integration.icon as any;
+          // Cast icon for rendering
+          const Icon = integration.icon as LucideIcon;
 
           return (
             <Card key={integration.id}>
