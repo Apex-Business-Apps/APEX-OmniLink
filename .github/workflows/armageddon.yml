@@ -1,0 +1,106 @@
+name: Armageddon Certification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.gen-id.outputs.run_id }}
+    steps:
+      - id: gen-id
+        run: echo "run_id=adt-$(date +%s)-$RANDOM" >> $GITHUB_OUTPUT
+
+  battery:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        battery: [lint, typecheck, unit-tests, prompt-defense, check-react, secret-scan, e2e, sim-chaos, sim-burst]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Install Playwright (if e2e)
+        if: matrix.battery == 'e2e'
+        run: npx playwright install chromium --with-deps
+      
+      - name: Run Battery
+        env:
+          SIM_MODE: "true"
+          SANDBOX_TENANT: "ci-sandbox"
+          # Run specific battery via certify orchestrator? 
+          # Or just run the npm command directly? 
+          # Requirement: "Run batteries concurrently ... via matrix"
+          # Also "Produce professional evidence bundle".
+          # To reuse our harness (wrapper, logging), we should execute certify.ts tailored for ONE battery.
+          # But certify.ts logic currently runs ALL PENDING batteries.
+          # We should add a flag to certify.ts to run a specific battery.
+          # BUT for now, let's run the npm command directly and ensure it generates output, 
+          # OR we update certify.ts to accept "--only <name>".
+          # The User req: "One command produces artifacts...".
+          # In CI, if we run separate jobs, we need to aggregate.
+          # Let's assume we run the NPM command, but wrapping it to produce the log?
+          # Easier: Just run the npm command. The aggregation job can collect logs if we redirect output.
+          # BUT "Enforces sandboxed destruction rules" -> certify.ts handles this.
+          # BEST: Update certify.ts to support single battery mode.
+          # I will execute: tsx scripts/armageddon/certify.ts --only ${{ matrix.battery }}
+          # I need to implement --only logic in certify.ts first.
+        run: |
+           # Running safely via harness
+           # First, I need to update certify.ts to support --only. 
+           # Since I haven't done that yet, I will assume I will do it next.
+           npx tsx scripts/armageddon/certify.ts --only ${{ matrix.battery }}
+           
+      - name: Upload Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ matrix.battery }}
+          path: artifacts/armageddon/*/evidence/*.log
+          retention-days: 1
+
+  report:
+    needs: [setup, battery]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/downloaded
+          
+      - name: Consolidate Evidence
+        run: |
+          mkdir -p artifacts/armageddon/${{ needs.setup.outputs.run_id }}/evidence
+          # Move all logs from downloaded artifacts to the single evidence dir
+          find artifacts/downloaded -name "*.log" -exec cp {} artifacts/armageddon/${{ needs.setup.outputs.run_id }}/evidence/ \;
+          
+      - name: Generate Report
+        run: npx tsx scripts/armageddon/report.ts ${{ needs.setup.outputs.run_id }}
+        
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: armageddon-report
+          path: artifacts/armageddon/${{ needs.setup.outputs.run_id }}

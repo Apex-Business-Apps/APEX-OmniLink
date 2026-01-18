@@ -360,6 +360,18 @@
   text-decoration: none;
 }
 
+.nav__logo-image {
+  height: 32px;
+  width: auto;
+  transition: height var(--transition-fast);
+}
+
+@media (min-width: 768px) {
+  .nav__logo-image {
+    height: 48px;
+  }
+}
+
 .nav__links {
   display: flex;
   align-items: center;

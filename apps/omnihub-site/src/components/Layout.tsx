@@ -84,7 +84,10 @@ function Nav() {
     <nav className="nav">
       <div className="container nav__inner">
         <a href="/" className="nav__logo">
-          {siteConfig.nav.logo}
+          <picture>
+            <source media="(max-width: 768px)" srcSet="/logo_header_mobile.png" />
+            <img src="/logo_header.png" alt="APEX OmniHub" className="nav__logo-image" />
+          </picture>
         </a>
         <ul className="nav__links">
           {siteConfig.nav.links.map((link) => (

@@ -1,4 +1,5 @@
 # APEX Ecosystem Status
+**Updated:** January 18, 2026 03:49 MST
 
 - **Guardian Heartbeats**: `src/guardian/heartbeat.ts`, loops started via `initializeSecurity`, status CLI `npm run guardian:status`.
 - **Prompt Defense**: Config in `src/security/promptDefenseConfig.ts`, evaluation in `src/security/promptDefense.ts`, analysis script under `scripts/prompt-defense`, tests in `tests/prompt-defense`.

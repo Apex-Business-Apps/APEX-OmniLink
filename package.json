@@ -35,7 +35,9 @@
     "sim:validate": "tsx sim/cli.ts --validate",
     "sim:report": "tsx sim/evidence.ts --report",
     "sim:clean": "rm -rf evidence/*",
-    "test:sim": "vitest run sim/tests"
+    "test:sim": "vitest run sim/tests",
+    "armageddon:cert": "tsx scripts/armageddon/certify.ts && tsx scripts/armageddon/report.ts",
+    "armageddon:cert:dry": "tsx scripts/armageddon/dry-run.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
