@@ -14,13 +14,13 @@ export async function writeMarkdownReport(reportDir: string, report: ReportBundl
     `- Passed: ${report.summary.passed}`,
     `- Failed: ${report.summary.failed}`,
     `- Blocked: ${report.summary.blocked}`,
-    `- Score: ${report.summary.score.toFixed(1)}`
+    `- Score: ${report.summary.score.toFixed(1)}`,
+    '',
+    '## Scenario Results',
+    '',
+    '| Scenario | Status | Score |',
+    '| --- | --- | --- |'
   );
-  header.push('');
-  header.push('## Scenario Results');
-  header.push('');
-  header.push('| Scenario | Status | Score |');
-  header.push('| --- | --- | --- |');
 
   const rows = report.results.map(result =>
     renderResultRow(result.scenario.name, result.status, result.metrics.finalScore)

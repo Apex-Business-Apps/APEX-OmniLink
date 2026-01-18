@@ -13,11 +13,11 @@ function escapeXml(value: string): string {
 
 function renderTestCase(result: ScenarioRunResult): string {
   const durationSeconds = Math.max(0.001, result.metrics.p95Ms / 1000).toFixed(3);
-  const failureDetails = result.status !== 'passed'
-    ? `<failure message="${escapeXml(result.status)}">${escapeXml(
+  const failureDetails = result.status === 'passed'
+    ? ''
+    : `<failure message="${escapeXml(result.status)}">${escapeXml(
       JSON.stringify(result.assertions, null, 2)
-    )}</failure>`
-    : '';
+    )}</failure>`;
 
   return [
     `<testcase classname="WWWCT" name="${escapeXml(result.scenario.name)}" time="${durationSeconds}">`,
