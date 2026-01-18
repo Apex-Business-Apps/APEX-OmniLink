@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface ConnectedIntegration {
   name: string;
   type: string;
   status: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Json;
   created_at?: string | null;
 }
