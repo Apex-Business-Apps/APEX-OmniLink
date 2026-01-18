@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import builtCanadianBadge from '@/assets/built_canadian_badge.svg';
+import apexOmniHubWordmark from '@/assets/apex_omnihub_wordmark.png';
 import SecretLogin from '@/components/SecretLogin';
 
 export const Header = () => {
@@ -22,9 +23,9 @@ export const Header = () => {
         {/* Center - Wordmark */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <img
-            src="/apex-omnihub-wordmark.svg"
+            src={apexOmniHubWordmark}
             alt="APEX OmniHub"
-            className="h-[48px] w-auto"
+            className="h-[calc(61.6px*0.95)] w-auto max-h-[58.5px]"
           />
         </div>
 
