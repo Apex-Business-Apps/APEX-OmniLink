@@ -9,11 +9,13 @@ function renderResultRow(name: string, status: string, score: number): string {
 export async function writeMarkdownReport(reportDir: string, report: ReportBundle): Promise<string> {
   const filePath = path.join(reportDir, 'report.md');
   const header = ['# Worldwide Wildcard Tests Report', '', '## Summary', ''];
-  header.push(`- Total: ${report.summary.total}`);
-  header.push(`- Passed: ${report.summary.passed}`);
-  header.push(`- Failed: ${report.summary.failed}`);
-  header.push(`- Blocked: ${report.summary.blocked}`);
-  header.push(`- Score: ${report.summary.score.toFixed(1)}`);
+  header.push(
+    `- Total: ${report.summary.total}`,
+    `- Passed: ${report.summary.passed}`,
+    `- Failed: ${report.summary.failed}`,
+    `- Blocked: ${report.summary.blocked}`,
+    `- Score: ${report.summary.score.toFixed(1)}`
+  );
   header.push('');
   header.push('## Scenario Results');
   header.push('');

@@ -49,7 +49,6 @@ async function executeStep(
 
   if (step.action === 'wildcard_injection') {
     updatedInjection = true;
-    status = 'passed';
     details = 'Wildcard payload injected.';
   } else {
     const adapterResult = await runAdapterStep(step, {
@@ -85,11 +84,12 @@ function evaluateAssertions(
   auditLog: string[],
   injectionDetected: boolean
 ): Record<string, boolean> {
-  const status = stepResults.some(result => result.status === 'failed')
-    ? 'failed'
-    : stepResults.some(result => result.status === 'blocked')
-      ? 'blocked'
-      : 'passed';
+  let status = 'passed';
+  if (stepResults.some(result => result.status === 'failed')) {
+    status = 'failed';
+  } else if (stepResults.some(result => result.status === 'blocked')) {
+    status = 'blocked';
+  }
 
   const assertions: Record<string, boolean> = {};
   for (const assertion of scenario.assertions) {
@@ -149,13 +149,15 @@ export async function runScenario(
 
   const assertions = evaluateAssertions(scenario, steps, auditLog, injectionDetected);
   const failedAssertions = Object.values(assertions).filter(Boolean).length !== scenario.assertions.length;
-  const status = steps.some(step => step.status === 'failed')
-    ? 'failed'
-    : steps.some(step => step.status === 'blocked')
-      ? 'blocked'
-      : failedAssertions
-        ? 'failed'
-        : 'passed';
+
+  let status: ScenarioRunResult['status'] = 'passed';
+  if (steps.some(step => step.status === 'failed')) {
+    status = 'failed';
+  } else if (steps.some(step => step.status === 'blocked')) {
+    status = 'blocked';
+  } else if (failedAssertions) {
+    status = 'failed';
+  }
 
   const durations = steps.map(step => step.durationMs);
   const retryCount = steps.reduce((sum, step) => sum + step.retries, 0);

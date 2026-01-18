@@ -15,6 +15,7 @@ export default defineConfig({
     ],
     exclude: [
       'tests/e2e-playwright/**',
+      '**/playwright/**',
       'node_modules/**',
       // Skip integration tests in CI (require real Supabase infrastructure)
       ...(process.env.CI ? ['tests/integration/**'] : [])

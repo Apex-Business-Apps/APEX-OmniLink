@@ -4,19 +4,19 @@ import type { ReportBundle, ScenarioRunResult } from '../types';
 
 function escapeXml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
 }
 
 function renderTestCase(result: ScenarioRunResult): string {
   const durationSeconds = Math.max(0.001, result.metrics.p95Ms / 1000).toFixed(3);
   const failureDetails = result.status !== 'passed'
     ? `<failure message="${escapeXml(result.status)}">${escapeXml(
-        JSON.stringify(result.assertions, null, 2)
-      )}</failure>`
+      JSON.stringify(result.assertions, null, 2)
+    )}</failure>`
     : '';
 
   return [
