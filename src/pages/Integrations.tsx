@@ -115,7 +115,7 @@ const Integrations = () => {
 
       toast.success(`${integration.name} integration disconnected`);
       fetchIntegrations();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error disconnecting integration:', error);
       toast.error('Failed to disconnect integration');
     }

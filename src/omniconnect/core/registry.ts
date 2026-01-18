@@ -11,7 +11,8 @@ export interface IntegrationDef {
   name: string;
   type: string;
   description: string;
-  icon: LucideIcon;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: any;
   requiresApiKey: boolean;
   requiresUsername?: boolean;
   scopes?: string[];
