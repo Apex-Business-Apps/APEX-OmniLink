@@ -20,6 +20,7 @@ interface ConnectedIntegration {
   name: string;
   type: string;
   status: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Json;
   created_at?: string | null;
 }

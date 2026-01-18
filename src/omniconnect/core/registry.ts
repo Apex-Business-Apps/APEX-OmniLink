@@ -4,15 +4,14 @@
  */
 
 import { Connector, ConnectorRegistry } from '../types/connector';
-import { BarChart3, MessageCircle, Facebook, Mail, Youtube, Instagram, Music, Zap, Server, Globe, Smartphone, Bot, LucideIcon } from 'lucide-react';
+import { BarChart3, MessageCircle, Facebook, Mail, Youtube, Instagram, Music, Zap, Server, Globe, Smartphone, Bot } from 'lucide-react';
 
 export interface IntegrationDef {
   id: string;
   name: string;
   type: string;
   description: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: any;
+  icon: unknown;
   requiresApiKey: boolean;
   requiresUsername?: boolean;
   scopes?: string[];
