@@ -13,12 +13,14 @@ import { ConnectorKit } from '@/components/ConnectorKit';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+import { Json } from '@/integrations/supabase/types';
+
 interface ConnectedIntegration {
   id: string;
   name: string;
   type: string;
   status: string | null;
-  config: any;
+  config: Json;
   created_at?: string | null;
 }
 
@@ -149,7 +151,7 @@ const Integrations = () => {
         {availableIntegrations.map((integration) => {
           const connected = isConnected(integration.type);
           // Cast icon for rendering
-          const Icon = integration.icon as LucideIcon;
+          const Icon = integration.icon;
 
           return (
             <Card key={integration.id}>
