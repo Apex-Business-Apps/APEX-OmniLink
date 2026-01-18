@@ -1,4 +1,6 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireAuth, isAdmin } from '../_shared/auth.ts';
+import { buildCorsHeaders, handlePreflight } from '../_shared/cors.ts';
 
 interface EvalRequest {
   eval_case_id?: string;
@@ -69,7 +71,34 @@ function performSecurityCheck(agentResponse: string): boolean {
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  const origin = req.headers.get('origin');
+  const corsHeaders = buildCorsHeaders(origin);
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return handlePreflight(req);
+  }
+
   try {
+    // Require authentication - evaluation endpoint is sensitive
+    const authResult = await requireAuth(req);
+    if (authResult instanceof Response) {
+      return authResult; // Return 401 response
+    }
+
+    // Only admins can run evaluations
+    if (!isAdmin(authResult.user)) {
+      return new Response(JSON.stringify({
+        error: 'forbidden',
+        message: 'Admin access required for evaluation endpoint'
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`[omnilink-eval] Evaluation triggered by user ${authResult.user.id}`);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -86,7 +115,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (!eval_case_id && !run_all_active && !custom_message) {
       return new Response(JSON.stringify({
         error: 'Must provide eval_case_id, run_all_active=true, or custom_message'
-      }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const results: EvalResponse[] = [];
@@ -141,7 +170,7 @@ export default async function handler(req: Request): Promise<Response> {
       total_evaluations: results.length
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -151,7 +180,7 @@ export default async function handler(req: Request): Promise<Response> {
       message: error.message
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 }
