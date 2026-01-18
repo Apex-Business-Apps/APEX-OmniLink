@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import builtCanadianBadge from '@/assets/built_canadian_badge.svg';
-import apexOmniHubWordmark from '@/assets/apex_omnihub_wordmark_v2.png';
+import apexOmniHubWordmark from '@/assets/apex_omnihub_wordmark_v3.png';
 import SecretLogin from '@/components/SecretLogin';
 
 export const Header = () => {
