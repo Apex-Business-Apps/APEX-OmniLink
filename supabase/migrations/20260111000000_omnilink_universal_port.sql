@@ -2,6 +2,8 @@
 -- Adds API keys, events, entities, orchestration requests, and rate limiting
 
 -- OmniLink API keys (hash-only storage, show secret once)
+CREATE TYPE public.omnilink_req_status AS ENUM ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied');
+
 CREATE TABLE IF NOT EXISTS public.omnilink_api_keys (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -106,7 +108,7 @@ CREATE TABLE IF NOT EXISTS public.omnilink_orchestration_requests (
   target jsonb,
   params jsonb,
   policy jsonb,
-  status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied')),
+  status public.omnilink_req_status NOT NULL DEFAULT 'queued'::public.omnilink_req_status,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (integration_id, envelope_id),
@@ -137,7 +139,7 @@ CREATE TABLE IF NOT EXISTS public.omnilink_runs (
   integration_id uuid REFERENCES public.integrations(id) ON DELETE CASCADE NOT NULL,
   orchestration_request_id uuid REFERENCES public.omnilink_orchestration_requests(id) ON DELETE CASCADE,
   external_run_id text,
-  status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied')),
+  status public.omnilink_req_status NOT NULL DEFAULT 'queued'::public.omnilink_req_status,
   policy jsonb,
   output jsonb,
   error_message text,
@@ -164,7 +166,7 @@ CREATE TABLE IF NOT EXISTS public.omnilink_run_steps (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   run_id uuid REFERENCES public.omnilink_runs(id) ON DELETE CASCADE NOT NULL,
   step_name text NOT NULL,
-  status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting_approval', 'succeeded', 'failed', 'denied')),
+  status public.omnilink_req_status NOT NULL DEFAULT 'queued'::public.omnilink_req_status,
   output jsonb,
   error_message text,
   started_at timestamptz,
@@ -229,7 +231,7 @@ BEGIN
   END IF;
 
   UPDATE public.omnilink_orchestration_requests
-  SET status = CASE WHEN p_decision = 'approved' THEN 'queued' ELSE 'denied' END,
+  SET status = CASE WHEN p_decision = 'approved' THEN 'queued'::public.omnilink_req_status ELSE 'denied'::public.omnilink_req_status END,
       updated_at = now()
   WHERE id = p_request_id
     AND tenant_id = p_user_id
@@ -279,6 +281,13 @@ DECLARE
   v_subject text := p_envelope->>'subject';
   v_time timestamptz := (p_envelope->>'time')::timestamptz;
   v_dataschema text := p_envelope->>'dataschema';
+
+  -- Constants
+  c_status constant text := 'status';
+  c_queued constant text := 'queued';
+  c_denied constant text := 'denied';
+  c_rate_limited constant text := 'rate_limited';
+  c_duplicate constant text := 'duplicate';
 BEGIN
   -- Rate limit check
   INSERT INTO public.omnilink_rate_limits(api_key_id, window_start, request_count)
@@ -290,7 +299,7 @@ BEGIN
   IF p_max_rpm IS NOT NULL AND v_new_count > p_max_rpm THEN
     v_retry_after := GREATEST(0, CEIL(EXTRACT(EPOCH FROM (v_window_start + interval '1 minute' - now()))));
     RETURN jsonb_build_object(
-      'status', 'rate_limited',
+      c_status, c_rate_limited,
       'retry_after_seconds', v_retry_after
     );
   END IF;
@@ -327,7 +336,7 @@ BEGIN
     RETURNING id INTO v_record_id;
 
     IF v_record_id IS NULL THEN
-      RETURN jsonb_build_object('status', 'duplicate');
+      RETURN jsonb_build_object(c_status, c_duplicate);
     END IF;
 
     IF p_entity IS NOT NULL THEN
@@ -395,11 +404,11 @@ BEGIN
     INSERT INTO public.audit_logs(actor_id, action_type, resource_type, resource_id, metadata)
     VALUES (NULL, 'omnilink.orchestration.queued', 'omnilink_orchestration', v_record_id::text, jsonb_build_object('integration_id', p_integration_id));
 
-    v_status := 'queued';
+    v_status := c_queued;
   END IF;
 
   RETURN jsonb_build_object(
-    'status', v_status,
+    c_status, v_status,
     'record_id', v_record_id
   );
 END;
