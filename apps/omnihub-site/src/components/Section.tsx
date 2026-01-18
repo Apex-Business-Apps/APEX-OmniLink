@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
 
-interface SectionProps {
+type SectionProps = Readonly<{
   children: ReactNode;
   id?: string;
   variant?: 'default' | 'surface' | 'navy';
   className?: string;
-}
+}>;
 
 export function Section({
   children,
@@ -22,11 +22,11 @@ export function Section({
   );
 }
 
-interface SectionHeaderProps {
+type SectionHeaderProps = Readonly<{
   title: string;
   subtitle?: string;
   centered?: boolean;
-}
+}>;
 
 export function SectionHeader({
   title,

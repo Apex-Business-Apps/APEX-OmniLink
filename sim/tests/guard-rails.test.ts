@@ -7,8 +7,8 @@ import {
   checkGuardRails,
   isProductionUrl,
   generateSandboxConfig,
-  type GuardRailConfig,
 } from '../guard-rails';
+import { buildGuardRailConfig } from './_helpers/guardRails';
 
 describe('Guard Rails', () => {
   describe('isProductionUrl', () => {
@@ -29,11 +29,7 @@ describe('Guard Rails', () => {
 
   describe('checkGuardRails', () => {
     it('should pass with valid configuration', () => {
-      const config: GuardRailConfig = {
-        simMode: 'true',
-        sandboxTenant: 'test-tenant',
-        supabaseUrl: 'http://localhost:54321',
-      };
+      const config = buildGuardRailConfig();
 
       const result = checkGuardRails(config);
 
@@ -42,11 +38,7 @@ describe('Guard Rails', () => {
     });
 
     it('should fail without SIM_MODE', () => {
-      const config: GuardRailConfig = {
-        simMode: undefined,
-        sandboxTenant: 'test-tenant',
-        supabaseUrl: 'http://localhost:54321',
-      };
+      const config = buildGuardRailConfig({ simMode: undefined });
 
       const result = checkGuardRails(config);
 
@@ -55,11 +47,7 @@ describe('Guard Rails', () => {
     });
 
     it('should fail with SIM_MODE=false', () => {
-      const config: GuardRailConfig = {
-        simMode: 'false',
-        sandboxTenant: 'test-tenant',
-        supabaseUrl: 'http://localhost:54321',
-      };
+      const config = buildGuardRailConfig({ simMode: 'false' });
 
       const result = checkGuardRails(config);
 
@@ -68,11 +56,7 @@ describe('Guard Rails', () => {
     });
 
     it('should fail without SANDBOX_TENANT', () => {
-      const config: GuardRailConfig = {
-        simMode: 'true',
-        sandboxTenant: undefined,
-        supabaseUrl: 'http://localhost:54321',
-      };
+      const config = buildGuardRailConfig({ sandboxTenant: undefined });
 
       const result = checkGuardRails(config);
 
@@ -81,11 +65,7 @@ describe('Guard Rails', () => {
     });
 
     it('should fail with production URL', () => {
-      const config: GuardRailConfig = {
-        simMode: 'true',
-        sandboxTenant: 'test-tenant',
-        supabaseUrl: 'https://prod.supabase.co',
-      };
+      const config = buildGuardRailConfig({ supabaseUrl: 'https://prod.supabase.co' });
 
       const result = checkGuardRails(config);
 
@@ -94,11 +74,7 @@ describe('Guard Rails', () => {
     });
 
     it('should warn about missing sandbox indicators', () => {
-      const config: GuardRailConfig = {
-        simMode: 'true',
-        sandboxTenant: 'test-tenant',
-        supabaseUrl: 'https://random-url.com',
-      };
+      const config = buildGuardRailConfig({ supabaseUrl: 'https://random-url.com' });
 
       const result = checkGuardRails(config);
 

@@ -3,12 +3,11 @@ import { Section, SectionHeader } from '@/components/Section';
 import { CTAGroup } from '@/components/CTAGroup';
 import { techSpecsConfig, siteConfig } from '@/content/site';
 
-interface SpecSectionProps {
-  id: string;
+type SpecSectionProps = Readonly<{
   title: string;
   description: string;
   details: readonly string[];
-}
+}>;
 
 function SpecSection({ title, description, details }: SpecSectionProps) {
   return (
@@ -41,7 +40,6 @@ export function TechSpecsPage() {
           {techSpecsConfig.sections.map((section) => (
             <SpecSection
               key={section.id}
-              id={section.id}
               title={section.title}
               description={section.description}
               details={section.details}

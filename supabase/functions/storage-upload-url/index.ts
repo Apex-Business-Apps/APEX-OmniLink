@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES, addRateLimitHeaders } from "../_shared/ratelimit.ts";
+import { createServiceClient } from "../_shared/supabaseClient.ts";
 
 // Maximum request body size (1MB for upload metadata)
 const MAX_REQUEST_SIZE = 1024 * 1024;
@@ -42,10 +42,7 @@ serve(async (req) => {
 
   try {
     // Create Supabase client with service role
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = createServiceClient();
 
     // Get user from Authorization header
     const authHeader = req.headers.get("Authorization") ?? "";

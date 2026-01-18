@@ -45,12 +45,12 @@ BEGIN
       AND pronamespace = 'public'::regnamespace
   ) THEN
     CREATE FUNCTION public.update_updated_at_column()
-    RETURNS TRIGGER AS $$
+    RETURNS TRIGGER AS $func$
     BEGIN
       NEW.updated_at = now();
       RETURN NEW;
     END;
-    $$ LANGUAGE plpgsql;
+    $func$ LANGUAGE plpgsql;
   END IF;
 END $$;
 

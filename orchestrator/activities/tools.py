@@ -38,6 +38,7 @@ from temporalio import activity
 
 from ..models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
 from ..providers.database.factory import get_database_provider
+from ..security.prompt_sanitizer import PromptInjectionError, create_safe_user_message
 
 # Global service instances (initialized in setup_activities())
 _semantic_cache = None  # SemanticCacheService instance
@@ -189,11 +190,24 @@ Output valid JSON matching the PlanStep schema."""
     client = instructor.from_litellm(acompletion)
 
     try:
+        # SECURITY: Sanitize user input to prevent prompt injection
+        # CVE fix: Never interpolate raw user input into prompts
+        try:
+            safe_user_message = create_safe_user_message(goal, context)
+        except PromptInjectionError as e:
+            activity.logger.warning(f"Prompt injection blocked: {e.pattern}")
+            from temporalio.exceptions import ApplicationError
+
+            raise ApplicationError(
+                "Request rejected: potential prompt injection detected",
+                non_retryable=True,  # Don't retry injection attempts
+            ) from e
+
         plan = await client.chat.completions.create(
             model=os.getenv("DEFAULT_LLM_MODEL", "gpt-4-turbo-preview"),
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Goal: {goal}\nContext: {json.dumps(context)}"},
+                {"role": "user", "content": safe_user_message},
             ],
             response_model=GeneratedPlan,
             temperature=float(os.getenv("DEFAULT_LLM_TEMPERATURE", "0.0")),

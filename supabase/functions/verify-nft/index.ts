@@ -32,16 +32,12 @@
  * Date: 2026-01-01
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { createPublicClient, http } from 'https://esm.sh/viem@2.43.4';
 import { polygon, mainnet } from 'https://esm.sh/viem@2.43.4/chains';
 
-import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-
-// Rate limiting configuration
-const VERIFY_NFT_RATE_LIMIT_MAX = 30;
-const VERIFY_NFT_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
+import { addRateLimitHeaders, checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES } from "../_shared/ratelimit.ts";
+import { createServiceClient } from "../_shared/supabaseClient.ts";
 
 // Cache configuration
 const NFT_VERIFICATION_CACHE_MS = 5 * 60 * 1000; // 5 minutes
@@ -57,30 +53,6 @@ const ERC721_BALANCE_OF_ABI = [
     type: 'function',
   },
 ] as const;
-
-/**
- * Check rate limit for user
- */
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetIn: number } {
-  const now = Date.now();
-  const key = `verify-nft:${userId}`;
-
-  const record = rateLimitStore.get(key);
-
-  if (!record || now >= record.resetAt) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + VERIFY_NFT_RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: VERIFY_NFT_RATE_LIMIT_MAX - 1, resetIn: VERIFY_NFT_RATE_LIMIT_WINDOW_MS };
-  }
-
-  if (record.count >= VERIFY_NFT_RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0, resetIn: record.resetAt - now };
-  }
-
-  record.count++;
-  rateLimitStore.set(key, record);
-
-  return { allowed: true, remaining: VERIFY_NFT_RATE_LIMIT_MAX - record.count, resetIn: record.resetAt - now };
-}
 
 /**
  * Get cached verification result if still valid
@@ -181,9 +153,7 @@ Deno.serve(async (req) => {
 
   try {
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createServiceClient();
 
     // Get authenticated user from JWT
     const authHeader = req.headers.get('Authorization');
@@ -206,23 +176,9 @@ Deno.serve(async (req) => {
     }
 
     // Check rate limit
-    const rateLimit = checkRateLimit(user.id);
+    const rateLimit = await checkRateLimit(user.id, RATE_LIMIT_PROFILES.nftVerify);
     if (!rateLimit.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: 'rate_limit_exceeded',
-          message: `Too many verification requests. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds.`,
-          retry_after: Math.ceil(rateLimit.resetIn / 1000),
-        }),
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'Retry-After': Math.ceil(rateLimit.resetIn / 1000).toString(),
-          },
-        }
-      );
+      return rateLimitExceededResponse(rateLimit, RATE_LIMIT_PROFILES.nftVerify, corsHeaders);
     }
 
     // Get user's verified wallet address
@@ -298,7 +254,14 @@ Deno.serve(async (req) => {
           cached: false,
           error: 'verification_failed',
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 200,
+          headers: addRateLimitHeaders(
+            { ...corsHeaders, 'Content-Type': 'application/json' },
+            rateLimit,
+            RATE_LIMIT_PROFILES.nftVerify
+          ),
+        }
       );
     }
 
@@ -320,7 +283,14 @@ Deno.serve(async (req) => {
         verified_at: new Date().toISOString(),
         cached: false,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 200,
+        headers: addRateLimitHeaders(
+          { ...corsHeaders, 'Content-Type': 'application/json' },
+          rateLimit,
+          RATE_LIMIT_PROFILES.nftVerify
+        ),
+      }
     );
 
   } catch (error) {

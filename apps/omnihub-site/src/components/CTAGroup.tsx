@@ -3,12 +3,12 @@ interface CTAButton {
   href: string;
 }
 
-interface CTAGroupProps {
+type CTAGroupProps = Readonly<{
   primary?: CTAButton;
   secondary?: CTAButton;
   link?: CTAButton;
   centered?: boolean;
-}
+}>;
 
 export function CTAGroup({
   primary,

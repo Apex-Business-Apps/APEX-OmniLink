@@ -1,4 +1,5 @@
 import { evaluateVoiceInputSafety } from "../_shared/voiceSafety.ts";
+import { verifyWebSocketAuth, unauthorizedWebSocketResponse, AuthError } from "../_shared/auth.ts";
 
 const APEX_SYSTEM_PROMPT = `You are APEX, the AI Receptionist for TradeLine247.
 Constraints: Reply in under 2 sentences. Be concise. Avoid filler words.
@@ -13,6 +14,7 @@ interface SessionMetrics {
   handshake_ms: number;
   turn_count: number;
   last_speech_stop: number;
+  user_id: string;
 }
 
 interface ContentItem {
@@ -37,6 +39,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return new Response("Expected WebSocket", { status: 400 });
   }
 
+  // Authenticate WebSocket connection before upgrade
+  let userId: string;
+  try {
+    const authResult = await verifyWebSocketAuth(req);
+    userId = authResult.user.id;
+    console.log(`${LOG_TAG}: Authenticated user ${userId}`);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      console.warn(`${LOG_TAG}: Authentication failed - ${error.message}`);
+      return unauthorizedWebSocketResponse();
+    }
+    console.error(`${LOG_TAG}: Auth error`, error);
+    return new Response("Authentication failed", { status: 401 });
+  }
+
   const { socket, response } = Deno.upgradeWebSocket(req);
   const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
@@ -51,7 +68,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     openai_connect: 0,
     handshake_ms: 0,
     turn_count: 0,
-    last_speech_stop: 0
+    last_speech_stop: 0,
+    user_id: userId
   };
 
   let openAISocket: WebSocket | null = null;

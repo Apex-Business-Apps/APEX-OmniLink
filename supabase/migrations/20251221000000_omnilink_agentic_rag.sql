@@ -44,11 +44,27 @@ TO authenticated
 USING (true);
 
 -- Allow service_role full access (for skill registration)
-CREATE POLICY "agent_skills_all_service_role" ON public.agent_skills
-FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
+DO $$
+DECLARE
+  table_name text;
+  policy_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['agent_skills', 'agent_checkpoints'] LOOP
+    policy_name := format('%s_all_service_role', table_name);
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public'
+        AND tablename = table_name
+        AND policyname = policy_name
+    ) THEN
+      EXECUTE format(
+        'CREATE POLICY "%s" ON public.%I FOR ALL TO service_role USING (true) WITH CHECK (true);',
+        policy_name,
+        table_name
+      );
+    END IF;
+  END LOOP;
+END $$;
 
 -- Hybrid search RPC function (SECURITY INVOKER)
 CREATE OR REPLACE FUNCTION public.match_skills(
@@ -153,13 +169,6 @@ FOR ALL
 TO authenticated
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
-
--- Service role can access all checkpoints
-CREATE POLICY "agent_checkpoints_all_service_role" ON public.agent_checkpoints
-FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
 
 -- Index for efficient user-based queries
 CREATE INDEX IF NOT EXISTS agent_checkpoints_user_id_idx

@@ -1,0 +1,38 @@
+name: OmniHub Fanout Report-back (EN)
+version: '1.0'
+locale: en-US
+deviceProfile: desktop-chrome
+environment: mock
+integrations:
+  web2:
+    - docs
+    - email
+  web3:
+    - nft
+  llm:
+    - omni-llm
+steps:
+  - id: command-doc
+    action: send_command
+    target: web2.docs
+  - id: command-email
+    action: send_command
+    target: web2.email
+  - id: report-email
+    action: report_back
+    target: omnihub
+  - id: verify
+    action: verify_audit
+    target: omnihub.audit
+assertions:
+  - type: orchestration_status
+    expected: passed
+  - type: audit_contains
+    expected:
+      - send_command
+      - report_back
+      - verify_audit
+  - type: entities_updated
+    expected: true
+  - type: no_secret_leak
+    expected: true

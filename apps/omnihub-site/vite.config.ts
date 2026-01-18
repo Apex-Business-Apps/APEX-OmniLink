@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 
 // Multi-page static site configuration
 export default defineConfig({
@@ -19,7 +19,10 @@ export default defineConfig({
         demo: resolve(__dirname, 'demo.html'),
         'tech-specs': resolve(__dirname, 'tech-specs.html'),
         'request-access': resolve(__dirname, 'request-access.html'),
+        login: resolve(__dirname, 'login.html'),
         restricted: resolve(__dirname, 'restricted.html'),
+        privacy: resolve(__dirname, 'privacy.html'),
+        terms: resolve(__dirname, 'terms.html'),
       },
       output: {
         // Consistent asset naming for caching
