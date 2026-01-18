@@ -79,13 +79,25 @@ export function validateMethod(
 }
 
 /**
+ * Supabase client type (minimal interface to avoid circular dependencies)
+ */
+interface SupabaseClient {
+    auth: {
+        getUser(token: string): Promise<{
+            data: { user: unknown | null };
+            error: unknown | null;
+        }>;
+    };
+}
+
+/**
  * Get authenticated user from JWT token
  */
 export async function getAuthenticatedUser(
     req: Request,
-    supabase: any,
+    supabase: SupabaseClient,
     corsHeaders: Record<string, string>
-): Promise<{ user: any; error: Response | null }> {
+): Promise<{ user: unknown; error: Response | null }> {
     const authHeader = req.headers.get('Authorization');
 
     if (!authHeader) {
