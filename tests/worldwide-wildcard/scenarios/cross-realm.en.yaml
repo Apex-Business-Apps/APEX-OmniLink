@@ -1,0 +1,46 @@
+name: Cross-Realm Workflow (EN)
+version: '1.0'
+locale: en-US
+deviceProfile: desktop-chrome
+environment: mock
+integrations:
+  web2:
+    - docs
+    - email
+  web3:
+    - nft
+  llm:
+    - omni-llm
+steps:
+  - id: intent
+    action: send_command
+    target: omnilink.ui
+    content: Copy this text block into a document, save it, email it, and mint a membership proof NFT hash.
+  - id: create-doc
+    action: create_doc
+    target: web2.docs
+  - id: mint-nft
+    action: mint_nft
+    target: web3.nft
+  - id: send-email
+    action: send_email
+    target: web2.email
+  - id: report-back
+    action: report_back
+    target: omnihub
+assertions:
+  - type: orchestration_status
+    expected: passed
+  - type: audit_contains
+    expected:
+      - send_command
+      - create_doc
+      - mint_nft
+      - send_email
+      - report_back
+  - type: entities_updated
+    expected: true
+  - type: nft_verification_recorded
+    expected: true
+  - type: no_secret_leak
+    expected: true

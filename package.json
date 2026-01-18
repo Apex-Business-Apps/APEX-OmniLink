@@ -35,7 +35,10 @@
     "sim:validate": "tsx sim/cli.ts --validate",
     "sim:report": "tsx sim/evidence.ts --report",
     "sim:clean": "rm -rf evidence/*",
-    "test:sim": "vitest run sim/tests"
+    "test:sim": "vitest run sim/tests",
+    "test:wwwct": "tsx scripts/worldwide-wildcard/run.ts --mode mock",
+    "test:wwwct:sandbox": "tsx scripts/worldwide-wildcard/run.ts --mode sandbox",
+    "test:wwwct:report": "tsx scripts/worldwide-wildcard/run.ts --mode mock --report-dir tests/worldwide-wildcard/reports"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
