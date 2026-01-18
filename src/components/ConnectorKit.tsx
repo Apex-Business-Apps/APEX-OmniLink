@@ -19,7 +19,7 @@ export const ConnectorKit = ({ integration, onConnect }: ConnectorKitProps) => {
     const [generatedKey, setGeneratedKey] = useState<{ key: string; prefix: string } | null>(null);
 
     const serverUrl = import.meta.env.VITE_SUPABASE_URL || 'https://api.apex-omnihub.com'; // Fallback or env
-    const publicUrl = import.meta.env.VITE_PUBLIC_URL || window.location.origin;
+    const publicUrl = import.meta.env.VITE_PUBLIC_URL || globalThis.location.origin;
 
     const handleGenerateKey = async () => {
         setIsLoading(true);
@@ -60,9 +60,10 @@ export const ConnectorKit = ({ integration, onConnect }: ConnectorKitProps) => {
             toast.success("New API Key generated successfully");
             if (onConnect) onConnect();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error generating key:', error);
-            toast.error(error.message || 'Failed to generate key');
+            const message = error instanceof Error ? error.message : 'Failed to generate key';
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }
@@ -114,17 +115,7 @@ export const ConnectorKit = ({ integration, onConnect }: ConnectorKitProps) => {
                     <div className="space-y-2">
                         <Label>Authentication</Label>
                         <div className="space-y-3">
-                            {!generatedKey ? (
-                                <div className="flex flex-col gap-2">
-                                    <Button onClick={handleGenerateKey} disabled={isLoading} className="w-full">
-                                        {isLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
-                                        Generate New API Key
-                                    </Button>
-                                    <p className="text-xs text-muted-foreground text-center">
-                                        Generating a key will enable this integration.
-                                    </p>
-                                </div>
-                            ) : (
+                            {generatedKey ? (
                                 <div className="space-y-3">
                                     <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400">
                                         <AlertTriangle className="h-4 w-4 !text-orange-600 dark:!text-orange-400" />
@@ -152,6 +143,16 @@ export const ConnectorKit = ({ integration, onConnect }: ConnectorKitProps) => {
                                         <RefreshCw className="mr-2 h-3 w-3" />
                                         Regenerate (Rotates Key)
                                     </Button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    <Button onClick={handleGenerateKey} disabled={isLoading} className="w-full">
+                                        {isLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
+                                        Generate New API Key
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Generating a key will enable this integration.
+                                    </p>
                                 </div>
                             )}
                         </div>
