@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Connector Registry Implementation
  * Manages available connectors by provider name
