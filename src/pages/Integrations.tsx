@@ -1,55 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Globe, Check, X, ExternalLink, MessageCircle, Facebook, Mail, Youtube, Instagram, Music, Zap, ShoppingBag, Server, Bot, BarChart3, Smartphone } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { WalletConnect } from '@/components/WalletConnect';
 import { Separator } from '@/components/ui/separator';
-
-interface Integration {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  icon: unknown;
-  requiresApiKey: boolean;
-  requiresUsername?: boolean;
-}
+import { availableIntegrations, IntegrationDef } from '../omniconnect/core/registry';
+import { ConnectorKit } from '@/components/ConnectorKit';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const Integrations = () => {
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationDef | null>(null);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [connectedIntegrations, setConnectedIntegrations] = useState<unknown[]>([]);
+
+  // Form data for external keys (outbound)
   const [formData, setFormData] = useState({
     apiKey: '',
     apiUsername: '',
   });
-
-  const availableIntegrations: Integration[] = [
-    { id: '1', name: 'TradeLine 24/7', type: 'tradeline247', description: 'Analytics and business intelligence', icon: BarChart3, requiresApiKey: true },
-    { id: '2', name: 'WhatsApp', type: 'whatsapp', description: 'Business messaging platform', icon: MessageCircle, requiresApiKey: true },
-    { id: '3', name: 'Facebook', type: 'facebook', description: 'Social media integration', icon: Facebook, requiresApiKey: true },
-    { id: '4', name: 'Messenger', type: 'messenger', description: 'Facebook Messenger integration', icon: MessageCircle, requiresApiKey: true },
-    { id: '5', name: 'Google Apps', type: 'google', description: 'Google Workspace integration', icon: Mail, requiresApiKey: true },
-    { id: '6', name: 'YouTube', type: 'youtube', description: 'Video platform integration', icon: Youtube, requiresApiKey: true },
-    { id: '7', name: 'Instagram', type: 'instagram', description: 'Social media integration', icon: Instagram, requiresApiKey: true },
-    { id: '8', name: 'TikTok', type: 'tiktok', description: 'Short video platform', icon: Music, requiresApiKey: true },
-    { id: '9', name: 'Zapier', type: 'zapier', description: 'Automation platform', icon: Zap, requiresApiKey: true },
-    { id: '10', name: 'Klaviyo', type: 'klaviyo', description: 'Email marketing automation', icon: Mail, requiresApiKey: true },
-    { id: '11', name: 'Gmail', type: 'gmail', description: 'Email service integration', icon: Mail, requiresApiKey: true },
-    { id: '12', name: 'IONOS.ca', type: 'ionos', description: 'Hosting and domain services', icon: Server, requiresApiKey: true, requiresUsername: true },
-    { id: '13', name: 'Webnames.ca', type: 'webnames', description: 'Domain management', icon: Globe, requiresApiKey: true, requiresUsername: true },
-    { id: '14', name: 'Samsung Apps', type: 'samsung', description: 'Native Samsung integrations', icon: Smartphone, requiresApiKey: false },
-    { id: '15', name: 'ChatGPT', type: 'chatgpt', description: 'AI assistant integration', icon: Bot, requiresApiKey: true },
-    { id: '16', name: 'Grok', type: 'grok', description: 'AI assistant by xAI', icon: Bot, requiresApiKey: true },
-  ];
 
   useEffect(() => {
     fetchIntegrations();
@@ -68,65 +43,36 @@ const Integrations = () => {
     }
   };
 
-  const isConnected = (type: string) => {
-    return connectedIntegrations.some(int => int.type === type);
-  };
-
   const getConnectedIntegration = (type: string) => {
     return connectedIntegrations.find(int => int.type === type);
   };
 
-  const openConnectDialog = (integration: Integration) => {
+  const isConnected = (type: string) => {
+    return !!getConnectedIntegration(type);
+  };
+
+  const openConnectDialog = (integration: IntegrationDef) => {
     setSelectedIntegration(integration);
     setFormData({ apiKey: '', apiUsername: '' });
     setIsDialogOpen(true);
   };
 
-  const testConnection = async (integrationId: string) => {
+  const handleCreateIntegration = async () => {
+    if (!selectedIntegration || !user) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('test-integration', {
-        body: { integrationId },
-      });
+      const config: any = {};
+      // If we have form data filled, include it
+      if (formData.apiKey) config.apiKey = formData.apiKey;
+      if (formData.apiUsername) config.apiUsername = formData.apiUsername;
 
-      if (error) throw error;
-
-      if (data.connected) {
-        toast.success(data.message || 'Integration is working correctly');
-      } else {
-        toast.error(data.message || 'Unable to connect to service');
-      }
-
-      fetchIntegrations();
-    } catch (error: unknown) {
-      toast.error(error.message || 'Test failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedIntegration) return;
-    
-    setIsLoading(true);
-
-    try {
-      const config: unknown = {};
-      if (selectedIntegration.requiresApiKey) {
-        config.apiKey = formData.apiKey;
-      }
-      if (selectedIntegration.requiresUsername) {
-        config.apiUsername = formData.apiUsername;
-      }
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('integrations')
         .upsert({
-          user_id: user?.id,
+          user_id: user.id,
           name: selectedIntegration.name,
           type: selectedIntegration.type,
-          status: 'pending',
+          status: 'active', // Default to active so we can generate keys
           config,
         })
         .select()
@@ -134,22 +80,17 @@ const Integrations = () => {
 
       if (error) throw error;
 
-      // Test the connection immediately
-      await testConnection(data.id);
-
-      setIsDialogOpen(false);
-      setFormData({ apiKey: '', apiUsername: '' });
-      setSelectedIntegration(null);
-      fetchIntegrations();
-    } catch (error) {
-      console.error('Error connecting integration:', error);
-      toast.error('Failed to connect integration');
+      await fetchIntegrations(); // Refresh list to get the new UUID
+      toast.success("Integration enabled");
+    } catch (error: any) {
+      console.error("Error creating integration:", error);
+      toast.error("Failed to enable integration");
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const handleDisconnect = async (integration: Integration) => {
+  const handleDisconnect = async (integration: IntegrationDef) => {
     const connected = getConnectedIntegration(integration.type);
     if (!connected) return;
 
@@ -168,6 +109,8 @@ const Integrations = () => {
       toast.error('Failed to disconnect integration');
     }
   };
+
+  const currentDbRecord = selectedIntegration ? getConnectedIntegration(selectedIntegration.type) : null;
 
   return (
     <div className="p-6 space-y-6">
@@ -196,15 +139,16 @@ const Integrations = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {availableIntegrations.map((integration) => {
           const connected = isConnected(integration.type);
-          const Icon = integration.icon;
-          
+          // Cast icon to any for rendering
+          const Icon = integration.icon as any;
+
           return (
             <Card key={integration.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
-                      <Icon className="h-5 w-5 text-primary" />
+                      {Icon && <Icon className="h-5 w-5 text-primary" />}
                     </div>
                     <div>
                       <CardTitle className="text-base">{integration.name}</CardTitle>
@@ -223,31 +167,27 @@ const Integrations = () => {
               <CardContent>
                 <div className="flex gap-2">
                   {connected ? (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
+                    <div className="flex gap-2 w-full">
+                      <Button
                         className="flex-1"
-                        onClick={() => {
-                          const connectedInt = getConnectedIntegration(integration.type);
-                          if (connectedInt) testConnection(connectedInt.id);
-                        }}
-                        disabled={isLoading}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openConnectDialog(integration)}
                       >
-                        Test
+                        Configure
                       </Button>
-                      <Button 
-                        variant="destructive" 
+                      <Button
+                        variant="destructive"
                         size="sm"
                         onClick={() => handleDisconnect(integration)}
                         disabled={isLoading}
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                    </>
+                    </div>
                   ) : (
-                    <Button 
-                      className="w-full" 
+                    <Button
+                      className="w-full"
                       size="sm"
                       onClick={() => openConnectDialog(integration)}
                       disabled={isLoading}
@@ -262,48 +202,75 @@ const Integrations = () => {
         })}
       </div>
 
-      {/* Connection Dialog */}
+      {/* Connection / Configuration Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Connect {selectedIntegration?.name}</DialogTitle>
+            <DialogTitle>{currentDbRecord ? `Configure ${selectedIntegration?.name}` : `Connect ${selectedIntegration?.name}`}</DialogTitle>
             <DialogDescription>
-              {selectedIntegration?.requiresApiKey 
-                ? `Enter your ${selectedIntegration.name} API credentials to connect your account.`
-                : `Configure your ${selectedIntegration?.name} integration.`
-              }
+              {currentDbRecord
+                ? "Manage your integration keys and settings."
+                : "Enable this integration to generate keys and connect."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleConnect} className="space-y-4">
-            {selectedIntegration?.requiresUsername && (
-              <div className="space-y-2">
-                <Label htmlFor="apiUsername">Username / Account ID</Label>
-                <Input
-                  id="apiUsername"
-                  placeholder="Your username or account ID"
-                  value={formData.apiUsername}
-                  onChange={(e) => setFormData({ ...formData, apiUsername: e.target.value })}
-                  required
-                />
-              </div>
+
+          <div className="space-y-6 py-4">
+            {selectedIntegration && (
+              <>
+                {/* Pre-connection: Ask for external keys if required and NOT connected yet */}
+                {!currentDbRecord && (selectedIntegration.requiresApiKey || selectedIntegration.requiresUsername) && (
+                  <div className="space-y-4 border p-4 rounded-md bg-muted/20">
+                    <h4 className="font-semibold text-sm">External Credentials (Optional)</h4>
+                    <p className="text-xs text-muted-foreground">If you have existing credentials, enter them here. Otherwise, you can skip this to just use the Universal Port.</p>
+
+                    {selectedIntegration.requiresUsername && (
+                      <div className="space-y-2">
+                        <Label>Username</Label>
+                        <Input
+                          value={formData.apiUsername}
+                          onChange={e => setFormData({ ...formData, apiUsername: e.target.value })}
+                          placeholder="Username"
+                        />
+                      </div>
+                    )}
+                    {selectedIntegration.requiresApiKey && (
+                      <div className="space-y-2">
+                        <Label>API Key</Label>
+                        <Input
+                          type="password"
+                          value={formData.apiKey}
+                          onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
+                          placeholder="API Key"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Main State Logic */}
+                {currentDbRecord ? (
+                  // Connected: Show ConnectorKit (Inbound) + Config
+                  <div className="space-y-6">
+                    {/* Pass the DB Record ID to ConnectorKit */}
+                    <ConnectorKit
+                      integration={{ ...selectedIntegration, id: currentDbRecord.id }}
+                      onConnect={fetchIntegrations}
+                    />
+                  </div>
+                ) : (
+                  // Not Connected: Show Enable Button
+                  <div className="flex flex-col gap-4">
+                    <Button onClick={handleCreateIntegration} disabled={isLoading} className="w-full">
+                      {isLoading ? "Enabling..." : `Enable ${selectedIntegration.name}`}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      Enabling will create an integration record and allow you to generate access keys.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
-            {selectedIntegration?.requiresApiKey && (
-              <div className="space-y-2">
-                <Label htmlFor="apiKey">API Key</Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="Your API key"
-                  value={formData.apiKey}
-                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                  required
-                />
-              </div>
-            )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Connecting...' : 'Connect Integration'}
-            </Button>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
