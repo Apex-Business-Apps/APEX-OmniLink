@@ -157,6 +157,175 @@ function jsonResponse(data: unknown, status: number, headers: HeadersInit): Resp
   });
 }
 
+async function handleKeyCreation(req: Request, corsHeaders: HeadersInit): Promise<Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return jsonResponse({ error: 'unauthorized' }, 401, corsHeaders);
+  }
+
+  const serviceClient = createServiceClient();
+  const userClient = createAnonClient(authHeader);
+  const { data: { user } } = await userClient.auth.getUser();
+  if (!user) {
+    return jsonResponse({ error: 'unauthorized' }, 401, corsHeaders);
+  }
+
+  const { data: roles } = await serviceClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'admin')
+    .limit(1);
+
+  if (!roles?.length) {
+    return jsonResponse({ error: 'forbidden' }, 403, corsHeaders);
+  }
+
+  const { body } = await parseJsonBody(req);
+  const payload = body as Record<string, unknown>;
+  const integrationId = payload?.integration_id as string | undefined;
+  if (!integrationId) {
+    return jsonResponse({ error: 'invalid_request', message: 'integration_id is required' }, 400, corsHeaders);
+  }
+
+  const { key, prefix } = generateKey();
+  const keyHash = await hashKey(key);
+  const scopes = payload?.scopes ?? {};
+
+  const { error } = await serviceClient
+    .from('omnilink_api_keys')
+    .insert({
+      tenant_id: user.id,
+      integration_id: integrationId,
+      name: payload?.name ?? null,
+      key_prefix: prefix,
+      key_hash: keyHash,
+      scopes,
+    });
+
+  if (error) {
+    return jsonResponse({ error: 'server_error', message: error.message }, 500, corsHeaders);
+  }
+
+  return jsonResponse(
+    {
+      status: 'created',
+      key,
+      key_prefix: prefix,
+      warning: 'This key is shown once. Store it securely.',
+    },
+    201,
+    corsHeaders
+  );
+}
+
+interface ProcessItemContext {
+  route: string;
+  apiKey: ApiKeyRecord;
+  constraints: Required<NonNullable<OmniLinkScopes['constraints']>>;
+  idempotencyHeader: string;
+  serviceClient: ReturnType<typeof createServiceClient>;
+}
+
+async function processRequestItem(
+  item: unknown,
+  index: number,
+  context: ProcessItemContext
+): Promise<Record<string, unknown>> {
+  const { route, apiKey, constraints, idempotencyHeader, serviceClient } = context;
+
+  const payload = item as Record<string, unknown>;
+  if (!payload || typeof payload !== 'object') {
+    return { status: 'invalid', index, error: 'invalid_payload' };
+  }
+
+  let requiredFields: string[];
+  if (route === 'events') {
+    requiredFields = ['specversion', 'id', 'source', 'type', 'time', 'data'];
+  } else if (route === 'commands') {
+    requiredFields = ['specversion', 'id', 'source', 'type', 'time', 'params'];
+  } else {
+    requiredFields = ['specversion', 'id', 'source', 'type', 'time', 'workflow', 'input'];
+  }
+
+  const missingField = validateEnvelope(payload, requiredFields);
+  if (missingField) {
+    return { status: 'invalid', index, error: `missing_${missingField}` };
+  }
+
+  if (!enforceEnvAllowlist(payload.source as string, constraints.env_allowlist)) {
+    return { status: 'denied', index, error: 'env_not_allowed' };
+  }
+
+  let permissionRequired = 'events:write';
+  let requestType = 'event';
+
+  if (route === 'commands') {
+    requestType = 'command';
+    permissionRequired = `commands:${payload.type}`;
+    if (!allowAdapter(payload.target as { system?: string }, constraints.allowed_adapters)) {
+      return { status: 'denied', index, error: 'adapter_not_allowed' };
+    }
+    if (!enforcePermission(apiKey.scopes ?? {}, 'orchestrations:request')) {
+      return { status: 'denied', index, error: 'permission_denied' };
+    }
+  }
+
+  if (route === 'workflows') {
+    requestType = 'workflow';
+    permissionRequired = 'orchestrations:request';
+    const workflow = payload.workflow as { name?: string; version?: string };
+    if (!allowWorkflow(workflow, constraints.allowed_workflows)) {
+      return { status: 'denied', index, error: 'workflow_not_allowed' };
+    }
+    if (payload.input && !payload.params) {
+      payload.params = payload.input;
+    }
+  }
+
+  if (!enforcePermission(apiKey.scopes ?? {}, permissionRequired)) {
+    return { status: 'denied', index, error: 'permission_denied' };
+  }
+
+  if (constraints.approvals_required_for.includes(payload.type as string)) {
+    payload.policy = { ...(payload.policy as Record<string, unknown>), require_approval: true };
+  }
+
+  const idempotencyKey = `${idempotencyHeader}:${payload.id ?? index}`;
+
+  const { data, error } = await serviceClient.rpc('omnilink_ingest', {
+    p_api_key_id: apiKey.id,
+    p_integration_id: apiKey.integration_id,
+    p_tenant_id: apiKey.tenant_id,
+    p_request_type: requestType,
+    p_envelope: payload,
+    p_idempotency_key: idempotencyKey,
+    p_max_rpm: constraints.max_rpm,
+    p_entity: payload.entity ?? null,
+  });
+
+  if (error) {
+    return { status: 'error', index, error: error.message };
+  }
+
+  return { status: data.status, record_id: data.record_id, index, retry_after_seconds: data.retry_after_seconds };
+}
+
+function determineStatusCode(results: Record<string, unknown>[]): number {
+  const hasQueued = results.some((result) => result.status === 'queued');
+  const hasRateLimited = results.some((result) => result.status === 'rate_limited');
+  const singleResult = results.length === 1 ? results[0] : null;
+
+  let statusCode = hasQueued ? 202 : 200;
+  if (singleResult?.status === 'denied') statusCode = 403;
+  if (singleResult?.status === 'invalid') statusCode = 400;
+  if (singleResult?.status === 'error') statusCode = 500;
+  if (singleResult?.status === 'rate_limited') statusCode = 429;
+  if (!singleResult && hasRateLimited && !hasQueued) statusCode = 429;
+
+  return statusCode;
+}
+
 Deno.serve(async (req) => {
   const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
   const corsHeaders = buildCorsHeaders(requestOrigin);
@@ -180,65 +349,7 @@ Deno.serve(async (req) => {
   }
 
   if (route === 'keys' && req.method === 'POST') {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return jsonResponse({ error: 'unauthorized' }, 401, corsHeaders);
-    }
-
-    const serviceClient = createServiceClient();
-    const userClient = createAnonClient(authHeader);
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) {
-      return jsonResponse({ error: 'unauthorized' }, 401, corsHeaders);
-    }
-
-    const { data: roles } = await serviceClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .limit(1);
-
-    if (!roles?.length) {
-      return jsonResponse({ error: 'forbidden' }, 403, corsHeaders);
-    }
-
-    const { body } = await parseJsonBody(req);
-    const payload = body as Record<string, unknown>;
-    const integrationId = payload?.integration_id as string | undefined;
-    if (!integrationId) {
-      return jsonResponse({ error: 'invalid_request', message: 'integration_id is required' }, 400, corsHeaders);
-    }
-
-    const { key, prefix } = generateKey();
-    const keyHash = await hashKey(key);
-    const scopes = payload?.scopes ?? {};
-
-    const { error } = await serviceClient
-      .from('omnilink_api_keys')
-      .insert({
-        tenant_id: user.id,
-        integration_id: integrationId,
-        name: payload?.name ?? null,
-        key_prefix: prefix,
-        key_hash: keyHash,
-        scopes,
-      });
-
-    if (error) {
-      return jsonResponse({ error: 'server_error', message: error.message }, 500, corsHeaders);
-    }
-
-    return jsonResponse(
-      {
-        status: 'created',
-        key,
-        key_prefix: prefix,
-        warning: 'This key is shown once. Store it securely.',
-      },
-      201,
-      corsHeaders
-    );
+    return handleKeyCreation(req, corsHeaders);
   }
 
   if (!['events', 'commands', 'workflows'].includes(route)) {
@@ -305,99 +416,17 @@ Deno.serve(async (req) => {
     const results = [];
 
     for (const [index, item] of items.entries()) {
-      const payload = item as Record<string, unknown>;
-      if (!payload || typeof payload !== 'object') {
-        results.push({ status: 'invalid', index, error: 'invalid_payload' });
-        continue;
-      }
-
-      const requiredFields =
-        route === 'events'
-          ? ['specversion', 'id', 'source', 'type', 'time', 'data']
-          : route === 'commands'
-            ? ['specversion', 'id', 'source', 'type', 'time', 'params']
-            : ['specversion', 'id', 'source', 'type', 'time', 'workflow', 'input'];
-
-      const missingField = validateEnvelope(payload, requiredFields);
-      if (missingField) {
-        results.push({ status: 'invalid', index, error: `missing_${missingField}` });
-        continue;
-      }
-
-      if (!enforceEnvAllowlist(payload.source as string, constraints.env_allowlist)) {
-        results.push({ status: 'denied', index, error: 'env_not_allowed' });
-        continue;
-      }
-
-      let permissionRequired = 'events:write';
-      let requestType = 'event';
-      if (route === 'commands') {
-        requestType = 'command';
-        permissionRequired = `commands:${payload.type}`;
-        if (!allowAdapter(payload.target as { system?: string }, constraints.allowed_adapters)) {
-          results.push({ status: 'denied', index, error: 'adapter_not_allowed' });
-          continue;
-        }
-
-        if (!enforcePermission(apiKey.scopes ?? {}, 'orchestrations:request')) {
-          results.push({ status: 'denied', index, error: 'permission_denied' });
-          continue;
-        }
-      }
-
-      if (route === 'workflows') {
-        requestType = 'workflow';
-        permissionRequired = 'orchestrations:request';
-        const workflow = payload.workflow as { name?: string; version?: string };
-        if (!allowWorkflow(workflow, constraints.allowed_workflows)) {
-          results.push({ status: 'denied', index, error: 'workflow_not_allowed' });
-          continue;
-        }
-        if (payload.input && !payload.params) {
-          payload.params = payload.input;
-        }
-      }
-
-      if (!enforcePermission(apiKey.scopes ?? {}, permissionRequired)) {
-        results.push({ status: 'denied', index, error: 'permission_denied' });
-        continue;
-      }
-
-      if (constraints.approvals_required_for.includes(payload.type as string)) {
-        payload.policy = { ...(payload.policy as Record<string, unknown>), require_approval: true };
-      }
-
-      const idempotencyKey = `${idempotencyHeader}:${payload.id ?? index}`;
-
-      const { data, error } = await serviceClient.rpc('omnilink_ingest', {
-        p_api_key_id: apiKey.id,
-        p_integration_id: apiKey.integration_id,
-        p_tenant_id: apiKey.tenant_id,
-        p_request_type: requestType,
-        p_envelope: payload,
-        p_idempotency_key: idempotencyKey,
-        p_max_rpm: constraints.max_rpm,
-        p_entity: payload.entity ?? null,
+      const result = await processRequestItem(item, index, {
+        route,
+        apiKey,
+        constraints,
+        idempotencyHeader,
+        serviceClient,
       });
-
-      if (error) {
-        results.push({ status: 'error', index, error: error.message });
-        continue;
-      }
-
-      results.push({ status: data.status, record_id: data.record_id, index, retry_after_seconds: data.retry_after_seconds });
+      results.push(result);
     }
 
-    const hasQueued = results.some((result) => result.status === 'queued');
-    const hasRateLimited = results.some((result) => result.status === 'rate_limited');
-    const singleResult = results.length === 1 ? results[0] : null;
-
-    let statusCode = hasQueued ? 202 : 200;
-    if (singleResult?.status === 'denied') statusCode = 403;
-    if (singleResult?.status === 'invalid') statusCode = 400;
-    if (singleResult?.status === 'error') statusCode = 500;
-    if (singleResult?.status === 'rate_limited') statusCode = 429;
-    if (!singleResult && hasRateLimited && !hasQueued) statusCode = 429;
+    const statusCode = determineStatusCode(results);
 
     return jsonResponse(
       {
