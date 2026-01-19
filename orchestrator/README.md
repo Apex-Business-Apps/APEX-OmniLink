@@ -15,7 +15,7 @@ Production-grade AI Agent Orchestration Platform with Temporal.io, Event Sourcin
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ TypeScript Edge Functions (Supabase)                        │
+│ TypeScript Edge Functions (Supabase)                         │
 │   - OmniLink Agent                                           │
 │   - Event Publishers (sim/contracts)                         │
 └─────────────────┬────────────────────────────────────────────┘
@@ -23,23 +23,23 @@ Production-grade AI Agent Orchestration Platform with Temporal.io, Event Sourcin
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
 │ Python Temporal.io Orchestrator                              │
-│ ┌────────────────────────────────────────────────────────┐  │
-│ │ Workflow (Event Sourcing + Saga)                       │  │
-│ │ - Semantic Cache → Plan Generation → Execution        │  │
-│ │ - Automatic Compensation on Failure                    │  │
-│ └────────────────────────────────────────────────────────┘  │
-│ ┌────────────────────────────────────────────────────────┐  │
-│ │ Activities (Tool Execution)                            │  │
-│ │ - Supabase Integration                                 │  │
-│ │ - LLM Calls (instructor + litellm)                     │  │
-│ │ - Distributed Locking                                  │  │
-│ └────────────────────────────────────────────────────────┘  │
+│ ┌────────────────────────────────────────────────────────┐   │
+│ │ Workflow (Event Sourcing + Saga)                       │   │
+│ │ - Semantic Cache → Plan Generation → Execution         │   │
+│ │ - Automatic Compensation on Failure                    │   │
+│ └────────────────────────────────────────────────────────┘   │
+│ ┌────────────────────────────────────────────────────────┐   │
+│ │ Activities (Tool Execution)                            │   │
+│ │ - Supabase Integration                                 │   │
+│ │ - LLM Calls (instructor + litellm)                     │   │
+│ │ - Distributed Locking                                  │   │
+│ └────────────────────────────────────────────────────────┘   │
 └───────┬──────────────────────────┬───────────────────────────┘
         │                          │
         ▼                          ▼
 ┌───────────────┐      ┌──────────────────────┐
 │ Redis Stack   │      │ Supabase PostgreSQL  │
-│ - Vector Search│      │ - workflow_instances │
+│ -Vector Search│      │ - workflow_instances │
 │ - Dist. Locks │      │ - agent_checkpoints  │
 └───────────────┘      └──────────────────────┘
 ```

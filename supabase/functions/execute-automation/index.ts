@@ -1,39 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { createServiceClient } from "../_shared/supabaseClient.ts";
-
-// Allowed tables for record creation (SQL injection prevention)
-const ALLOWED_TABLES = ['automations', 'automation_logs', 'notifications', 'user_data'];
+import { createSupabaseClient } from '../_shared/auth.ts';
+import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight with origin validation
-  if (req.method === 'OPTIONS') {
-    return handlePreflight(req);
-  }
-
-  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
-  const corsHeaders = buildCorsHeaders(requestOrigin);
-
-  // Validate origin
-  if (!isOriginAllowed(requestOrigin)) {
-    return new Response(
-      JSON.stringify({ error: 'Origin not allowed' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createSupabaseClient();
 
     const body = await req.json();
     const { automationId } = body;
 
     // Validate automationId
     if (!automationId || typeof automationId !== 'string' || automationId.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'Invalid automationId' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return corsJsonResponse({ error: 'Invalid automationId' }, 400);
     }
 
     // Validate UUID format to prevent injection
@@ -54,10 +36,7 @@ serve(async (req) => {
 
     if (fetchError) throw fetchError;
     if (!automation.is_active) {
-      return new Response(JSON.stringify({ error: 'Automation is not active' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return corsJsonResponse({ error: 'Automation is not active' }, 400);
     }
 
     // Execute based on action_type
@@ -85,15 +64,10 @@ serve(async (req) => {
       .update({ updated_at: new Date().toISOString() })
       .eq('id', automationId);
 
-    return new Response(JSON.stringify({ success: true, result }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return corsJsonResponse({ success: true, result });
   } catch (error) {
     console.error('Automation execution error:', error);
-    return new Response(JSON.stringify({ error: 'Automation execution failed' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return corsJsonResponse({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
   }
 });
 

@@ -28,35 +28,35 @@ The Web3 Verification Module is a read-only connector that enables wallet authen
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Frontend (React + wagmi)                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ WalletConnect│  │ useWallet    │  │ Entitlements │      │
-│  │  Component   │  │ Verification │  │   Checks     │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│                     Frontend (React + wagmi)                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ WalletConnect│  │ useWallet    │  │ Entitlements │       │
+│  │  Component   │  │ Verification │  │   Checks     │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 └─────────┼──────────────────┼──────────────────┼─────────────┘
           │                  │                  │
           ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Supabase Edge Functions (Deno)                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ web3-nonce   │  │ web3-verify  │  │ Entitlement  │      │
-│  │ (Public)     │  │ (Auth Req'd) │  │   Checks     │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│              Supabase Edge Functions (Deno)                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ web3-nonce   │  │ web3-verify  │  │ Entitlement  │       │ 
+│  │ (Public)     │  │ (Auth Req'd) │  │   Checks     │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 └─────────┼──────────────────┼──────────────────┼─────────────┘
           │                  │                  │
           ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  Supabase PostgreSQL                         │
-│  ┌──────────────────┐  ┌───────────────────┐               │
-│  │ wallet_identities│  │ wallet_nonces     │               │
-│  │ entitlements     │  │ chain_cache       │               │
-│  └──────────────────┘  └───────────────────┘               │
+│                  Supabase PostgreSQL                        │
+│  ┌──────────────────┐  ┌───────────────────┐                │
+│  │ wallet_identities│  │ wallet_nonces     │                │
+│  │ entitlements     │  │ chain_cache       │                │
+│  └──────────────────┘  └───────────────────┘                │
 └─────────────────────────────────────────────────────────────┘
           │                  │
           ▼                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Blockchain RPC Endpoints (viem)                 │
-│  Ethereum • Polygon • Optimism • Arbitrum                    │
+│              Blockchain RPC Endpoints (viem)                │
+│  Ethereum • Polygon • Optimism • Arbitrum                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
