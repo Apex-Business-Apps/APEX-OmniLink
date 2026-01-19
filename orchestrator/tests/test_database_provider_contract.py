@@ -140,6 +140,6 @@ class TestBackwardsCompatibility:
         """SupabaseProvider alias must exist for backwards compatibility."""
         from providers.database.supabase_provider import SupabaseProvider
 
-        assert (
-            SupabaseProvider is SupabaseDatabaseProvider
-        ), "SupabaseProvider should be an alias for SupabaseDatabaseProvider"
+        assert SupabaseProvider is SupabaseDatabaseProvider, (
+            "SupabaseProvider should be an alias for SupabaseDatabaseProvider"
+        )
