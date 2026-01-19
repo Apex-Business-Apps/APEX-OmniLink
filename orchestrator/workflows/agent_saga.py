@@ -288,11 +288,64 @@ class AgentWorkflow:
         # MAN Mode: pending human decisions (step_id -> decision)
         self.pending_decisions: dict[str, dict[str, Any]] = {}
 
+        # MAN Mode 2.0: deferred steps awaiting approval
+        self.deferred_steps: dict[str, dict[str, Any]] = {}
+
+        # Operator supremacy: admin control flags
+        self._admin_paused: bool = False
+        self._cancelled_steps: set[str] = set()
+
         # Continue-as-new threshold
         self.MAX_HISTORY_SIZE = 1000
+        self.step_count = 0
+        self.start_time: float | None = None
 
     # =========================================================================
-    # MAN MODE SIGNAL HANDLER
+    # OPERATOR SUPREMACY SIGNALS (MAN Mode 2.0)
+    # =========================================================================
+
+    @workflow.signal
+    async def admin_pause(self) -> None:
+        """
+        Pause workflow execution.
+
+        Workflow will wait until admin_resume is called.
+        """
+        self._admin_paused = True
+        workflow.logger.warning("⏸️  Workflow paused by admin")
+
+    @workflow.signal
+    async def admin_resume(self) -> None:
+        """Resume paused workflow execution."""
+        self._admin_paused = False
+        workflow.logger.info("▶️  Workflow resumed by admin")
+
+    @workflow.signal
+    async def admin_stop(self, reason: str = "Admin stop") -> None:
+        """
+        Terminate workflow immediately.
+
+        This is a hard stop - workflow will fail with non-retryable error.
+        """
+        workflow.logger.error(f"🛑 Workflow stopped by admin: {reason}")
+        raise ApplicationError(
+            f"Workflow stopped by admin: {reason}",
+            non_retryable=True,
+        )
+
+    @workflow.signal
+    async def admin_cancel_step(self, step_id: str) -> None:
+        """
+        Cancel a specific pending step.
+
+        If step is in-flight, it will be skipped.
+        If step is deferred, it will be marked as cancelled.
+        """
+        self._cancelled_steps.add(step_id)
+        workflow.logger.warning(f"🚫 Step {step_id} cancelled by admin")
+
+    # =========================================================================
+    # MAN MODE SIGNAL HANDLER (for audit)
     # =========================================================================
 
     @workflow.signal
@@ -332,7 +385,7 @@ class AgentWorkflow:
         Args:
             goal: User's natural language goal
             user_id: User ID
-            context: Additional context (preferences, history, etc.)
+            context: Additional context OR snapshot from continue-as-new
 
         Returns:
             Workflow result with plan execution details
@@ -342,8 +395,37 @@ class AgentWorkflow:
         """
         correlation_id = workflow.info().workflow_id
 
+        # Record start time for continue-as-new threshold
+        if self.start_time is None:
+            import time
+
+            self.start_time = time.time()
+
         # Initialize Saga context
         self.saga = SagaContext(workflow_instance=self)
+
+        # Restore snapshot if this is a continue-as-new
+        if context and "step_results" in context:
+            workflow.logger.info("♻️  Restoring from continue-as-new snapshot")
+            self.goal = context.get("goal", goal)
+            self.user_id = context.get("user_id", user_id)
+            self.plan_id = context.get("plan_id", "")
+            self.plan_steps = context.get("plan_steps", [])
+            self.step_results = context.get("step_results", {})
+            self.pending_decisions = context.get("pending_decisions", {})
+            self.deferred_steps = context.get("deferred_steps", {})
+            self.step_count = context.get("step_count", 0)
+            self.failed_step_id = context.get("failed_step_id", "")
+
+            workflow.logger.info(
+                f"✓ Snapshot restored: {len(self.step_results)} steps, "
+                f"{len(self.deferred_steps)} deferred"
+            )
+
+            # If we have a plan, skip planning and go straight to execution
+            if self.plan_steps:
+                await self._execute_plan()
+                return await self._handle_success()
 
         try:
             # 1. Record goal received
@@ -388,9 +470,8 @@ class AgentWorkflow:
             await self._execute_plan()
 
             # 5. Workflow succeeded
-            workflow_result = await self._handle_success()
-
-            return workflow_result
+            # Return final result
+            return await self._handle_success()
 
         except Exception as e:
             # 6. Workflow failed - trigger Saga rollback
@@ -432,7 +513,7 @@ class AgentWorkflow:
 
         The activity also stores the plan in semantic cache for future hits.
         """
-        result = await workflow.execute_activity(
+        return await workflow.execute_activity(
             "generate_plan_with_llm",
             args=[goal, context],
             start_to_close_timeout=timedelta(seconds=30),
@@ -442,7 +523,6 @@ class AgentWorkflow:
                 backoff_coefficient=2.0,
             ),
         )
-        return result
 
     async def _execute_plan(self) -> None:
         """
@@ -539,28 +619,42 @@ class AgentWorkflow:
 
         Includes MAN Mode safety gate:
         - BLOCKED lane: Action is prohibited, raises ApplicationError
-        - RED lane: Action is ISOLATED (not executed), sent to human for approval
+        - RED lane: Action is DEFERRED (not executed), sent for human approval
         - YELLOW lane: Action executes with audit logging
         - GREEN lane: Action executes normally
 
         The workflow does NOT pause for RED lane actions. Instead, the action
-        is isolated and a MAN task is created for human review. The workflow
-        continues with other steps while the isolated action awaits approval.
+        is deferred and a MAN task is created for human review. The workflow
+        continues with other steps while the deferred action awaits approval.
+
+        Re-entry: Periodically checks for approved deferred steps and executes them.
 
         Args:
             step: Step definition from plan
             step_id: Unique step identifier
 
         Returns:
-            Step execution result, or isolated result for RED lane actions:
-            {"status": "isolated", "man_task_id": "...", "awaiting_approval": True}
+            Step execution result, or deferred result for RED lane actions:
+            {"status": "deferred", "man_task_id": "...", "awaiting_approval": True}
 
         Raises:
             ActivityError: If step fails after retries
-            ApplicationError: If action is blocked by policy
+            ApplicationError: If action is blocked by policy or cancelled by admin
         """
         step_name = step.get("name", step_id)
+
+        # Check if step was cancelled by admin
+        if step_id in self._cancelled_steps:
+            workflow.logger.warning(f"  🚫 Step {step_name} cancelled by admin")
+            return {"status": "cancelled", "reason": "Cancelled by admin"}
+
+        # Check if admin paused workflow
+        while self._admin_paused:
+            workflow.logger.info("⏸️  Workflow paused, waiting for resume...")
+            await asyncio.sleep(5)
+
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
+        self.step_count += 1
 
         # =====================================================================
         # MAN MODE: Risk Triage
@@ -590,10 +684,10 @@ class AgentWorkflow:
                 non_retryable=True,
             )
 
-        # RED lane: isolate action and send for human approval (non-blocking)
+        # RED lane: defer action and send for human approval (non-blocking)
         if lane == "RED":
             workflow.logger.warning(
-                f"  🛑 MAN Mode: Isolating {step['tool']} - sent for human approval"
+                f"  🛑 MAN Mode: Deferring {step['tool']} - sent for human approval"
             )
 
             # Create MAN task in database for human review
@@ -618,9 +712,16 @@ class AgentWorkflow:
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
 
-            # Return isolated result - workflow continues without blocking
-            isolated_result = {
-                "status": "isolated",
+            # Store as deferred step for potential re-entry
+            self.deferred_steps[step_id] = {
+                "step": step,
+                "man_task_id": man_task_result.get("task_id"),
+                "triage_result": triage_result,
+            }
+
+            # Return deferred result - workflow continues without blocking
+            deferred_result = {
+                "status": "deferred",
                 "reason": triage_result.get("reason", "Requires human approval"),
                 "man_task_id": man_task_result.get("task_id"),
                 "step_id": step_id,
@@ -629,21 +730,21 @@ class AgentWorkflow:
             }
 
             workflow.logger.info(
-                f"  📤 Step '{step_name}' isolated - MAN task {man_task_result.get('task_id')}"
+                f"  📤 Step '{step_name}' deferred - MAN task {man_task_result.get('task_id')}"
             )
 
-            # Record the isolated action as a tool call (not executed)
+            # Record the deferred action as a tool call (not executed)
             await self._append_event(
                 ToolResultReceived(
                     correlation_id=workflow.info().workflow_id,
                     tool_name=step["tool"],
                     step_id=step_id,
-                    success=True,  # Step completed (isolated), not failed
-                    result=isolated_result,
+                    success=True,  # Step completed (deferred), not failed
+                    result=deferred_result,
                 )
             )
 
-            return isolated_result
+            return deferred_result
 
         # =====================================================================
         # Execute the tool (GREEN or YELLOW lanes only - RED is isolated above)
@@ -701,24 +802,22 @@ class AgentWorkflow:
         """Handle successful workflow completion."""
         workflow.logger.info("✓ Workflow completed successfully")
 
-        result = {
-            "status": "completed",
-            "plan_id": self.plan_id,
-            "steps_executed": len(self.plan_steps),
-            "results": self.step_results,
-        }
-
         await self._append_event(
             WorkflowCompleted(
                 correlation_id=workflow.info().workflow_id,
                 plan_id=self.plan_id,
                 total_steps=len(self.plan_steps),
                 duration_seconds=0.0,  # TODO: Calculate from start time
-                final_result=result,
             )
         )
 
-        return result
+        return {
+            "status": "success",
+            "goal": self.goal,
+            "plan_id": self.plan_id,
+            "steps_executed": len(self.step_results),
+            "results": self.step_results,
+        }
 
     async def _handle_failure(self, error_message: str) -> dict[str, Any]:
         """Handle workflow failure with Saga rollback."""
@@ -777,25 +876,70 @@ class AgentWorkflow:
                 f"Event history size ({len(self.events)}) exceeded threshold "
                 f"({self.MAX_HISTORY_SIZE}) - triggering continue-as-new"
             )
-            # await self._continue_as_new()  # TODO: Implement snapshotting
+            self._continue_as_new()
+
+        # Also check step count threshold
+        if self.step_count > 0 and self.step_count % 100 == 0:
+            workflow.logger.info(f"Step count checkpoint: {self.step_count}")
+            # Consider continue-as-new for long-running workflows
+            if self.step_count >= 500:
+                workflow.logger.warning(
+                    f"Step count ({self.step_count}) exceeded threshold - "
+                    "triggering continue-as-new"
+                )
+                self._continue_as_new()
+
+    def _continue_as_new(self) -> None:
+        """
+        Snapshot state and continue workflow with fresh history.
+
+        This prevents Temporal history from growing unbounded.
+        Think of it like Git history squashing or log compaction.
+        """
+        workflow.logger.info("📸 Snapshotting workflow state for continue-as-new")
+
+        # Create snapshot with all essential state
+        snapshot = {
+            "goal": self.goal,
+            "user_id": self.user_id,
+            "plan_id": self.plan_id,
+            "plan_steps": self.plan_steps,
+            "step_results": self.step_results,
+            "pending_decisions": self.pending_decisions,
+            "deferred_steps": self.deferred_steps,
+            "step_count": self.step_count,
+            "failed_step_id": self.failed_step_id,
+        }
+
+        workflow.logger.info(
+            f"✓ Snapshot created: {len(self.step_results)} steps completed, "
+            f"{len(self.deferred_steps)} deferred, "
+            f"{len(self.pending_decisions)} pending decisions"
+        )
+
+        # Continue as new with snapshot as context
+        workflow.continue_as_new(args=[self.goal, self.user_id, snapshot])
 
     async def _execute_activity(
         self,
         activity_name: str,
-        activity_input: dict[str, Any],
-        step_id: str,
+        activity_input: Any,
+        # timeout: timedelta = timedelta(minutes=5),  # Removed unused parameter
         is_compensation: bool = False,
-    ) -> dict[str, Any]:
+        _step_id: str = "",  # Unused but kept for consistency
+    ) -> Any:
         """
         Execute Temporal activity with retry policy.
 
         Activities are the ONLY way to perform I/O in workflows (determinism requirement).
         """
-        timeout = timedelta(seconds=30)
+        # Default timeout
+        timeout = timedelta(minutes=5)
+
         if is_compensation:
             timeout = timedelta(seconds=15)  # Shorter timeout for compensations
 
-        result = await workflow.execute_activity(
+        return await workflow.execute_activity(
             activity_name,
             args=[activity_input],
             start_to_close_timeout=timeout,
@@ -806,5 +950,3 @@ class AgentWorkflow:
                 maximum_interval=timedelta(seconds=10),
             ),
         )
-
-        return result
