@@ -36,7 +36,7 @@ class TestBootStability:
         time.sleep(35)
 
         # Check status
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S607
             ["docker-compose", "ps"],  # noqa: S607
             capture_output=True,
             text=True,
