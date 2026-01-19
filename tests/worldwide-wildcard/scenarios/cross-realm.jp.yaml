@@ -1,0 +1,48 @@
+name: Cross-Realm Workflow (JP)
+version: '1.0'
+locale: ja-JP
+deviceProfile: ios-safari
+environment: mock
+integrations:
+  web2:
+    - line
+    - yahoo-japan
+  web3:
+    - nft
+  llm:
+    - omni-llm
+  japanMarket:
+    - paypay
+steps:
+  - id: intent
+    action: send_command
+    target: omnilink.ui
+    content: このテキストをドキュメントにコピーして保存し、メールで送信し、会員証明NFTハッシュをミントしてください。
+  - id: create-doc
+    action: create_doc
+    target: web2.yahoo-japan
+  - id: mint-nft
+    action: mint_nft
+    target: web3.nft
+  - id: send-message
+    action: emit_event
+    target: web2.line
+  - id: report-back
+    action: report_back
+    target: omnihub
+assertions:
+  - type: orchestration_status
+    expected: passed
+  - type: audit_contains
+    expected:
+      - send_command
+      - create_doc
+      - mint_nft
+      - emit_event
+      - report_back
+  - type: entities_updated
+    expected: true
+  - type: nft_verification_recorded
+    expected: true
+  - type: no_secret_leak
+    expected: true

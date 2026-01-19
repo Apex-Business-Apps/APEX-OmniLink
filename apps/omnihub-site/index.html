@@ -15,8 +15,17 @@
     rel="stylesheet" />
   <title>APEX OmniHub - Intelligence, Designed.</title>
 
+  <!-- FOUC Prevention: Set theme before render -->
+  <script>
+    (function () {
+      var theme = localStorage.getItem('theme');
+      if (!theme) theme = 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
   <!-- Open Graph -->
-  <meta property="og:title" content="APEX OmniHub — Intelligence, Designed." />
+  <meta property="og:title" content="APEX OmniHub | Intelligence, Designed." />
   <meta property="og:description"
     content="The universal translator + orchestrator that connects AI, enterprise systems, and Web3 through a single controlled port." />
   <meta property="og:type" content="website" />
@@ -25,7 +34,7 @@
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="APEX OmniHub — Intelligence, Designed." />
+  <meta name="twitter:title" content="APEX OmniHub | Intelligence, Designed." />
   <meta name="twitter:description"
     content="The universal translator + orchestrator connecting AI, enterprise, and Web3." />
   <meta name="twitter:image" content="https://apexomnihub.icu/og.png" />

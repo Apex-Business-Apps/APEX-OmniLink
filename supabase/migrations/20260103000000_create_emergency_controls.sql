@@ -74,9 +74,9 @@ CREATE POLICY emergency_controls_admin_read ON public.emergency_controls
   FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
+      SELECT 1 FROM public.user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   );
 
@@ -85,16 +85,16 @@ CREATE POLICY emergency_controls_admin_update ON public.emergency_controls
   FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
+      SELECT 1 FROM public.user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
+      SELECT 1 FROM public.user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   );
 
@@ -313,7 +313,16 @@ GRANT EXECUTE ON FUNCTION get_emergency_controls_status() TO anon;
 -- Log migration in audit_logs
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'audit_logs') THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'audit_logs')
+    AND EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_name = 'audit_logs'
+      AND column_name IN ('action', 'resource_type', 'resource_id', 'metadata', 'actor_id')
+      GROUP BY table_name
+      HAVING COUNT(*) = 5
+    )
+  THEN
     INSERT INTO public.audit_logs (
       action,
       resource_type,

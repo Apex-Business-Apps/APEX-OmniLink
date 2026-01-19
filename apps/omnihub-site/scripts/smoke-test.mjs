@@ -11,9 +11,9 @@
  * We check that HTML files exist and reference JS, then check JS for content.
  */
 
-import { readFileSync, existsSync, readdirSync } from 'fs';
-import { resolve, dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = resolve(__dirname, '../dist');
@@ -52,14 +52,15 @@ const PAGE_CHECKS = [
 // Content that must exist somewhere in the JS bundles
 const CONTENT_CHECKS = [
   { content: 'APEX OmniHub', description: 'Brand name' },
-  { content: 'Intelligence, Designed', description: 'Hero tagline' },
+  { content: 'Intelligence Designed', description: 'Hero title' },
+  { content: 'It Sees You', description: 'Hero tagline' },
+  { content: 'AI-Powered Automation', description: 'Feature highlight' },
+  { content: 'Smart Integrations', description: 'Feature highlight' },
+  { content: 'Advanced Analytics', description: 'Feature highlight' },
   { content: 'See It In Action', description: 'Demo page title' },
   { content: 'Single-Port Protocol', description: 'Tech spec section' },
   { content: 'Technical Specifications', description: 'Tech specs page title' },
   { content: 'Request Access', description: 'Request access page' },
-  { content: 'IT SEES YOU', description: 'Stamp headline' },
-  { content: 'Zero-Trust Fortress Protocol', description: 'Fortress section' },
-  { content: 'MAN Mode', description: 'MAN Mode section' },
 ];
 
 let exitCode = 0;

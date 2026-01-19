@@ -63,7 +63,7 @@
       ]
     },
     {
-      "source": "/favicon.svg",
+      "source": "/apex-omnihub-icon.png",
       "headers": [
         {
           "key": "Cache-Control",
