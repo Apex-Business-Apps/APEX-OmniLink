@@ -41,6 +41,14 @@ from activities.tools import (
     send_email,
     setup_activities,
 )
+from activities.man_mode import (
+    check_man_decision,
+    create_man_task,
+    get_man_task,
+    resolve_man_task,
+    risk_triage,
+)
+from activities.notify_man_task import notify_man_task
 from config import settings
 from workflows.agent_saga import AgentWorkflow
 
@@ -157,6 +165,13 @@ async def start_worker() -> None:
             # Distributed locking activities
             acquire_distributed_lock,
             release_distributed_lock,
+            # MAN Mode activities
+            risk_triage,
+            create_man_task,
+            resolve_man_task,
+            get_man_task,
+            check_man_decision,
+            notify_man_task,
         ],
         max_concurrent_workflow_tasks=10,
         max_concurrent_activities=20,

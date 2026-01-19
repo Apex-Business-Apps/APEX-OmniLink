@@ -251,10 +251,48 @@ class AuditLogger:
             raise ValueError(f"Unsupported storage backend: {self.storage_backend}")
 
     async def _store_supabase(self, event: AuditLogEntry) -> None:
-        """Store audit event in Supabase."""
-        # Implementation would connect to Supabase audit_logs table
-        # This is a placeholder - actual implementation would use the Supabase client
-        pass
+        """
+        Store audit event in Supabase with fallback logging.
+
+        CRITICAL: Audit events must never be silently lost. If database
+        persistence fails, we log to stderr as a fallback.
+        """
+        try:
+            from providers.database.factory import get_database_provider
+
+            db = get_database_provider()
+
+            # Convert event to dict for storage
+            event_dict = event.model_dump(mode="json")
+
+            # Store in audit_logs table
+            await db.insert(
+                table="audit_logs",
+                record=event_dict,
+            )
+
+        except Exception as e:
+            # CRITICAL: Never silently lose audit logs
+            import sys
+
+            # Log critical error to stderr
+            print(
+                f"CRITICAL: Audit persistence failed: {e}",
+                file=sys.stderr,
+            )
+
+            # Fallback: Log essential audit data to stderr
+            # DO NOT log sensitive data like secrets or PII
+            print(
+                f"AUDIT_FALLBACK: id={event.id} "
+                f"action={event.action.value} "
+                f"resource_type={event.resource_type.value} "
+                f"resource_id={event.resource_id} "
+                f"actor_id={event.actor_id} "
+                f"status={event.status.value} "
+                f"timestamp={event.timestamp.isoformat()}",
+                file=sys.stderr,
+            )
 
     async def _store_file(self, event: AuditLogEntry) -> None:
         """Store audit event in local file (for development/testing)."""
