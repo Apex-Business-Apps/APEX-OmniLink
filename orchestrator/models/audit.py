@@ -17,6 +17,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from providers.database.factory import get_database_provider
+
 
 class AuditAction(str, Enum):
     """Standardized audit actions for compliance tracking."""
@@ -258,8 +260,6 @@ class AuditLogger:
         persistence fails, we log to stderr as a fallback.
         """
         try:
-            from providers.database.factory import get_database_provider
-
             db = get_database_provider()
 
             # Convert event to dict for storage

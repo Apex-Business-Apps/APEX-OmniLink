@@ -189,7 +189,7 @@ class TestAuditPersistence:
             timestamp=datetime.now(UTC),
             event_sequence=1,
             actor_id="user-123",
-            action=AuditAction.DATA_DELETION,
+            action=AuditAction.DATA_DELETE,
             status=AuditStatus.SUCCESS,
             resource_type=AuditResourceType.DATABASE,
             resource_id="test-resource",
