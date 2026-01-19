@@ -8,11 +8,11 @@
  * Date: 2026-01-19
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { createClient, User } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 
 export interface AuthResult {
   success: boolean;
-  user?: any;
+  user?: User;
   error?: string;
 }
 
@@ -20,7 +20,7 @@ export interface AuthResult {
  * Initialize Supabase client with service role
  * @returns Configured Supabase client
  */
-export function createSupabaseClient(): any {
+export function createSupabaseClient(): ReturnType<typeof createClient> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -37,7 +37,7 @@ export function createSupabaseClient(): any {
  * @param supabase - Supabase client instance
  * @returns Authentication result
  */
-export async function authenticateUser(authHeader: string | null, supabase: any): Promise<AuthResult> {
+export async function authenticateUser(authHeader: string | null, supabase: ReturnType<typeof createClient>): Promise<AuthResult> {
   if (!authHeader) {
     return { success: false, error: 'Authentication required' };
   }

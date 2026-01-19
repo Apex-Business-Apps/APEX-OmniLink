@@ -36,7 +36,7 @@ export function handleCors(req: Request): Response | null {
  * @param status - HTTP status code (default: 200)
  * @returns Response with CORS headers
  */
-export function corsJsonResponse(data: any, status: number = 200): Response {
+export function corsJsonResponse(data: unknown, status: number = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: {

@@ -86,7 +86,7 @@ export function isValidIntegrationType(type: string): boolean {
  * @returns sanitized string or null if invalid
  */
 export function sanitizeString(
-  input: any,
+  input: unknown,
   options: {
     required?: boolean;
     minLength?: number;
@@ -125,7 +125,7 @@ export function sanitizeString(
  * @param requiredFields - Array of required field names
  * @returns validation result with errors if any
  */
-export function validateRequestBody(body: any, requiredFields: string[]): { valid: boolean; errors: string[] } {
+export function validateRequestBody(body: unknown, requiredFields: string[]): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!body || typeof body !== 'object') {
@@ -133,8 +133,10 @@ export function validateRequestBody(body: any, requiredFields: string[]): { vali
     return { valid: false, errors };
   }
 
+  const bodyObj = body as Record<string, unknown>;
+
   for (const field of requiredFields) {
-    if (!(field in body) || body[field] === null || body[field] === undefined) {
+    if (!(field in bodyObj) || bodyObj[field] === null || bodyObj[field] === undefined) {
       errors.push(`Missing required field: ${field}`);
     }
   }
