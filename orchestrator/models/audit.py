@@ -285,11 +285,11 @@ class AuditLogger:
             # DO NOT log sensitive data like secrets or PII
             print(
                 f"AUDIT_FALLBACK: id={event.id} "
-                f"action={event.action.value} "
-                f"resource_type={event.resource_type.value} "
+                f"action={event.action} "
+                f"resource_type={event.resource_type} "
                 f"resource_id={event.resource_id} "
                 f"actor_id={event.actor_id} "
-                f"status={event.status.value} "
+                f"status={event.status} "
                 f"timestamp={event.timestamp.isoformat()}",
                 file=sys.stderr,
             )
