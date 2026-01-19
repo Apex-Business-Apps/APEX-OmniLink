@@ -86,9 +86,11 @@ class TestAuditPersistence:
     async def test_fallback_does_not_log_secrets(self, audit_logger, sample_event):
         """Fallback should not log sensitive data."""
         # Add some metadata that might contain secrets
+        # SonarQube: These are TEST credentials used to verify they are NOT logged
+        # This is intentional - we're testing the security feature that prevents logging secrets
         sample_event.metadata.custom_fields = {
             "api_key": "secret-key-123",
-            "password": "hunter2",
+            "password": "hunter2",  # nosec - test data only
         }
 
         mock_db = AsyncMock()

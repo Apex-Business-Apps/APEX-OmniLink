@@ -26,7 +26,7 @@ class TestDatabaseProviderContract:
     def provider(self, mock_supabase_client):
         """Create provider instance with mocked client."""
         with patch("providers.database.supabase_provider.create_client"):
-            provider = SupabaseDatabaseProvider(url="http://test", key="test-key")
+            provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test-key")
             provider.client = mock_supabase_client[0]
             return provider
 

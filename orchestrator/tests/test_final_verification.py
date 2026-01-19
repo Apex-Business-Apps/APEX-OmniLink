@@ -53,7 +53,7 @@ class TestInterfaceCompliance:
         from unittest.mock import MagicMock
 
         with patch("providers.database.supabase_provider.create_client"):
-            provider = SupabaseDatabaseProvider(url="http://test", key="test")
+            provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test")
 
             mock_response = MagicMock()
             mock_response.data = [{"id": 1}, {"id": 2}]
@@ -73,7 +73,7 @@ class TestInterfaceCompliance:
         from unittest.mock import MagicMock
 
         with patch("providers.database.supabase_provider.create_client"):
-            provider = SupabaseDatabaseProvider(url="http://test", key="test")
+            provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test")
 
             mock_response = MagicMock()
             mock_response.data = [{"id": 1}]
@@ -98,7 +98,7 @@ class TestSafetyGates:
         from providers.database.base import DatabaseError
 
         with patch("providers.database.supabase_provider.create_client"):
-            provider = SupabaseDatabaseProvider(url="http://test", key="test")
+            provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test")
 
             with pytest.raises(DatabaseError) as exc_info:
                 await provider.select("forbidden_table")
