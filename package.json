@@ -38,11 +38,7 @@
     "test:sim": "vitest run sim/tests",
     "test:wwwct": "tsx scripts/worldwide-wildcard/run.ts --mode mock",
     "test:wwwct:sandbox": "tsx scripts/worldwide-wildcard/run.ts --mode sandbox",
-    "test:wwwct:report": "tsx scripts/worldwide-wildcard/run.ts --mode mock --report-dir tests/worldwide-wildcard/reports",
-    "lint:py": "cd orchestrator && python -m ruff check . && python -m ruff format --check .",
-    "format:py": "cd orchestrator && python -m ruff format .",
-    "test:py": "cd orchestrator && python -m pytest -q",
-    "ci:py": "npm run lint:py && npm run test:py"
+    "test:wwwct:report": "tsx scripts/worldwide-wildcard/run.ts --mode mock --report-dir tests/worldwide-wildcard/reports"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
