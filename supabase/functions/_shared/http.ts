@@ -55,64 +55,17 @@ export function withHttp(
         const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
         const corsHeaders = buildCorsHeaders(requestOrigin);
 
-        // Handle CORS preflight
         if (req.method === 'OPTIONS') {
             return handlePreflight(req);
         }
 
-        // Validate origin
         if (requireOrigin && !isOriginAllowed(requestOrigin)) {
-            return corsErrorResponse(
-                'origin_not_allowed',
-                'CORS policy: Origin not allowed',
-                403,
-                requestOrigin
-            );
+            return corsErrorResponse('origin_not_allowed', 'CORS policy: Origin not allowed', 403, requestOrigin);
         }
 
         try {
-            // Parse and validate body
-            let body: unknown = null;
-            let rawBody = '';
-            let bodySize = 0;
+            const { body, rawBody, bodySize } = await parseRequestBody(req, maxBodySizeBytes);
 
-            if (req.method !== 'GET' && req.method !== 'HEAD') {
-                const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
-
-                if (contentLength > maxBodySizeBytes) {
-                    return jsonResponse(
-                        { error: 'payload_too_large', max_size: maxBodySizeBytes },
-                        413,
-                        corsHeaders
-                    );
-                }
-
-                try {
-                    const buffer = await req.arrayBuffer();
-                    rawBody = new TextDecoder().decode(buffer);
-                    bodySize = new TextEncoder().encode(rawBody).length;
-
-                    if (bodySize > maxBodySizeBytes) {
-                        return jsonResponse(
-                            { error: 'payload_too_large', max_size: maxBodySizeBytes },
-                            413,
-                            corsHeaders
-                        );
-                    }
-
-                    if (rawBody) {
-                        body = JSON.parse(rawBody);
-                    }
-                } catch (parseError) {
-                    return jsonResponse(
-                        { error: 'invalid_json', message: 'Request body must be valid JSON' },
-                        400,
-                        corsHeaders
-                    );
-                }
-            }
-
-            // Check auth if required
             if (requireAuth) {
                 const authHeader = req.headers.get('Authorization');
                 if (!authHeader) {
@@ -120,7 +73,6 @@ export function withHttp(
                 }
             }
 
-            // Build context and call handler
             const context: HttpHandlerContext = {
                 origin: requestOrigin,
                 corsHeaders,
@@ -131,6 +83,13 @@ export function withHttp(
 
             return await handler(req, context);
         } catch (error) {
+            if (error instanceof PayloadTooLargeError) {
+                return jsonResponse({ error: 'payload_too_large', max_size: maxBodySizeBytes }, 413, corsHeaders);
+            }
+            if (error instanceof InvalidJsonError) {
+                return jsonResponse({ error: 'invalid_json', message: 'Request body must be valid JSON' }, 400, corsHeaders);
+            }
+
             console.error('Edge function error:', error);
             return jsonResponse(
                 {
@@ -142,6 +101,39 @@ export function withHttp(
             );
         }
     };
+}
+
+class PayloadTooLargeError extends Error { }
+class InvalidJsonError extends Error { }
+
+async function parseRequestBody(req: Request, maxBodySizeBytes: number): Promise<{ body: unknown; rawBody: string; bodySize: number }> {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+        return { body: null, rawBody: '', bodySize: 0 };
+    }
+
+    const contentLength = Number.parseInt(req.headers.get('content-length') || '0', 10);
+    if (contentLength > maxBodySizeBytes) {
+        throw new PayloadTooLargeError('Content-Length exceeds limit');
+    }
+
+    try {
+        const buffer = await req.arrayBuffer();
+        const rawBody = new TextDecoder().decode(buffer);
+        const bodySize = new TextEncoder().encode(rawBody).length;
+
+        if (bodySize > maxBodySizeBytes) {
+            throw new PayloadTooLargeError('Body size exceeds limit');
+        }
+
+        return {
+            body: rawBody ? JSON.parse(rawBody) : null,
+            rawBody,
+            bodySize
+        };
+    } catch (e) {
+        if (e instanceof PayloadTooLargeError) throw e;
+        throw new InvalidJsonError('Invalid JSON');
+    }
 }
 
 /**

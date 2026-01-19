@@ -75,8 +75,8 @@ async def notify_man_task(params: dict[str, Any]) -> dict[str, Any]:
             notification_ids.append(str(notification["id"]))
             activity.logger.info(f"✓ Notification sent via {channel} for MAN task {task_id}")
 
-        # TODO: Trigger Supabase Realtime push for "realtime" channel
-        # This would emit an event that the operator UI listens to
+        # Notification is triggered via Postgres Changes on 'man_notifications' table.
+        # The 'realtime' channel in params acts as a metadata tag for the UI.
 
         return {
             "notifications_created": len(notification_ids),

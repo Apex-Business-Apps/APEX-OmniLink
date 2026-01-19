@@ -223,9 +223,9 @@ class SupabaseDatabaseProvider(DatabaseProvider):
                 raise NotFoundError(f"No records to update in {validated_table} with {filters}")
 
             return response.data[0]
-        except (DatabaseError, NotFoundError):
-            raise
         except Exception as e:
+            if isinstance(e, (DatabaseError, NotFoundError)):
+                raise
             raise DatabaseError(f"Database update failed: {str(e)}") from e
 
     async def delete(self, table: str, filters: dict[str, Any]) -> int:

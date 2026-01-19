@@ -876,7 +876,7 @@ class AgentWorkflow:
                 f"Event history size ({len(self.events)}) exceeded threshold "
                 f"({self.MAX_HISTORY_SIZE}) - triggering continue-as-new"
             )
-            await self._continue_as_new()
+            self._continue_as_new()
 
         # Also check step count threshold
         if self.step_count > 0 and self.step_count % 100 == 0:
@@ -887,9 +887,9 @@ class AgentWorkflow:
                     f"Step count ({self.step_count}) exceeded threshold - "
                     "triggering continue-as-new"
                 )
-                await self._continue_as_new()
+                self._continue_as_new()
 
-    async def _continue_as_new(self) -> None:
+    def _continue_as_new(self) -> None:
         """
         Snapshot state and continue workflow with fresh history.
 

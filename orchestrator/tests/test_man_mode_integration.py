@@ -180,7 +180,7 @@ class TestNotifyManTask:
         mock_db = AsyncMock()
         captured_calls = []
 
-        async def capture_upsert(**kwargs):
+        def capture_upsert(**kwargs):
             captured_calls.append(kwargs)
             return {"id": "notif-123"}
 
