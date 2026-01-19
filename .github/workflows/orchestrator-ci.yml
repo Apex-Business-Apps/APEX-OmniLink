@@ -46,8 +46,10 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run linters
+        working-directory: orchestrator
         run: |
-          npm run lint:py
+          ruff check .
+          black --check .
 
       - name: Check portability guardrails
         run: |
