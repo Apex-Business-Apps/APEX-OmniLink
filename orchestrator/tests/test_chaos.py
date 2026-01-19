@@ -226,11 +226,11 @@ class TestChaosSemanticCache:
         """Cache should degrade gracefully on network failures."""
         chaos = ChaosInjector(seed=42, failure_rate=0.5)
 
-        async def flaky_cache_get(goal: str):
+        async def flaky_cache_get(_goal: str):
             error = chaos.simulate_network_error()
             if error:
                 raise error
-            return None  # Cache miss
+            # return None  # Cache miss - Removed redundant return
 
         mock_cache.get_plan = AsyncMock(side_effect=flaky_cache_get)
 

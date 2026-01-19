@@ -10,8 +10,9 @@ Tests:
 - Admin cancel step
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 # Note: These are integration-style tests that would require
 # a running Temporal test server. For now, they serve as

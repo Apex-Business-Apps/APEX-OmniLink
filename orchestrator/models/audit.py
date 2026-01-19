@@ -25,8 +25,8 @@ class AuditAction(str, Enum):
     LOGIN = "login"
     LOGOUT = "logout"
     AUTH_FAILURE = "auth_failure"
-    TOKEN_REFRESH = "token_refresh"
-    PASSWORD_CHANGE = "password_change"
+    TOKEN_REFRESH = "token_refresh"  # noqa: S105
+    PASSWORD_CHANGE = "password_change"  # noqa: S105
 
     # Data Operations
     DATA_ACCESS = "data_access"
@@ -347,9 +347,8 @@ class AuditLogger:
             if event.integrity_hash != expected_hash:
                 return False
 
-            if i > 0:
-                if event.previous_hash != events[i - 1].integrity_hash:
-                    return False
+            if i > 0 and event.previous_hash != events[i - 1].integrity_hash:
+                return False
 
         return True
 

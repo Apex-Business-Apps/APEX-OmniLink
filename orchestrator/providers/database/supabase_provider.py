@@ -111,7 +111,7 @@ class SupabaseDatabaseProvider(DatabaseProvider):
         self,
         table: str,
         record: dict[str, Any],
-        conflict_columns: list[str] | None = None,
+        _conflict_columns: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Perform an upsert (insert or update on conflict).

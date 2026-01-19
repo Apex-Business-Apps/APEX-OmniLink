@@ -803,14 +803,6 @@ class AgentWorkflow:
         """Handle successful workflow completion."""
         workflow.logger.info("✓ Workflow completed successfully")
 
-        final_result = {
-            "status": "success",
-            "goal": self.goal,
-            "plan_id": self.plan_id,
-            "steps_executed": len(self.step_results),
-            "results": self.step_results,
-        }
-
         await self._append_event(
             WorkflowCompleted(
                 correlation_id=workflow.info().workflow_id,
@@ -820,7 +812,13 @@ class AgentWorkflow:
             )
         )
 
-        return result
+        return {
+            "status": "success",
+            "goal": self.goal,
+            "plan_id": self.plan_id,
+            "steps_executed": len(self.step_results),
+            "results": self.step_results,
+        }
 
     async def _handle_failure(self, error_message: str) -> dict[str, Any]:
         """Handle workflow failure with Saga rollback."""
@@ -940,7 +938,7 @@ class AgentWorkflow:
         # If the intent is to use the parameter, remove or adjust the following lines.
         # For now, keeping the internal logic as per original code,
         # but noting the parameter `timeout` is not used as defined in the signature.
-        activity_timeout = timedelta(seconds=30)
+        # activity_timeout = timedelta(seconds=30)  # Unused variable removed
         if is_compensation:
             timeout = timedelta(seconds=15)  # Shorter timeout for compensations
 

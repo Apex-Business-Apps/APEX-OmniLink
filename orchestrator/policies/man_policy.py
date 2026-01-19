@@ -196,7 +196,7 @@ class ManPolicy:
                 risk_factors=risk_factors,
                 suggested_timeout_hours=24,
             )
-        elif len(param_risk) == 1:
+        if len(param_risk) == 1:
             # Single high-risk param → YELLOW (logged but auto-execute)
             return RiskTriageResult(
                 lane=ManLane.YELLOW,

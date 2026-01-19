@@ -6,7 +6,7 @@ Ensures audit events are never silently lost.
 
 import pytest
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from io import StringIO
 
 from models.audit import (
@@ -63,9 +63,6 @@ class TestAuditPersistence:
         mock_db.insert = AsyncMock(side_effect=Exception("DB connection failed"))
 
         # Capture stderr output
-        import sys
-        from io import StringIO
-
         captured_stderr = StringIO()
 
         with (

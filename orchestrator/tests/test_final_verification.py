@@ -9,10 +9,11 @@ Ensures all critical gates pass:
 - MAN Mode functionality
 """
 
-import pytest
 import subprocess
 import time
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class TestBootStability:
@@ -20,7 +21,7 @@ class TestBootStability:
 
     def test_dependencies_pinned(self):
         """FastAPI and Uvicorn must be pinned in pyproject.toml."""
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             content = f.read()
             assert "fastapi" in content.lower(), "FastAPI not in dependencies"
             assert "uvicorn" in content.lower(), "Uvicorn not in dependencies"
@@ -29,18 +30,18 @@ class TestBootStability:
     def test_docker_compose_stays_green(self):
         """Container should stay healthy for >30s."""
         # docker-compose up -d
-        subprocess.run(["docker-compose", "up", "-d"], check=True)
+        subprocess.run(["docker-compose", "up", "-d"], check=True)  # noqa: S607
 
         # Wait 35 seconds
         time.sleep(35)
 
         # Check status
-        result = subprocess.run(["docker-compose", "ps"], capture_output=True, text=True)
+        result = subprocess.run(["docker-compose", "ps"], capture_output=True, text=True)  # noqa: S607
 
         assert "Up" in result.stdout, "Container not healthy after 30s"
 
         # Cleanup
-        subprocess.run(["docker-compose", "down"], check=True)
+        subprocess.run(["docker-compose", "down"], check=True)  # noqa: S607
 
 
 class TestInterfaceCompliance:
@@ -49,8 +50,9 @@ class TestInterfaceCompliance:
     @pytest.mark.asyncio
     async def test_delete_returns_int(self):
         """db.delete() must return int count."""
-        from providers.database.supabase_provider import SupabaseDatabaseProvider
         from unittest.mock import MagicMock
+
+        from providers.database.supabase_provider import SupabaseDatabaseProvider
 
         with patch("providers.database.supabase_provider.create_client"):
             provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test")
@@ -69,8 +71,9 @@ class TestInterfaceCompliance:
     @pytest.mark.asyncio
     async def test_select_method_exists(self):
         """db.select() must exist and return list."""
-        from providers.database.supabase_provider import SupabaseDatabaseProvider
         from unittest.mock import MagicMock
+
+        from providers.database.supabase_provider import SupabaseDatabaseProvider
 
         with patch("providers.database.supabase_provider.create_client"):
             provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test")
@@ -94,8 +97,8 @@ class TestSafetyGates:
     @pytest.mark.asyncio
     async def test_disallowed_table_raises_error(self):
         """Accessing disallowed table must raise DatabaseError."""
-        from providers.database.supabase_provider import SupabaseDatabaseProvider
         from providers.database.base import DatabaseError
+        from providers.database.supabase_provider import SupabaseDatabaseProvider
 
         with patch("providers.database.supabase_provider.create_client"):
             provider = SupabaseDatabaseProvider(url="https://test.example.com", key="test")
@@ -124,14 +127,15 @@ class TestAuditPersistence:
     @pytest.mark.asyncio
     async def test_audit_log_inserts_to_database(self):
         """Audit events should be inserted into audit_logs table."""
+        from datetime import UTC, datetime
+
         from models.audit import (
-            AuditLogger,
-            AuditLogEntry,
             AuditAction,
+            AuditLogEntry,
+            AuditLogger,
             AuditResourceType,
             AuditStatus,
         )
-        from datetime import UTC, datetime
 
         logger = AuditLogger(storage_backend="supabase")
 
@@ -161,16 +165,16 @@ class TestAuditPersistence:
     @pytest.mark.asyncio
     async def test_audit_fallback_on_db_failure(self):
         """Audit should log to stderr on DB failure."""
+        from datetime import UTC, datetime
+        from io import StringIO
+
         from models.audit import (
-            AuditLogger,
-            AuditLogEntry,
             AuditAction,
+            AuditLogEntry,
+            AuditLogger,
             AuditResourceType,
             AuditStatus,
         )
-        from datetime import UTC, datetime
-        from io import StringIO
-        import sys
 
         logger = AuditLogger(storage_backend="supabase")
 
@@ -239,7 +243,7 @@ class TestCodeQuality:
 
     def test_no_pass_in_persistence(self):
         """Audit persistence should not have placeholder 'pass'."""
-        with open("models/audit.py", "r") as f:
+        with open("models/audit.py") as f:
             content = f.read()
 
             # Check _store_supabase is implemented

@@ -28,7 +28,14 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 from uvicorn import Config, Server
 
-# Import all components
+from activities.man_mode import (
+    check_man_decision,
+    create_man_task,
+    get_man_task,
+    resolve_man_task,
+    risk_triage,
+)
+from activities.notify_man_task import notify_man_task
 from activities.tools import (
     acquire_distributed_lock,
     call_webhook,
@@ -41,14 +48,6 @@ from activities.tools import (
     send_email,
     setup_activities,
 )
-from activities.man_mode import (
-    check_man_decision,
-    create_man_task,
-    get_man_task,
-    resolve_man_task,
-    risk_triage,
-)
-from activities.notify_man_task import notify_man_task
 from config import settings
 from workflows.agent_saga import AgentWorkflow
 
