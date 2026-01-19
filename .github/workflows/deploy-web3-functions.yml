@@ -30,6 +30,16 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: supabase link --project-ref $SUPABASE_PROJECT_REF
 
+      - name: Repair Migration History
+        # Fix: Mark old migration as reverted after file rename
+        # The migration was renamed from 20260109 to 20260109120000 to avoid version collision
+        run: |
+          supabase migration repair --status reverted 20260109 || echo "Migration 20260109 already handled or does not exist"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
       - name: Apply Database Migrations
         # Critical: Deploys schema changes (e.g., 'emergency_controls' table) BEFORE functions
         # fix: Removes invalid 'desc' key
