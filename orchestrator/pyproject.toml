@@ -9,6 +9,10 @@ description = "AI Agent Orchestration Platform with Temporal.io, Event Sourcing,
 authors = [{name = "APEX Business Systems"}]
 requires-python = ">=3.11"
 dependencies = [
+    # Web framework (required by main.py API server)
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+
     # Temporal.io workflow engine
     "temporalio>=1.5.0",
 
@@ -75,12 +79,27 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-# E=pycodestyle, F=pyflakes, I=isort, N=pep8-naming, W=warnings, B=bugbear,
-# Q=quotes, S=bandit security, C90=complexity, UP=pyupgrade
-select = ["E", "F", "I", "N", "W", "B", "Q", "S", "C90", "UP"]
+# Enable stricter rules for SonarQube A-grade
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "S",   # flake8-bandit (security)
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "RET", # flake8-return
+    "ARG", # flake8-unused-arguments
+]
+
 ignore = [
-  "S104",  # Binding 0.0.0.0 is intentional for container deployments
-  "S105",  # False positives on string enum values containing 'password'/'token'
+    "E501",  # line-too-long (handled by formatter)
+    "S101",  # assert usage (OK in tests)
+    "T201",  # print usage (OK for fallback logging)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -92,6 +111,7 @@ ignore = [
 "workflows/**/*.py" = [
   "C901",  # Complex workflow orchestration is expected
 ]
+"main.py" = ["S104"]  # Allow 0.0.0.0 binding for container deployment
 
 [tool.black]
 line-length = 100

@@ -19,7 +19,7 @@ sys.modules[TEMPORALIO_ACTIVITY_MODULE].logger = logger_mock
 
 
 # Mock decorators
-def mock_defn(name=None):
+def mock_defn(_name=None):
     def decorator(func):
         return func
 
