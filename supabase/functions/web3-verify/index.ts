@@ -36,7 +36,7 @@ import { verifyMessage, verifyTypedData } from 'https://esm.sh/viem@2.21.54';
 import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '../_shared/rate-limiting.ts';
 import { isValidWalletAddress, isValidSignature, validateRequestBody } from '../_shared/validation.ts';
-import { createSupabaseClient, authenticateUser, getClientIP, getUserAgent, createAuthErrorResponse, createMethodNotAllowedResponse, createInternalErrorResponse } from '../_shared/auth.ts';
+import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse, createInternalErrorResponse } from '../_shared/auth.ts';
 
 
 

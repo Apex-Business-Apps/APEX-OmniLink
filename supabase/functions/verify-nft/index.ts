@@ -36,7 +36,7 @@ import { createPublicClient, http } from 'https://esm.sh/viem@2.43.4';
 import { polygon, mainnet } from 'https://esm.sh/viem@2.43.4/chains';
 import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
 import { checkRateLimit, RATE_LIMITS } from '../_shared/rate-limiting.ts';
-import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse, createInternalErrorResponse } from '../_shared/auth.ts';
+import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse } from '../_shared/auth.ts';
 
 // Cache configuration
 const NFT_VERIFICATION_CACHE_MS = 5 * 60 * 1000; // 5 minutes
@@ -139,9 +139,6 @@ Deno.serve(async (req) => {
   // Handle CORS preflight
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
-
-  const requestOrigin = req.headers.get('origin');
-  const corsHeaders = buildCorsHeaders(requestOrigin);
 
   // Only allow GET requests
   if (req.method !== 'GET') {

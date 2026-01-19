@@ -42,33 +42,22 @@ function generateSecureNonce(): string {
 /**
  * Create verification message for wallet signing
  */
-function createVerificationMessage(
-  walletAddress: string,
-  nonce: string,
-  chainId: number,
-  domain: string,
-  uri: string,
-  expiresAt: Date
-): string {
-  return createSiweMessage({
-    address: walletAddress as `0x${string}`,
-    chainId,
-    domain,
-    nonce,
-    uri,
-    version: '1',
-    statement: 'Sign in to OmniLink APEX.',
-    issuedAt: new Date(),
-    expirationTime: expiresAt,
-  });
+function createVerificationMessage(walletAddress: string, nonce: string): string {
+  return `Welcome to OmniLink APEX!
+
+Sign this message to verify your wallet ownership.
+
+Wallet: ${walletAddress}
+Nonce: ${nonce}
+
+This request will not trigger a blockchain transaction or cost any gas fees.`;
 }
 
 /**
  * Main request handler
  */
 Deno.serve(async (req) => {
-  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
-  const corsHeaders = buildCorsHeaders(requestOrigin);
+
 
   // Handle CORS preflight
   const corsResponse = handleCors(req);
@@ -93,7 +82,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { wallet_address, chain_id, domain, uri } = body;
+    const { wallet_address } = body;
 
     // Validate wallet address
     if (!wallet_address || typeof wallet_address !== 'string') {
@@ -114,7 +103,6 @@ Deno.serve(async (req) => {
       .from('wallet_nonces')
       .select('nonce, expires_at')
       .eq('wallet_address', normalizedAddress)
-      .eq('chain_id', resolvedChainId)
       .is('used_at', null)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
@@ -148,7 +136,6 @@ Deno.serve(async (req) => {
       .insert({
         nonce,
         wallet_address: normalizedAddress,
-        chain_id: resolvedChainId,
         expires_at: expiresAt.toISOString(),
       });
 
@@ -158,14 +145,7 @@ Deno.serve(async (req) => {
     }
 
     // Create verification message
-    const message = createVerificationMessage(
-      normalizedAddress,
-      nonce,
-      resolvedChainId,
-      resolvedDomain,
-      resolvedUri,
-      expiresAt
-    );
+    const message = createVerificationMessage(normalizedAddress, nonce);
 
     // Return success response
     return corsJsonResponse({
