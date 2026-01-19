@@ -17,6 +17,14 @@
 
 ---
 
+## Recent Accomplishments (2026-01-18)
+- **Branding & UI**: Unified header logo (`apex-header-logo.png`) across Marketing Site and Main App.
+- **Access Control**: Removed legacy `restricted.html` and enabled direct Login navigation.
+- **Stability**: Fixed Vite build configuration crashes (`vite.config.ts`) and `Layout.tsx` syntax errors.
+- **Supply Chain**: Resolved complex git merge conflicts between feature and main branches.
+
+---
+
 ## Critical Remediation Items
 
 ### R1: Fix React Router XSS (CVE GHSA-2w69-qvjg-hvjx) ✅ COMPLETE
