@@ -37,8 +37,10 @@ class TestBootStability:
 
         # Check status
         result = subprocess.run(
-            ["docker-compose", "ps"], capture_output=True, text=True
-        )  # noqa: S607
+            ["docker-compose", "ps"],
+            capture_output=True,
+            text=True,  # noqa: S607
+        )
 
         assert "Up" in result.stdout, "Container not healthy after 30s"
 
@@ -63,9 +65,7 @@ class TestInterfaceCompliance:
             mock_response.data = [{"id": 1}, {"id": 2}]
 
             provider.client = MagicMock()
-            provider.client.table.return_value.delete.return_value.eq.return_value.execute.return_value = (
-                mock_response
-            )
+            provider.client.table.return_value.delete.return_value.eq.return_value.execute.return_value = mock_response
 
             result = await provider.delete("audit_logs", {"id": 1})
 
