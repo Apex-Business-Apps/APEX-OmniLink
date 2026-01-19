@@ -36,10 +36,10 @@ class TestBootStability:
         time.sleep(35)
 
         # Check status
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S607
             ["docker-compose", "ps"],
             capture_output=True,
-            text=True,  # noqa: S607
+            text=True,
         )
 
         assert "Up" in result.stdout, "Container not healthy after 30s"
