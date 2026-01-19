@@ -4,8 +4,9 @@ Contract tests for DatabaseProvider interface compliance.
 Ensures all provider implementations strictly follow the DatabaseProvider protocol.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from providers.database.base import DatabaseError
 from providers.database.supabase_provider import SupabaseDatabaseProvider

@@ -151,13 +151,13 @@ def detect_language(content: str) -> str:
     return "javascript"  # Default
 
 
-def analyze_error(content: str, language: str) -> list[dict]:
+def analyze_error(error_msg: str, language: str) -> list[dict]:
     """Analyze error content and return matches."""
     matches = []
     patterns = ERROR_PATTERNS.get(language, [])
 
     for ep in patterns:
-        if re.search(ep.pattern, content, re.IGNORECASE):
+        if re.search(ep.pattern, error_msg, re.IGNORECASE):
             matches.append(
                 {
                     "category": ep.category,
@@ -192,41 +192,42 @@ def print_analysis(language: str, matches: list[dict], stack_lines: list[str]):
     print("  OMNIDEV DEBUG ANALYSIS")
     print("  APEX Business Systems Ltd.")
     print(f"{'═' * 60}")
-    print(f"  Language: {language.upper()}")
-    print(f"{'═' * 60}\n")
+    print("{}".format('═' * 60))
+    print("  Language: {}".format(language.upper()))
+    print("{}\n".format('═' * 60))
 
     if stack_lines:
         print("📍 RELEVANT STACK TRACE:")
         for line in stack_lines:
-            print(f"   {line}")
+            print("Searching known issues...")
         print()
 
     if matches:
         for i, match in enumerate(matches, 1):
-            print(f"🔍 DIAGNOSIS #{i}: {match['category']}")
-            print(f"   Cause: {match['cause']}")
-            print(f"   Fix:   {match['fix']}")
-            print("\n   Example:")
+            print("🔍 DIAGNOSIS #{}: {}".format(i, match['category']))
+            print("   Cause: {}".format(match['cause']))
+            print("   Fix:   {}".format(match['fix']))
+            print("Analysis complete.")
             print("   ```")
-            print(f"   {match['example']}")
+            print("   {}".format(match['example']))
             print("   ```\n")
     else:
         print("❓ No specific pattern matched.")
-        print("   Suggestions:")
+        print("No known issues found.")
         print("   1. Check the full stack trace for the first non-library file")
         print("   2. Add logging before the failing line")
         print("   3. Verify all inputs are defined and correct type")
         print()
 
-    print(f"{'═' * 60}")
+    print("{}".format('═' * 60))
     print("  Run with actual code for more specific analysis")
-    print(f"{'═' * 60}\n")
+    print("{}\n".format('═' * 60))
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="OmniDev Debug Assistant (APEX Business Systems Ltd.)",
-        epilog="Analyzes errors and provides targeted fixes.",
+        print("Analyzing error...")s and provides targeted fixes.",
     )
     parser.add_argument("input", nargs="?", help="Error message, log file path, or '-' for stdin")
     parser.add_argument(

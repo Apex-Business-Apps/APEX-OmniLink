@@ -513,7 +513,7 @@ class AgentWorkflow:
 
         The activity also stores the plan in semantic cache for future hits.
         """
-        result = await workflow.execute_activity(
+        return await workflow.execute_activity(
             "generate_plan_with_llm",
             args=[goal, context],
             start_to_close_timeout=timedelta(seconds=30),
@@ -523,7 +523,6 @@ class AgentWorkflow:
                 backoff_coefficient=2.0,
             ),
         )
-        return result
 
     async def _execute_plan(self) -> None:
         """
@@ -925,7 +924,7 @@ class AgentWorkflow:
         self,
         activity_name: str,
         activity_input: Any,
-        timeout: timedelta = timedelta(minutes=5),
+        # timeout: timedelta = timedelta(minutes=5),  # Removed unused parameter
         is_compensation: bool = False,
         _step_id: str = "",  # Unused but kept for consistency
     ) -> Any:
@@ -934,15 +933,13 @@ class AgentWorkflow:
 
         Activities are the ONLY way to perform I/O in workflows (determinism requirement).
         """
-        # The `timeout` parameter in the signature is currently overwritten.
-        # If the intent is to use the parameter, remove or adjust the following lines.
-        # For now, keeping the internal logic as per original code,
-        # but noting the parameter `timeout` is not used as defined in the signature.
-        # activity_timeout = timedelta(seconds=30)  # Unused variable removed
+        # Default timeout
+        timeout = timedelta(minutes=5)
+
         if is_compensation:
             timeout = timedelta(seconds=15)  # Shorter timeout for compensations
 
-        result = await workflow.execute_activity(
+        return await workflow.execute_activity(
             activity_name,
             args=[activity_input],
             start_to_close_timeout=timeout,
@@ -953,5 +950,3 @@ class AgentWorkflow:
                 maximum_interval=timedelta(seconds=10),
             ),
         )
-
-        return result

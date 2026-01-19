@@ -114,6 +114,13 @@ class TestOperatorSignals:
 
     @pytest.mark.skip("Requires Temporal test server")
     @pytest.mark.asyncio
+    def test_mock_setup(self):
+        """A synchronous test function that does not require async."""
+        # This is a placeholder for a synchronous test
+        pass
+
+    @pytest.mark.skip("Requires Temporal test server")
+    @pytest.mark.asyncio
     async def test_admin_stop_terminates_workflow(self):
         """admin_stop should immediately terminate workflow."""
         # Start workflow

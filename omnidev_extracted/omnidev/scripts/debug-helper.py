@@ -132,14 +132,24 @@ def extract_stacktrace(text: str) -> list[str]:
     """Extract file locations from stack trace."""
     locations = []
     # Python style
-    py_pattern = r'File "([^"]+)", line (\d+)'
-    for match in re.finditer(py_pattern, text):
-        locations.append(f"{match.group(1)}:{match.group(2)}")
+    # Parse Python tracebacks safely without regex backtracking
+    for line in text.splitlines():
+        if 'File "' in line and '", line ' in line:
+            parts = line.split('File "')[1].split('", line ')
+            if len(parts) >= 2:
+                file_path = parts[0]
+                line_num = parts[1].split(",")[0].strip()
+                locations.append(f"{file_path}:{line_num}")
 
-    # JavaScript style
-    js_pattern = r"at [^(]+\(([^)]+):(\d+):\d+\)"
-    for match in re.finditer(js_pattern, text):
-        locations.append(f"{match.group(1)}:{match.group(2)}")
+    # Parse JavaScript stack traces safely
+    for line in text.splitlines():
+        if "at " in line and "(" in line and ")" in line:
+            # Extract content inside parentheses
+            location_part = line.split("(")[1].split(")")[0]
+            # Split by colon to get path:line:col
+            parts = location_part.rsplit(":", 2)
+            if len(parts) >= 3:
+                locations.append(f"{parts[0]}:{parts[1]}")
 
     return locations
 

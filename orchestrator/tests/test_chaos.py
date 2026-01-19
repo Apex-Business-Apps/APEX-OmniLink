@@ -230,7 +230,6 @@ class TestChaosSemanticCache:
             error = chaos.simulate_network_error()
             if error:
                 raise error
-            # return None  # Cache miss - Removed redundant return
 
         mock_cache.get_plan = AsyncMock(side_effect=flaky_cache_get)
 

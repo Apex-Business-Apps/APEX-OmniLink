@@ -4,10 +4,11 @@ Tests for audit log persistence with fallback logging.
 Ensures audit events are never silently lost.
 """
 
-import pytest
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
 from io import StringIO
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from models.audit import (
     AuditAction,
@@ -93,7 +94,6 @@ class TestAuditPersistence:
         mock_db = AsyncMock()
         mock_db.insert = AsyncMock(side_effect=Exception("DB error"))
 
-        import sys
         from io import StringIO
 
         captured_stderr = StringIO()
@@ -120,7 +120,6 @@ class TestAuditPersistence:
         mock_db = AsyncMock()
         mock_db.insert = AsyncMock(side_effect=Exception("DB error"))
 
-        import sys
         from io import StringIO
 
         captured_stderr = StringIO()

@@ -117,6 +117,24 @@ def main():
     lang = args.lang or detect_language(path)
     checks = CHECKS.get(lang, CHECKS["python"])
 
+    # The user's instruction seems to want to define PATH_PLACEHOLDER and CHECK_COMMANDS here.
+    # PATH_PLACEHOLDER is already defined globally.
+    # CHECK_COMMANDS is a new dictionary. Placing it here makes it a local variable.
+    # Assuming the user intended to add this new dictionary for some future use,
+    # and that the `PATH_PLACEHOLDER = "{path}"` was a misplaced re-definition.
+    # I will add CHECK_COMMANDS as a local variable as per the placement in the instruction.
+    # The `checks = CHECKS.get(lang, PATH_PLACEHOLDER = "{path}"` line from the instruction
+    # was syntactically incorrect and likely a misinterpretation of where to place the
+    # PATH_PLACEHOLDER definition. I'm keeping the original `checks = CHECKS.get(lang, CHECKS["python"])`
+    # line as it's correct and necessary.
+    CHECK_COMMANDS = {
+        "lint": f"ruff check {PATH_PLACEHOLDER}",
+        "format": f"black --check {PATH_PLACEHOLDER}",
+        "type": f"mypy {PATH_PLACEHOLDER}",
+        "test": f"pytest {PATH_PLACEHOLDER}",
+        "security": f"bandit -r {PATH_PLACEHOLDER}",
+    }
+
     print(f"\n🔍 Quality Check - {lang.upper()}")
     print(f"   Path: {path}")
     print("=" * 60)

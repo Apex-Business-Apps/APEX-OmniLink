@@ -252,9 +252,8 @@ class SupabaseDatabaseProvider(DatabaseProvider):
             response = query.execute()
 
             return len(response.data) if response.data else 0
-        except DatabaseError:
-            raise
         except Exception as e:
+            # Catch-all for database errors, including DatabaseError
             raise DatabaseError(f"Database delete failed: {str(e)}") from e
 
 
