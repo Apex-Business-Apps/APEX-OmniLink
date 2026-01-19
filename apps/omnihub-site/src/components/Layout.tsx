@@ -33,9 +33,8 @@ function ThemeToggle() {
   return (
     <div className="theme-toggle-segmented" aria-label="Theme selection">
       <label
-        className={`theme-toggle-segmented__option ${
-          isLight ? 'theme-toggle-segmented__option--active' : ''
-        }`}
+        className={`theme-toggle-segmented__option ${isLight ? 'theme-toggle-segmented__option--active' : ''
+          }`}
       >
         <input
           className="theme-toggle-segmented__input"
@@ -48,9 +47,8 @@ function ThemeToggle() {
         WHITE FORTRESS
       </label>
       <label
-        className={`theme-toggle-segmented__option ${
-          isDark ? 'theme-toggle-segmented__option--active' : ''
-        }`}
+        className={`theme-toggle-segmented__option ${isDark ? 'theme-toggle-segmented__option--active' : ''
+          }`}
       >
         <input
           className="theme-toggle-segmented__input"
@@ -63,36 +61,6 @@ function ThemeToggle() {
         NIGHT WATCH
       </label>
     </div>
-  );
-}
-
-function LogoMark() {
-  return (
-    <img
-      src="/apex-badge.png"
-      alt=""
-      aria-hidden="true"
-      className="nav__logo-badge"
-    />
-  );
-}
-
-function BurgerIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
   );
 }
 
@@ -159,11 +127,10 @@ function MobileDrawer({
       >
         <div className="drawer__header">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
-            <LogoMark />
             <img
-              className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.svg"
+              src="/apex-header-logo.png"
               alt="APEX OmniHub"
+              className="h-10 w-auto object-contain"
             />
           </a>
           <button
@@ -228,33 +195,24 @@ function Nav() {
     <>
       <nav className="nav">
         <div className="container nav__inner">
-          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
-            <LogoMark />
+          <a href="/" className="nav__logo h-[95%] flex items-center" aria-label="APEX OmniHub">
             <img
-              className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.svg"
+              src="/apex-header-logo.png"
               alt="APEX OmniHub"
+              className="h-full w-auto object-contain py-0.5 transition-transform duration-300 hover:scale-[1.02]"
             />
           </a>
-
+          <ul className="nav__links">
+            {siteConfig.nav.links.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} className="nav__link">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
           <div className="nav__actions">
-            <button
-              type="button"
-              className="nav__burger"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
-              aria-expanded={drawerOpen}
-            >
-              <BurgerIcon />
-            </button>
             <ThemeToggle />
-            <button
-              type="button"
-              className="nav__link nav__link--action nav__auth-btn"
-              onClick={handleAuthClick}
-            >
-              {isAuthenticated ? 'Log out' : 'Log in'}
-            </button>
           </div>
         </div>
       </nav>

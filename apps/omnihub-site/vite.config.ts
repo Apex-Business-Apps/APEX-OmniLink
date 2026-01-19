@@ -20,7 +20,6 @@ export default defineConfig({
         'tech-specs': resolve(__dirname, 'tech-specs.html'),
         'request-access': resolve(__dirname, 'request-access.html'),
         login: resolve(__dirname, 'login.html'),
-        restricted: resolve(__dirname, 'restricted.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         terms: resolve(__dirname, 'terms.html'),
       },

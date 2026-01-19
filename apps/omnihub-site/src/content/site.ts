@@ -14,10 +14,7 @@ function buildLink(label: string, href: string) {
   return { label, href };
 }
 
-/** Build an action button with primary flag */
-function buildAction(label: string, href: string, primary: boolean) {
-  return { label, href, primary };
-}
+
 
 /** Build a titled item with description */
 function buildItem(title: string, description: string) {
@@ -46,10 +43,10 @@ export const siteConfig = {
   nav: {
     logo: 'APEX OmniHub',
     links: [
-      buildLink('Features', '/#features'),
-      buildLink('Solutions', '/#solutions'),
-      buildLink('Integrations', '/#integrations'),
-      buildLink('Pricing', '/#pricing'),
+      { label: 'Demo', href: '/demo.html' },
+      { label: 'Tech Specs', href: '/tech-specs.html' },
+      { label: 'Request Access', href: '/request-access.html' },
+      { label: 'Login', href: '/login' },
     ],
     login: buildLink('Log In', '/restricted.html'),
     primaryCta: buildLink('Get Started', '/request-access.html'),
@@ -277,23 +274,8 @@ export const requestAccessConfig = {
   },
 } as const;
 
-/**
- * Restricted page content
- */
-export const restrictedConfig = {
-  title: 'Restricted',
-  subtitle: 'This area requires authorization',
-  message: 'Access to this section is limited. You have options:',
-  actions: [
-    buildAction('Request Access', '/request-access.html', true),
-    buildAction('Watch Demo', '/demo.html', false),
-    buildAction('Read Tech Specs', '/tech-specs.html', false),
-  ],
-} as const;
-
 export type SiteConfig = typeof siteConfig;
 export type ProofConfig = typeof proofConfig;
 export type TechSpecsConfig = typeof techSpecsConfig;
 export type DemoConfig = typeof demoConfig;
 export type RequestAccessConfig = typeof requestAccessConfig;
-export type RestrictedConfig = typeof restrictedConfig;
