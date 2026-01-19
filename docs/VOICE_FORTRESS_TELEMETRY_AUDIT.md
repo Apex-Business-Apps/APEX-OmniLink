@@ -70,67 +70,67 @@ Type Safety: ✅ 100% (zero `any` types)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                                  │
+│                        CLIENT LAYER                                 │
 │  Browser WebSocket → Voice Input → Real-Time Audio Stream           │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    APEX VOICE PIPELINE                               │
+│                    APEX VOICE PIPELINE                              │
 │  supabase/functions/apex-voice/index.ts                             │
-│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐        │
-│  │  WebSocket     │→ │  Voice Safety  │→ │   OpenAI RT    │        │
-│  │  Proxy         │  │  Scanner       │  │   WebSocket    │        │
-│  └────────────────┘  └────────────────┘  └────────────────┘        │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐         │
+│  │  WebSocket     │→ │  Voice Safety  │→ │   OpenAI RT    │         │
+│  │  Proxy         │  │  Scanner       │  │   WebSocket    │         │
+│  └────────────────┘  └────────────────┘  └────────────────┘         │
 │          │                    │                    │                │
 │          ▼                    ▼                    ▼                │
-│  ┌──────────────────────────────────────────────────────┐          │
+│  ┌──────────────────────────────────────────────────────┐           │
 │  │         TELEMETRY COLLECTION LAYER                    │          │
 │  │  • handshake_ms (performance.now())                   │          │
 │  │  • turn_latency (speech_stop → audio_delta)           │          │
 │  │  • safety_violations (real-time blocking)             │          │
-│  └──────────────────────────────────────────────────────┘          │
+│  └──────────────────────────────────────────────────────┘           │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                 SECURITY LAYER (SHARED MODULE)                       │
+│                 SECURITY LAYER (SHARED MODULE)                      │
 │  supabase/functions/_shared/voiceSafety.ts                          │
-│  ┌────────────────────────────────────────────────────────┐        │
-│  │  13 Multi-Language Injection Patterns                  │        │
-│  │  EN | ES | FR | DE | PT | ZH | RU                      │        │
-│  ├────────────────────────────────────────────────────────┤        │
-│  │  3 Phonetic Jailbreak Detectors                        │        │
-│  │  "hyphen hyphen begin" | "slash slash system"          │        │
-│  ├────────────────────────────────────────────────────────┤        │
-│  │  2 PII/Secret Leak Scanners                            │        │
-│  │  OpenAI API Keys | Password Patterns                   │        │
-│  └────────────────────────────────────────────────────────┘        │
+│  ┌────────────────────────────────────────────────────────┐         │
+│  │  13 Multi-Language Injection Patterns                  │         │
+│  │  EN | ES | FR | DE | PT | ZH | RU                      │         │
+│  ├────────────────────────────────────────────────────────┤         │
+│  │  3 Phonetic Jailbreak Detectors                        │         │
+│  │  "hyphen hyphen begin" | "slash slash system"          │         │
+│  ├────────────────────────────────────────────────────────┤         │
+│  │  2 PII/Secret Leak Scanners                            │         │
+│  │  OpenAI API Keys | Password Patterns                   │         │
+│  └────────────────────────────────────────────────────────┘         │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│              TELEMETRY AGGREGATION ENDPOINT                          │
+│              TELEMETRY AGGREGATION ENDPOINT                         │
 │  supabase/functions/ops-voice-health/index.ts                       │
-│  ┌────────────────────────────────────────────────────────┐        │
-│  │  Metrics:  handshakeAvg | latencyP99                   │        │
-│  │            activeSessions | safetyViolations           │        │
-│  │  CORS:     Enabled for /ops dashboard                  │        │
-│  └────────────────────────────────────────────────────────┘        │
+│  ┌────────────────────────────────────────────────────────┐         │
+│  │  Metrics:  handshakeAvg | latencyP99                   │         │
+│  │            activeSessions | safetyViolations           │         │
+│  │  CORS:     Enabled for /ops dashboard                  │         │
+│  └────────────────────────────────────────────────────────┘         │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│               MONITORING DASHBOARD (FRONTEND)                        │
+│               MONITORING DASHBOARD (FRONTEND)                       │
 │  src/pages/ops/VoiceHealth.tsx                                      │
-│  ┌────────────────────────────────────────────────────────┐        │
-│  │  Real-Time Metrics (5s polling)                        │        │
-│  │  • Avg Handshake:    212ms                             │        │
-│  │  • Latency P99:      780ms                             │        │
-│  │  • Active Calls:     3                                 │        │
-│  │  • Safety Blocks:    0                                 │        │
-│  │  Live Telemetry Console (terminal UI)                  │        │
-│  └────────────────────────────────────────────────────────┘        │
+│  ┌────────────────────────────────────────────────────────┐         │
+│  │  Real-Time Metrics (5s polling)                        │         │
+│  │  • Avg Handshake:    212ms                             │         │
+│  │  • Latency P99:      780ms                             │         │
+│  │  • Active Calls:     3                                 │         │
+│  │  • Safety Blocks:    0                                 │         │
+│  │  Live Telemetry Console (terminal UI)                  │         │
+│  └────────────────────────────────────────────────────────┘         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
