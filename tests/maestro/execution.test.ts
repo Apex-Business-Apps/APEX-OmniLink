@@ -11,17 +11,16 @@
  * Phase 5: Execution & Safety
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   executeIntent,
   executeBatch,
   validateIntent,
   isActionAllowlisted,
   registerAction,
-  type ExecutionResult,
   type AllowlistedAction,
 } from '@/integrations/maestro/execution/engine';
-import type { ExecutionIntent, RiskLane } from '@/integrations/maestro/types';
+import type { ExecutionIntent } from '@/integrations/maestro/types';
 
 describe('MAESTRO Execution Engine', () => {
   describe('Allowlisted Actions', () => {
