@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apexbusiness-systems.com/schemas/maestro/canonical-event.json",
+  "title": "Canonical Event",
+  "description": "Stable envelope for all MAESTRO events with locale tagging and E2EE support",
+  "type": "object",
+  "required": [
+    "tenant_id",
+    "subject_id",
+    "scope",
+    "locale",
+    "type",
+    "created_at",
+    "trace_id",
+    "source",
+    "content_hash",
+    "provenance_refs",
+    "risk_lane"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant/user identifier"
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject of the event (e.g., conversation ID, document ID)"
+    },
+    "scope": {
+      "type": "string",
+      "description": "Event scope (e.g., 'conversation', 'document', 'task')"
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+      "description": "BCP-47 locale code (e.g., 'en-CA', 'th-TH')"
+    },
+    "type": {
+      "type": "string",
+      "description": "Event type (e.g., 'memory_write', 'execution_intent')"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Distributed trace ID for correlation"
+    },
+    "source": {
+      "type": "string",
+      "description": "Event source (e.g., 'user_input', 'system_event')"
+    },
+    "content_ciphertext": {
+      "type": "string",
+      "description": "Base64-encoded AES-GCM ciphertext (client-only, never sent as plaintext)"
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of content (ciphertext if encrypted, plaintext if not)"
+    },
+    "provenance_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "References to source memory items or events"
+    },
+    "risk_lane": {
+      "type": "string",
+      "enum": ["GREEN", "YELLOW", "RED"],
+      "description": "Risk classification (GREEN=safe, YELLOW=review, RED=MAN mode)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional event-specific metadata"
+    }
+  },
+  "additionalProperties": false
+}

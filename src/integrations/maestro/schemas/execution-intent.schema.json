@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apexbusiness-systems.com/schemas/maestro/execution-intent.json",
+  "title": "Execution Intent",
+  "description": "Validated request to execute an action with idempotency enforcement",
+  "type": "object",
+  "required": [
+    "intent_id",
+    "tenant_id",
+    "idempotency_key",
+    "canonical_action",
+    "canonical_object",
+    "parameters",
+    "risk_lane",
+    "trace_id",
+    "source_event_id",
+    "user_confirmed",
+    "created_at"
+  ],
+  "properties": {
+    "intent_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique intent identifier"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant/user identifier"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash for idempotency enforcement"
+    },
+    "canonical_action": {
+      "type": "string",
+      "description": "Allowlisted action name (e.g., 'send_email', 'create_task')"
+    },
+    "canonical_object": {
+      "type": "string",
+      "description": "Object to act upon (e.g., 'email', 'task')"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Action-specific parameters (validated against action schema)"
+    },
+    "risk_lane": {
+      "type": "string",
+      "enum": ["GREEN", "YELLOW", "RED"],
+      "description": "Risk classification"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Distributed trace ID"
+    },
+    "source_event_id": {
+      "type": "string",
+      "description": "ID of the canonical event that triggered this intent"
+    },
+    "recipe_version": {
+      "type": "string",
+      "description": "Version of the recipe/procedure that generated this intent"
+    },
+    "user_confirmed": {
+      "type": "boolean",
+      "description": "Whether user explicitly confirmed this action"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    }
+  },
+  "additionalProperties": false
+}
