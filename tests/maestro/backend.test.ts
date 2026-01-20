@@ -18,7 +18,7 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Skip tests if environment is not configured
-const shouldSkipTests = !SUPABASE_URL || !SUPABASE_ANON_KEY;
+const shouldSkipTests = !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY;
 
 describe.skipIf(shouldSkipTests)('MAESTRO Backend Integration', () => {
   let serviceClient: SupabaseClient;
