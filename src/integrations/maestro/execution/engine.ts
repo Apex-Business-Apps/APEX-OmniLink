@@ -238,7 +238,7 @@ export async function executeBatch(
 export async function requestMANMode(
   request: MANModeRequest
 ): Promise<MANModeResponse> {
-  console.log('[MAESTRO] Escalating to MAN mode:', request.reason, {
+  console.warn('[MAESTRO] Escalating to MAN mode:', request.reason, {
     intent: request.intent.intent_id,
   });
 
@@ -259,7 +259,8 @@ async function performAction(
   // Mock implementations for allowlisted actions
   switch (intent.action) {
     case 'log_message':
-      console.log('[MAESTRO] INFO:', intent.parameters.message);
+      // eslint-disable-next-line no-console -- intentional logging action
+      console.info('[MAESTRO] INFO:', intent.parameters.message);
       return { logged: true, timestamp: new Date().toISOString() };
 
     case 'get_status':

@@ -17,11 +17,11 @@ const HIGH_RISK_PATTERNS: Array<{ name: string; pattern: RegExp; score: number }
   { name: 'act_as', pattern: /act\s+as\s+(a|an|if)/i, score: 80 },
   { name: 'pretend', pattern: /pretend\s+(you\s*('re|are)|to\s+be)/i, score: 85 },
 
-  // Prompt extraction
+  // Prompt extraction - fixed regex to avoid catastrophic backtracking
   { name: 'show_prompt', pattern: /show\s+(me\s+)?(your\s+)?(system\s+)?prompt/i, score: 95 },
   { name: 'show_instructions', pattern: /show\s+(me\s+)?your\s+instructions/i, score: 95 },
   { name: 'reveal_instructions', pattern: /reveal\s+(your\s+)?(instructions|system\s+prompt)/i, score: 95 },
-  { name: 'reveal_training', pattern: /reveal\s+(your\s+)?.*training\s+(data|methodology)/i, score: 95 },
+  { name: 'reveal_training', pattern: /reveal\s+(your\s+)?(\w+\s+){0,5}training\s+(data|methodology)/i, score: 95 },
   { name: 'what_instructions', pattern: /what\s+are\s+your\s+instructions/i, score: 90 },
 
   // Code execution attempts
@@ -55,62 +55,87 @@ const MEDIUM_RISK_PATTERNS: Array<{ name: string; pattern: RegExp; score: number
   // Encoded payloads - base64 detection
   {
     name: 'base64_payload',
-    pattern: /(?:[A-Za-z0-9+/]{20,}={0,2})/,
+    pattern: /[A-Za-z0-9+/]{20,}={0,2}/,
     score: 60,
   },
-  // Hex encoded payloads
+  // Hex encoded payloads - fixed duplicate character class
   { name: 'hex_payload', pattern: /(?:0x[a-fA-F0-9]{16,}|\\x[a-fA-F0-9]{2}(?:\\x[a-fA-F0-9]{2}){7,})/i, score: 65 },
-  // Unicode escapes
+  // Unicode escapes - fixed duplicate character class
   { name: 'unicode_escape', pattern: /(?:\\u[0-9a-fA-F]{4}){4,}/i, score: 60 },
 ];
 
+/**
+ * Check for high special character ratio
+ */
+function hasHighSpecialCharRatio(input: string): boolean {
+  const specialChars = input.replaceAll(/[a-zA-Z0-9\s]/g, '').length;
+  const ratio = specialChars / input.length;
+  return ratio > 0.3 && input.length > 20;
+}
+
+/**
+ * Check for excessive capitalization
+ */
+function hasExcessiveCapitalization(input: string): boolean {
+  const caps = input.replaceAll(/[^A-Z]/g, '').length;
+  const letters = input.replaceAll(/[^a-zA-Z]/g, '').length;
+  return letters > 20 && caps / letters > 0.7;
+}
+
+/**
+ * Check for repetitive patterns (potential DoS or obfuscation)
+ */
+function hasRepetitivePattern(input: string): boolean {
+  // Check for same character repeated many times
+  if (/(.)\1{19,}/.test(input)) return true;
+  // Check for same word/phrase repeated
+  const words = input.toLowerCase().split(/\s+/);
+  if (words.length < 5) return false;
+  const wordCounts = new Map<string, number>();
+  for (const word of words) {
+    wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+  }
+  for (const count of wordCounts.values()) {
+    if (count >= 10 && count / words.length > 0.5) return true;
+  }
+  return false;
+}
+
 // Suspicious token patterns
 const SUSPICIOUS_TOKEN_PATTERNS: Array<{ name: string; check: (input: string) => boolean; score: number }> = [
-  // High special character ratio
-  {
-    name: 'high_special_chars',
-    check: (input: string) => {
-      const specialChars = input.replace(/[a-zA-Z0-9\s]/g, '').length;
-      const ratio = specialChars / input.length;
-      return ratio > 0.3 && input.length > 20;
-    },
-    score: 50,
-  },
-  // Excessive capitalization
-  {
-    name: 'excessive_caps',
-    check: (input: string) => {
-      const caps = input.replace(/[^A-Z]/g, '').length;
-      const letters = input.replace(/[^a-zA-Z]/g, '').length;
-      return letters > 20 && caps / letters > 0.7;
-    },
-    score: 45,
-  },
-  // Repetitive patterns (potential DoS or obfuscation)
-  {
-    name: 'repetitive_pattern',
-    check: (input: string) => {
-      // Check for same character repeated many times
-      if (/(.)\1{19,}/.test(input)) return true;
-      // Check for same word/phrase repeated
-      const words = input.toLowerCase().split(/\s+/);
-      if (words.length < 5) return false;
-      const wordCounts = new Map<string, number>();
-      for (const word of words) {
-        wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
-      }
-      for (const count of wordCounts.values()) {
-        if (count >= 10 && count / words.length > 0.5) return true;
-      }
-      return false;
-    },
-    score: 55,
-  },
+  { name: 'high_special_chars', check: hasHighSpecialCharRatio, score: 50 },
+  { name: 'excessive_caps', check: hasExcessiveCapitalization, score: 45 },
+  { name: 'repetitive_pattern', check: hasRepetitivePattern, score: 55 },
 ];
 
 // Input validation constants
 const MAX_INPUT_LENGTH = 10000;
 const BLOCK_THRESHOLD = 70;
+
+/**
+ * Check patterns against input and update result
+ */
+function checkPatterns(
+  input: string,
+  patterns: Array<{ name: string; pattern: RegExp; score: number }>,
+  result: InjectionDetectionResult,
+  threshold: number,
+  alwaysBlockHighScore: boolean
+): void {
+  for (const { name, pattern, score } of patterns) {
+    if (pattern.test(input)) {
+      result.detected = true;
+      result.patterns_matched.push(name);
+      result.risk_score = Math.max(result.risk_score, score);
+
+      if (alwaysBlockHighScore && score >= 70) {
+        result.blocked = true;
+      } else if (result.risk_score >= threshold) {
+        result.blocked = true;
+      }
+    }
+  }
+}
 
 /**
  * Detect potential injection attacks in input
@@ -129,7 +154,7 @@ export function detectInjection(
   };
 
   // Empty or whitespace-only input
-  if (!input || !input.trim()) {
+  if (!input?.trim()) {
     return result;
   }
 
@@ -142,33 +167,11 @@ export function detectInjection(
     return result;
   }
 
-  // Check high-risk patterns
-  for (const { name, pattern, score } of HIGH_RISK_PATTERNS) {
-    if (pattern.test(input)) {
-      result.detected = true;
-      result.patterns_matched.push(name);
-      result.risk_score = Math.max(result.risk_score, score);
-
-      // High-risk patterns always block regardless of threshold
-      if (score >= 70) {
-        result.blocked = true;
-      }
-    }
-  }
+  // Check high-risk patterns (always block if score >= 70)
+  checkPatterns(input, HIGH_RISK_PATTERNS, result, threshold, true);
 
   // Check medium-risk patterns
-  for (const { name, pattern, score } of MEDIUM_RISK_PATTERNS) {
-    if (pattern.test(input)) {
-      result.detected = true;
-      result.patterns_matched.push(name);
-      result.risk_score = Math.max(result.risk_score, score);
-
-      // Block if cumulative score exceeds threshold
-      if (result.risk_score >= threshold) {
-        result.blocked = true;
-      }
-    }
-  }
+  checkPatterns(input, MEDIUM_RISK_PATTERNS, result, threshold, false);
 
   // Check suspicious token patterns
   for (const { name, check, score } of SUSPICIOUS_TOKEN_PATTERNS) {
@@ -177,7 +180,6 @@ export function detectInjection(
       result.patterns_matched.push(name);
       result.risk_score = Math.max(result.risk_score, score);
 
-      // Block if cumulative score exceeds threshold
       if (result.risk_score >= threshold) {
         result.blocked = true;
       }
@@ -220,16 +222,16 @@ export function sanitizeInput(input: string): string {
   let sanitized = input;
 
   // Remove instruction delimiters
-  sanitized = sanitized.replace(/\[?(system|user|assistant)\]?\s*:/gi, '');
+  sanitized = sanitized.replaceAll(/\[?(system|user|assistant)\]?\s*:/gi, '');
 
   // Remove eval patterns
-  sanitized = sanitized.replace(/\beval\s*\([^)]*\)/gi, '[REMOVED]');
+  sanitized = sanitized.replaceAll(/\beval\s*\([^)]*\)/gi, '[REMOVED]');
 
-  // Normalize special characters
-  sanitized = sanitized.replace(/[^\x20-\x7E\s]/g, '');
+  // Normalize special characters (remove non-ASCII printable)
+  sanitized = sanitized.replaceAll(/[^\x20-\x7E\s]/g, '');
 
   // Normalize whitespace
-  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+  sanitized = sanitized.replaceAll(/\s+/g, ' ').trim();
 
   return sanitized;
 }

@@ -18,8 +18,8 @@ interface RiskEventInput {
  * Generate a UUID v4
  */
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replaceAll(/[xy]/g, (c) => {
+    const r = Math.trunc(Math.random() * 16);
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
@@ -28,9 +28,9 @@ function generateUUID(): string {
 /**
  * Get Supabase client if available
  */
-function getSupabaseClient(): unknown | null {
+function getSupabaseClient(): Record<string, unknown> | null {
   // Check if we're in a browser environment with Supabase configured
-  if (typeof globalThis.window !== 'undefined') {
+  if (globalThis.window !== undefined) {
     const url = import.meta.env?.VITE_SUPABASE_URL;
     const key = import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -61,16 +61,16 @@ export async function logRiskEvent(input: RiskEventInput): Promise<RiskEvent> {
   const client = getSupabaseClient();
 
   if (!client) {
-    console.log('[MAESTRO] Supabase not configured, risk event not logged:', event);
+    console.warn('[MAESTRO] Supabase not configured, risk event not logged:', event);
     return event;
   }
 
   try {
     // In production, this would insert into maestro_audit table
     // For now, we just log it
-    console.log('[MAESTRO] Risk event logged:', event);
-  } catch (error) {
-    console.error('[MAESTRO] Failed to log risk event:', error);
+    console.warn('[MAESTRO] Risk event logged:', event);
+  } catch (_error) {
+    console.error('[MAESTRO] Failed to log risk event:', _error);
   }
 
   return event;
@@ -89,7 +89,7 @@ export async function queryRiskEvents(
   } = {}
 ): Promise<RiskEvent[]> {
   // Mock implementation - in production would query maestro_audit table
-  console.log('[MAESTRO] Querying risk events for tenant:', tenantId, options);
+  console.warn('[MAESTRO] Querying risk events for tenant:', tenantId, options);
   return [];
 }
 
@@ -98,13 +98,14 @@ export async function queryRiskEvents(
  */
 export async function getRiskStats(
   tenantId: string,
-  timeWindow: { start: Date; end: Date }
+  _timeWindow: { start: Date; end: Date }
 ): Promise<{
   total: number;
   by_lane: Record<RiskLane, number>;
   by_type: Record<string, number>;
 }> {
   // Mock implementation
+  console.warn('[MAESTRO] Getting risk stats for tenant:', tenantId);
   return {
     total: 0,
     by_lane: { GREEN: 0, YELLOW: 0, RED: 0, BLOCKED: 0 },

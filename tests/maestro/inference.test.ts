@@ -92,18 +92,18 @@ describe('MAESTRO Inference Tests', () => {
     });
 
     it('should reject wrong dimension', () => {
-      const shortEmbedding = new Array(256).fill(0.0);
+      const shortEmbedding = new Array(256).fill(0);
       expect(validateEmbedding(shortEmbedding)).toBe(false);
     });
 
     it('should reject NaN values', () => {
-      const embedding = new Array(384).fill(0.0);
-      embedding[0] = NaN;
+      const embedding = new Array(384).fill(0);
+      embedding[0] = Number.NaN;
       expect(validateEmbedding(embedding)).toBe(false);
     });
 
     it('should reject Infinity values', () => {
-      const embedding = new Array(384).fill(0.0);
+      const embedding = new Array(384).fill(0);
       embedding[0] = Infinity;
       expect(validateEmbedding(embedding)).toBe(false);
     });

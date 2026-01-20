@@ -11,7 +11,6 @@ import {
 } from '@/integrations/maestro/safety/injection-detection';
 import {
   expectInjectionBlocked,
-  expectInjectionWarning,
   expectNoInjection,
 } from './__helpers__/test-factories';
 
@@ -152,7 +151,7 @@ describe('MAESTRO Security - Injection Detection', () => {
     });
 
     it('should detect unicode escapes', () => {
-      const result = detectInjection('\\u0069\\u0067\\u006e\\u006f\\u0072\\u0065');
+      const result = detectInjection(String.raw`\u0069\u0067\u006e\u006f\u0072\u0065`);
       expect(result.detected).toBe(true);
       expect(result.patterns_matched).toContain('unicode_escape');
     });
@@ -191,7 +190,7 @@ describe('MAESTRO Security - Injection Detection', () => {
 
     it('should detect repetitive patterns', () => {
       // Same word repeated many times - potential DoS or obfuscation
-      const repeated = Array(15).fill('ignore').join(' ');
+      const repeated = new Array(15).fill('ignore').join(' ');
       const result = detectInjection(repeated);
       expect(result.detected).toBe(true);
       expect(result.patterns_matched).toContain('repetitive_pattern');
@@ -286,8 +285,8 @@ describe('MAESTRO Security - Injection Detection', () => {
       // Admin in context should pass but might have warnings
       const result = securityScan('Please update the admin settings');
       expect(result.passed).toBe(true);
-      // Check if warnings array exists and has any items
-      expect(result.injection_result.warnings.length >= 0).toBe(true);
+      // Verify warnings array exists and is properly typed
+      expect(Array.isArray(result.injection_result.warnings)).toBe(true);
     });
   });
 

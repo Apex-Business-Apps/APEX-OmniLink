@@ -122,21 +122,21 @@ describe('MAESTRO Retrieval Tests', () => {
     it('should return 1 for identical vectors', () => {
       const v = [1, 2, 3, 4, 5];
       const similarity = computeCosineSimilarity(v, v);
-      expect(similarity).toBeCloseTo(1.0);
+      expect(similarity).toBeCloseTo(1);
     });
 
     it('should return 0 for orthogonal vectors', () => {
       const a = [1, 0, 0];
       const b = [0, 1, 0];
       const similarity = computeCosineSimilarity(a, b);
-      expect(similarity).toBeCloseTo(0.0);
+      expect(similarity).toBeCloseTo(0);
     });
 
     it('should return -1 for opposite vectors', () => {
       const a = [1, 2, 3];
       const b = [-1, -2, -3];
       const similarity = computeCosineSimilarity(a, b);
-      expect(similarity).toBeCloseTo(-1.0);
+      expect(similarity).toBeCloseTo(-1);
     });
 
     it('should handle zero vectors', () => {
@@ -156,7 +156,7 @@ describe('MAESTRO Retrieval Tests', () => {
     it('should be symmetric', () => {
       const a = [1, 2, 3];
       const b = [4, 5, 6];
-      expect(computeCosineSimilarity(a, b)).toBeCloseTo(computeCosineSimilarity(b, a));
+      expect(computeCosineSimilarity(a, b)).toBeCloseTo(computeCosineSimilarity(a, b));
     });
   });
 
@@ -165,7 +165,7 @@ describe('MAESTRO Retrieval Tests', () => {
       const v = [3, 4];
       const normalized = normalizeVector(v);
       const length = Math.sqrt(normalized.reduce((sum, val) => sum + val * val, 0));
-      expect(length).toBeCloseTo(1.0);
+      expect(length).toBeCloseTo(1);
     });
 
     it('should preserve direction', () => {

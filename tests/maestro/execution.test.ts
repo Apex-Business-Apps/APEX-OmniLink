@@ -2,7 +2,7 @@
  * MAESTRO Execution Engine Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   isActionAllowlisted,
   registerCustomAction,
@@ -12,10 +12,8 @@ import {
   executeBatch,
 } from '@/integrations/maestro/execution/engine';
 import { ALLOWLISTED_ACTIONS } from '@/integrations/maestro/types';
-import type { MaestroIntent } from '@/integrations/maestro/types';
 import {
   createTestIntent,
-  createTestIdentity,
   generateIdempotencyKey,
 } from './__helpers__/test-factories';
 
