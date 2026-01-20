@@ -1,46 +1,88 @@
-// @omnilink/sw:v3-recovery - TEMPORARY Self-Destroying Service Worker
-// This version clears all caches and unregisters itself to recover from stale cache issues
-// TODO: Revert to normal PWA mode after one successful deployment
+/**
+ * MAESTRO Service Worker
+ * 
+ * Guarantees responsiveness and offline capability.
+ * Strategies:
+ * - Cache-First for static assets (js, css, images, wasm, onnx).
+ * - Network-First for HTML (app shell updates).
+ * - Offline fallback for navigation.
+ */
 
-console.log('[SW Recovery] Self-destroying service worker loaded');
+const CACHE_NAME = 'maestro-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json'
+];
 
-// Install event - skip waiting and activate immediately
 self.addEventListener('install', (event) => {
-  console.log('[SW Recovery] Installing - will self-destruct on activate');
-  self.skipWaiting(); // Activate immediately
-});
-
-// Activate event - delete ALL caches and unregister this service worker
-self.addEventListener('activate', (event) => {
-  console.log('[SW Recovery] Activating - clearing all caches and unregistering...');
   event.waitUntil(
-    Promise.all([
-      // Delete ALL caches
-      caches.keys().then((cacheNames) => {
-        console.log('[SW Recovery] Deleting all caches:', cacheNames);
-        return Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName))
-        );
-      }),
-      // Unregister this service worker
-      self.registration.unregister().then(() => {
-        console.log('[SW Recovery] Service worker unregistered successfully');
-        // Reload all clients to get fresh content
-        return self.clients.matchAll().then((clients) => {
-          clients.forEach((client) => {
-            client.postMessage({ type: 'SW_UNREGISTERED', action: 'reload' });
-          });
-        });
-      })
-    ]).then(() => {
-      console.log('[SW Recovery] Cache recovery complete. Page will reload with fresh content.');
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.clients.claim(); // Take control immediately before unregistering
+  self.skipWaiting();
 });
 
-// Fetch event - pass through all requests (no caching during recovery)
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
 self.addEventListener('fetch', (event) => {
-  // Just pass through to network, no caching
-  event.respondWith(fetch(event.request));
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // Strategy: Cache-First for Assets, WASM, and Models
+  if (
+    url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|wasm|onnx|bin|json)$/)
+  ) {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (
+            !networkResponse ||
+            networkResponse.status !== 200 ||
+            networkResponse.type !== 'basic'
+          ) {
+            return networkResponse;
+          }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // Strategy: Network-First for HTML (Navigation)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match('/index.html');
+        })
+    );
+    return;
+  }
 });

@@ -78,7 +78,7 @@ class TestAuditPersistence:
             assert "CRITICAL: Audit persistence failed" in stderr_output
             assert "AUDIT_FALLBACK" in stderr_output
             assert sample_event.id in stderr_output
-            assert "DATA_ACCESS" in stderr_output
+            assert "data_access" in stderr_output
 
     @pytest.mark.asyncio
     async def test_fallback_does_not_log_secrets(self, audit_logger, sample_event):
@@ -134,11 +134,11 @@ class TestAuditPersistence:
 
             # Check all essential fields are logged
             assert f"id={sample_event.id}" in stderr_output
-            assert f"action={sample_event.action.value}" in stderr_output
-            assert f"resource_type={sample_event.resource_type.value}" in stderr_output
+            assert f"action={sample_event.action}" in stderr_output
+            assert f"resource_type={sample_event.resource_type}" in stderr_output
             assert f"resource_id={sample_event.resource_id}" in stderr_output
             assert f"actor_id={sample_event.actor_id}" in stderr_output
-            assert f"status={sample_event.status.value}" in stderr_output
+            assert f"status={sample_event.status}" in stderr_output
             assert "timestamp=" in stderr_output
 
 

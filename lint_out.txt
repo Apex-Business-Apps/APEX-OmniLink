@@ -1,0 +1,168 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\apps\omnihub-site\src\components\icons\index.tsx
+  313:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\sandbox\chaotic-client-simulation.ts
+  337:14  warning  '_error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\sim\metrics.ts
+  8:24  warning  'EventType' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\sim\runner.ts
+  254:36  warning  'attemptCount' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\sim\tests\guard-rails.test.ts
+  5:32  warning  'beforeEach' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\sim\tests\retry-logic.test.ts
+  141:13  warning  'chaosDecision' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\NFTGatedContent.tsx
+  15:10  warning  'Button' is defined but never used. Allowed unused vars must match /^_/u                                        @typescript-eslint/no-unused-vars
+  48:6   warning  React Hook useEffect has a missing dependency: 'checkAccess'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\command.tsx
+  24:11  warning  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\textarea.tsx
+  5:18  warning  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\contexts\AuthContext.tsx
+  30:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\hooks\use-toast.ts
+  15:7  warning  'actionTypes' is assigned a value but only used as a type. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\hooks\useWalletVerification.ts
+   43:6  warning  React Hook useEffect has a missing dependency: 'checkVerificationStatus'. Either include it or remove the dependency array                 react-hooks/exhaustive-deps
+  238:6  warning  React Hook useCallback has missing dependencies: 'requestNonce' and 'verifySignature'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\integrations\maestro\client.ts
+  36:13  error  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  44:13  error  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\integrations\maestro\maestro.test.ts
+  1:32  warning  'beforeEach' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  4:10  warning  'TieredMemory' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\lib\connection-pool.ts
+  45:17  warning  'id' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\lib\database\providers\supabase.ts
+  48:24  warning  'T' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  97:24  warning  'T' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\lib\storage\providers\supabase.ts
+   55:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   75:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  147:5   warning  'options' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  382:21  warning  'url' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  524:5   warning  'bucket' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  525:5   warning  'path' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+  526:5   warning  'options' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\omniconnect\connectors\base.ts
+  8:10  warning  'generateCorrelationId' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\omniconnect\connectors\meta-business.ts
+   67:5   warning  'state' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+   90:22  warning  'connectorId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   96:20  warning  'connectorId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   96:41  warning  'since' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  169:23  warning  'connectorId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\omniconnect\core\omniconnect.ts
+  6:10  warning  'Connector' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  7:10  warning  'CanonicalEvent' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\omniconnect\delivery\omnilink-delivery.ts
+  64:27  warning  'eventId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\omniconnect\policy\policy-engine.ts
+  50:23  warning  'event' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  50:46  warning  'appId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\pages\ApexAssistant.tsx
+  33:10  warning  'isSpeaking' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\pages\Automations.tsx
+  27:6   warning  React Hook useEffect has a missing dependency: 'fetchAutomations'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  52:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u                                      @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\pages\Files.tsx
+  30:14  warning  'error' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+  42:6   warning  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\pages\Health.tsx
+  28:13  warning  'startTime' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  38:25  warning  'session' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\pages\OmniDash\OmniDashLayout.tsx
+  5:10  warning  'Badge' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\utils\RealtimeAudio.ts
+  152:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\src\zero-trust\deviceRegistry.ts
+  88:10  warning  'toDeviceInfo' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\_shared\emergency-controls.ts
+  262:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\_shared\llm.ts
+  179:12  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\_shared\skill-loader.ts
+  1:10  warning  'createClient' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\alchemy-webhook\index.ts
+  74:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\apex-assistant\index.ts
+  182:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\execute-automation\index.ts
+  74:52  warning  'supabase' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\lovable-healthcheck\index.ts
+  1:10  warning  'createClient' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\supabase\functions\storage-upload-url\index.ts
+  69:23  warning  'mime' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\tests\e2e-playwright\omnidash-ui.spec.ts
+  1:16  warning  'expect' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\tests\lib\database\database.spec.ts
+  175:19  warning  'T' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\sinyo\OMNILINK-APEX HUB\APEX-OmniLink\APEX-OmniHub\APEX-OmniHub\tests\zero-trust\deviceRegistry.spec.ts
+  52:13  warning  'syncOnLogin' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 67 problems (2 errors, 65 warnings)
+

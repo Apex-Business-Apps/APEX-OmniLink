@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Send, Loader2, ExternalLink } from 'lucide-react';
 import VoiceInterface from '@/components/VoiceInterface';
+import { maestro } from '@/integrations/maestro';
 
 interface ApexResponse {
   summary: string[];
@@ -54,14 +55,31 @@ const ApexAssistant = () => {
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      
-      const { data, error } = await supabase.functions.invoke('apex-assistant', {
-        body: { query, history },
-      });
 
-      if (error) {
-        throw error;
+      // MAESTRO INTEGRATION: Schedule and Execute via Orchestrator
+      // This ensures the action is Idempotent, Allowlisted, and Audited.
+      const result = await maestro.orchestrator.schedule(
+        'apex.assistant.query',
+        { query, history },
+        1.0, // High confidence for user-initiated query
+        async () => {
+          // The actual execution logic
+          const { data, error } = await supabase.functions.invoke('apex-assistant', {
+            body: { query, history },
+          });
+          if (error) throw error;
+          return data;
+        }
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Maestro execution blocked');
       }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = result.result as any;
+
+      if (!data) throw new Error('No data from assistant');
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -70,20 +88,20 @@ const ApexAssistant = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      
+
       toast({
         title: 'APEX Response',
         description: 'Successfully retrieved knowledge',
       });
     } catch (error: unknown) {
       // Error logged via toast
-      
+
       const errorMsg = error.message || 'Failed to get response from APEX';
       const isAuthError = errorMsg.includes('API key') || errorMsg.includes('configured');
-      
+
       toast({
         title: 'Error',
-        description: isAuthError 
+        description: isAuthError
           ? 'OPENAI_API_KEY not configured. Please add it in backend settings.'
           : errorMsg,
         variant: 'destructive',
@@ -171,7 +189,7 @@ const ApexAssistant = () => {
           <h1 className="text-3xl font-bold">APEX Assistant</h1>
           <p className="text-muted-foreground">Internal knowledge assistant for Omnilink</p>
         </div>
-        <VoiceInterface 
+        <VoiceInterface
           onTranscript={handleVoiceTranscript}
           onSpeakingChange={setIsSpeaking}
         />

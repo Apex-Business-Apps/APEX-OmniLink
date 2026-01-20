@@ -34,3 +34,8 @@ root.render(<App />);
 // #region agent log
 log('App render complete');
 // #endregion
+
+// Register Service Worker for offline support
+import { registerSW } from './registerSW';
+registerSW();
+
