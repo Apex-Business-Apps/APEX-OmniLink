@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apexbusiness-systems.com/schemas/maestro/grounding-result.json",
+  "title": "Grounding Result",
+  "description": "Memory retrieval result with similarity scores",
+  "type": "object",
+  "required": ["items", "query", "locale", "trace_id", "retrieved_at"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "tier",
+          "locale",
+          "content",
+          "content_hash",
+          "provenance_refs",
+          "created_at",
+          "key_version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Memory item ID"
+          },
+          "tier": {
+            "type": "string",
+            "enum": ["core", "working", "episodic", "semantic", "procedural"],
+            "description": "Memory tier"
+          },
+          "locale": {
+            "type": "string",
+            "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+            "description": "BCP-47 locale"
+          },
+          "content": {
+            "type": "string",
+            "description": "Memory content (plaintext, local-only)"
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash"
+          },
+          "embedding": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Embedding vector (for semantic tier)"
+          },
+          "provenance_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Source references"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Expiry timestamp (for working tier)"
+          },
+          "key_version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Encryption key version"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata"
+          }
+        }
+      },
+      "description": "Retrieved memory items"
+    },
+    "query": {
+      "type": "string",
+      "description": "Search query"
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+      "description": "Query locale"
+    },
+    "similarity_scores": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "description": "Cosine similarity scores (0-1) for each item"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Distributed trace ID"
+    },
+    "retrieved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    }
+  },
+  "additionalProperties": false
+}
