@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://apexbusiness-systems.com/schemas/maestro/execution-intent.json",
   "title": "Execution Intent",
   "description": "Validated request to execute an action with idempotency enforcement",
