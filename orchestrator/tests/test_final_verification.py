@@ -67,8 +67,7 @@ class TestInterfaceCompliance:
 
             provider.client = MagicMock()
             mock_chain = (
-                provider.client.table.return_value.delete.return_value.eq
-                .return_value.execute
+                provider.client.table.return_value.delete.return_value.eq.return_value.execute
             )
             mock_chain.return_value = mock_response
 

@@ -305,7 +305,7 @@ describe('MAESTRO Security - Input Safety', () => {
         injectionThreshold: 50,
       });
       // Should have warnings but might not block
-      expect(result.warnings.length >= 0).toBe(true);
+      expect(Array.isArray(result.warnings)).toBe(true);
     });
   });
 

@@ -17,7 +17,7 @@ import {
   compactMemoryTier,
 } from '@/integrations/maestro/stores/indexeddb';
 import { MAESTRO_STORES } from '@/integrations/maestro/config';
-import type { MemoryItem } from '@/integrations/maestro/types';
+import { createMockMemoryItem } from './__helpers__/test-factories';
 
 describe('MAESTRO IndexedDB', () => {
   beforeEach(async () => {
@@ -34,16 +34,11 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('storeMemoryItem', () => {
     it('should store a memory item in core tier', async () => {
-      const item: MemoryItem = {
+      const item = createMockMemoryItem({
         id: 'test-1',
-        tier: 'core',
-        locale: 'en-US',
         content: 'Test content',
         content_hash: 'abc123',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('core', item);
 
@@ -54,16 +49,12 @@ describe('MAESTRO IndexedDB', () => {
     });
 
     it('should add expires_at for working tier items', async () => {
-      const item: MemoryItem = {
+      const item = createMockMemoryItem({
         id: 'test-working-1',
         tier: 'working',
-        locale: 'en-US',
         content: 'Temporary content',
         content_hash: 'def456',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('working', item);
 
@@ -75,27 +66,9 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('getMemoryItemsByLocale', () => {
     it('should retrieve items by locale', async () => {
-      const items: MemoryItem[] = [
-        {
-          id: 'en-1',
-          tier: 'core',
-          locale: 'en-US',
-          content: 'English content',
-          content_hash: 'hash1',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
-        {
-          id: 'fr-1',
-          tier: 'core',
-          locale: 'fr-FR',
-          content: 'French content',
-          content_hash: 'hash2',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
+      const items = [
+        createMockMemoryItem({ id: 'en-1', locale: 'en-US', content: 'English content', content_hash: 'hash1' }),
+        createMockMemoryItem({ id: 'fr-1', locale: 'fr-FR', content: 'French content', content_hash: 'hash2' }),
       ];
 
       for (const item of items) {
@@ -114,17 +87,13 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('compactMemoryTier', () => {
     it('should remove expired items from working tier', async () => {
-      const expiredItem: MemoryItem = {
+      const expiredItem = createMockMemoryItem({
         id: 'expired-1',
         tier: 'working',
-        locale: 'en-US',
         content: 'Expired content',
         content_hash: 'expired-hash',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() - 1000).toISOString(), // Already expired
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('working', expiredItem);
 
@@ -138,16 +107,11 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('deleteMemoryItem', () => {
     it('should delete a specific item', async () => {
-      const item: MemoryItem = {
+      const item = createMockMemoryItem({
         id: 'delete-test-1',
-        tier: 'core',
-        locale: 'en-US',
         content: 'To be deleted',
         content_hash: 'delete-hash',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('core', item);
 
@@ -163,27 +127,9 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('clearMemoryTier', () => {
     it('should clear all items from a tier', async () => {
-      const items: MemoryItem[] = [
-        {
-          id: 'clear-1',
-          tier: 'core',
-          locale: 'en-US',
-          content: 'Content 1',
-          content_hash: 'hash1',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
-        {
-          id: 'clear-2',
-          tier: 'core',
-          locale: 'en-US',
-          content: 'Content 2',
-          content_hash: 'hash2',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
+      const items = [
+        createMockMemoryItem({ id: 'clear-1', content: 'Content 1', content_hash: 'hash1' }),
+        createMockMemoryItem({ id: 'clear-2', content: 'Content 2', content_hash: 'hash2' }),
       ];
 
       for (const item of items) {
