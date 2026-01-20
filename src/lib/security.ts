@@ -78,7 +78,7 @@ export function isValidRedirectUrl(url: string): boolean {
 export function detectSuspiciousActivity(): boolean {
   const failedAttempts = sessionStorage.getItem('failed_auth_attempts');
   const count = failedAttempts ? parseInt(failedAttempts, 10) : 0;
-  
+
   if (count > 5) {
     logSecurityEvent('suspicious_activity', {
       type: 'excessive_failed_attempts',
@@ -86,7 +86,7 @@ export function detectSuspiciousActivity(): boolean {
     });
     return true;
   }
-  
+
   return false;
 }
 
@@ -97,7 +97,7 @@ export function recordFailedAuthAttempt(): void {
   const current = sessionStorage.getItem('failed_auth_attempts');
   const count = current ? parseInt(current, 10) + 1 : 1;
   sessionStorage.setItem('failed_auth_attempts', count.toString());
-  
+
   if (count > 5) {
     logSecurityEvent('auth_failed', { consecutiveFailures: count });
   }
@@ -128,26 +128,26 @@ export interface LockoutStatus {
 export function checkAccountLockout(identifier: string): LockoutStatus {
   const key = `lockout_${identifier}`;
   const lockoutData = localStorage.getItem(key);
-  
+
   if (!lockoutData) {
     return { isLocked: false, attemptsRemaining: MAX_ATTEMPTS };
   }
-  
+
   const { timestamp, attempts } = JSON.parse(lockoutData);
   const now = Date.now();
-  
+
   // Check if lockout period has expired
   if (now - timestamp > LOCKOUT_DURATION) {
     localStorage.removeItem(key);
     return { isLocked: false, attemptsRemaining: MAX_ATTEMPTS };
   }
-  
+
   const remainingTime = LOCKOUT_DURATION - (now - timestamp);
-  
+
   if (attempts >= MAX_ATTEMPTS) {
     return { isLocked: true, remainingTime };
   }
-  
+
   return { isLocked: false, attemptsRemaining: MAX_ATTEMPTS - attempts };
 }
 
@@ -156,24 +156,24 @@ export function checkAccountLockout(identifier: string): LockoutStatus {
  */
 export function recordLoginAttempt(identifier: string, success: boolean): void {
   const key = `lockout_${identifier}`;
-  
+
   if (success) {
     localStorage.removeItem(key);
     clearFailedAuthAttempts();
     return;
   }
-  
+
   const lockoutData = localStorage.getItem(key);
   const now = Date.now();
-  
+
   if (!lockoutData) {
     localStorage.setItem(key, JSON.stringify({ timestamp: now, attempts: 1 }));
     recordFailedAuthAttempt();
     return;
   }
-  
+
   const { timestamp, attempts } = JSON.parse(lockoutData);
-  
+
   // Reset if outside lockout window
   if (now - timestamp > LOCKOUT_DURATION) {
     localStorage.setItem(key, JSON.stringify({ timestamp: now, attempts: 1 }));
@@ -183,7 +183,7 @@ export function recordLoginAttempt(identifier: string, success: boolean): void {
       JSON.stringify({ timestamp, attempts: attempts + 1 })
     );
   }
-  
+
   recordFailedAuthAttempt();
 }
 
@@ -197,7 +197,7 @@ export async function generateRequestSignature(
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
   const messageData = encoder.encode(data);
-  
+
   const key = await crypto.subtle.importKey(
     'raw',
     keyData,
@@ -205,7 +205,7 @@ export async function generateRequestSignature(
     false,
     ['sign']
   );
-  
+
   const signature = await crypto.subtle.sign('HMAC', key, messageData);
   return Array.from(new Uint8Array(signature))
     .map(b => b.toString(16).padStart(2, '0'))
@@ -314,7 +314,7 @@ export async function deriveKeyFromPassphrase(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as unknown as BufferSource,
       iterations,
       hash: 'SHA-256',
     },
@@ -367,7 +367,7 @@ export async function encryptMemory(
   combined.set(new Uint8Array(ciphertext), iv.length);
 
   // Return base64-encoded
-  return btoa(String.fromCharCode(...combined));
+  return btoa(String.fromCodePoint(...combined));
 }
 
 /**
@@ -381,7 +381,7 @@ export async function decryptMemory(
   key: CryptoKey
 ): Promise<string> {
   // Decode base64
-  const combined = Uint8Array.from(atob(ciphertext), (c) => c.charCodeAt(0));
+  const combined = Uint8Array.from(atob(ciphertext), (c) => c.codePointAt(0)!);
 
   // Extract IV (first 12 bytes) and ciphertext
   const iv = combined.slice(0, 12);

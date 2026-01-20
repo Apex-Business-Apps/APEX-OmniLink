@@ -10,10 +10,10 @@
  */
 
 import { assertGuardRails } from './guard-rails';
-import { ChaosEngine, type ChaosConfig, DEFAULT_CHAOS_CONFIG } from './chaos-engine';
+import { ChaosEngine, type ChaosConfig, type ChaosStats, type ChaosDecision, DEFAULT_CHAOS_CONFIG } from './chaos-engine';
 import { getCircuitBreaker, type CircuitBreakerConfig, getAllCircuitStats } from './circuit-breaker';
 import { executeEventIdempotently, clearAllReceipts, getStats as getIdempotencyStats } from './idempotency';
-import { MetricsCollector } from './metrics';
+import { MetricsCollector, type Scorecard } from './metrics';
 import type { EventEnvelope, AppName, EventType } from './contracts';
 import { createEvent, type CallCompletedPayload } from './contracts';
 
@@ -95,8 +95,8 @@ export interface SimulationResult {
   completedAt: Date;
   durationMs: number;
   beats: BeatResult[];
-  scorecard: unknown; // From metrics.ts
-  chaosStats: unknown;
+  scorecard: Scorecard;
+  chaosStats: ChaosStats;
   idempotencyStats: unknown;
   circuitStats: Record<string, unknown>;
   logs: string[];
@@ -243,7 +243,7 @@ export class SimulationRunner {
 
     // Make chaos decision ONCE (outside retry loop)
     // Retries should NOT get new chaos injections
-    const chaosDecision = this.chaos.decide(event, beat.number);
+    const chaosDecision: ChaosDecision = this.chaos.decide(event, beat.number);
 
     // Retry loop
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -251,7 +251,7 @@ export class SimulationRunner {
 
         // Execute with idempotency
         // Only apply chaos on first attempt - retries should be clean
-        const { wasCached: cached, attemptCount } = await executeEventIdempotently(
+        const { wasCached: cached } = await executeEventIdempotently(
           event,
           async (evt) => {
             return await this.executeEvent(evt, beat, chaosDecision, attempt);
@@ -332,7 +332,7 @@ export class SimulationRunner {
   private async executeEvent(
     event: EventEnvelope,
     beat: Beat,
-    chaosDecision: unknown,
+    chaosDecision: ChaosDecision,
     attempt: number = 0
   ): Promise<unknown> {
     // Get circuit breaker for target app

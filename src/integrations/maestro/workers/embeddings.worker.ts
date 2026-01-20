@@ -27,7 +27,7 @@ type EmbeddingsResponse = {
   dimensions: number;
 };
 
-type WorkerResponse = EmbeddingsResponse | HealthCheckResponse | ErrorResponse;
+type _WorkerResponse = EmbeddingsResponse | HealthCheckResponse | ErrorResponse;
 
 /**
  * Embeddings pipeline (lazy-loaded)

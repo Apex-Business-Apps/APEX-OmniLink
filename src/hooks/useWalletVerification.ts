@@ -40,12 +40,12 @@ export function useWalletVerification() {
         isVerified: false,
       });
     }
-  }, [address, isConnected]);
+  }, [address, isConnected, checkVerificationStatus]);
 
   /**
    * Check if wallet is already verified
    */
-  const checkVerificationStatus = async (walletAddress: string) => {
+  const checkVerificationStatus = useCallback(async (walletAddress: string) => {
     const resolvedChainId = chainId ?? 1;
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -109,12 +109,12 @@ export function useWalletVerification() {
         isVerified: false,
       });
     }
-  };
+  }, [chainId]);
 
   /**
    * Request nonce from backend
    */
-  const requestNonce = async (walletAddress: string): Promise<NonceResponse> => {
+  const requestNonce = useCallback(async (walletAddress: string): Promise<NonceResponse> => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const resolvedChainId = chainId ?? 1;
     const response = await fetch(`${supabaseUrl}/functions/v1/web3-nonce`, {
@@ -136,12 +136,12 @@ export function useWalletVerification() {
     }
 
     return response.json();
-  };
+  }, [chainId]);
 
   /**
    * Verify signed message on backend
    */
-  const verifySignature = async (
+  const verifySignature = useCallback(async (
     walletAddress: string,
     signature: string,
     message: string
@@ -173,7 +173,7 @@ export function useWalletVerification() {
     }
 
     return response.json();
-  };
+  }, [chainId]);
 
   /**
    * Main verification flow
@@ -235,7 +235,7 @@ export function useWalletVerification() {
         isVerified: false,
       }));
     }
-  }, [address, isConnected, chainId, signMessageAsync]);
+  }, [address, isConnected, chainId, signMessageAsync, requestNonce, verifySignature]);
 
   /**
    * Disconnect wallet

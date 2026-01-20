@@ -5,7 +5,7 @@
  * Tests run in Node.js environment, so they mock Worker APIs.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   detectInferenceCapabilities,
   createInferenceBudget,

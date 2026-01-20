@@ -35,12 +35,7 @@ export interface ExecutionResult {
  */
 export class MaestroExecutionAdapter {
 
-    constructor(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        syncUrl: string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        manModeUrl?: string
-    ) {
+    constructor() {
         // Phase 6 placeholder
     }
 
@@ -99,11 +94,8 @@ export function getMaestroExecutionAdapter(): MaestroExecutionAdapter | null {
  * Initialize MAESTRO execution adapter
  * Should be called during app startup if MAESTRO is enabled
  */
-export async function initializeMaestroExecutionAdapter(
-    syncUrl: string,
-    manModeUrl?: string
-): Promise<void> {
-    globalAdapter = new MaestroExecutionAdapter(syncUrl, manModeUrl);
+export async function initializeMaestroExecutionAdapter(): Promise<void> {
+    globalAdapter = new MaestroExecutionAdapter();
     console.warn('[MAESTRO] ExecutionAdapter initialized successfully');
 }
 

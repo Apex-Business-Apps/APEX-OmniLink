@@ -1,9 +1,14 @@
 declare module '@xenova/transformers' {
-    export const pipeline: any;
+    export function pipeline(
+        task: string,
+        model?: string,
+        options?: Record<string, unknown>
+    ): Promise<unknown>;
+
     export const env: {
         allowLocalModels: boolean;
         useBrowserCache: boolean;
         allowRemoteModels: boolean;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }

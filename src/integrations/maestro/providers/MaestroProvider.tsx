@@ -5,6 +5,7 @@
  * Provides memory, grounding, and execution capabilities.
  */
 
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { isMaestroEnabled, getMaestroConfig, type MaestroConfig } from '../config';
 import { initMaestroDb, checkIndexedDbHealth } from '../stores/indexeddb';
@@ -101,13 +102,14 @@ export function MaestroProvider({ children, config: configOverride }: MaestroPro
     initialize();
   }, [enabled, config.debug]);
 
-  const contextValue: MaestroContextValue = {
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const contextValue: MaestroContextValue = React.useMemo(() => ({
     enabled,
     config,
     initialized,
     health,
     error,
-  };
+  }), [enabled, initialized, health, error, JSON.stringify(config)]);
 
   return <MaestroContext.Provider value={contextValue}>{children}</MaestroContext.Provider>;
 }

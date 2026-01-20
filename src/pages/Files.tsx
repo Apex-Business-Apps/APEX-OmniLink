@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, Download, Trash2, FileIcon } from 'lucide-react';
@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const Files = () => {
   const [uid, setUid] = useState<string>("");
-  const [items, setItems] = useState<unknown[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [items, setItems] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -21,7 +22,7 @@ const Files = () => {
     });
   }, []);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     if (!uid) return;
     try {
       const { data, error } = await listUserFiles(uid);
@@ -35,11 +36,11 @@ const Files = () => {
         variant: "destructive"
       });
     }
-  }
+  }, [uid, toast]);
 
   useEffect(() => {
     if (uid) refresh();
-  }, [uid]);
+  }, [uid, refresh]);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -49,7 +50,7 @@ const Files = () => {
     try {
       const { path, token } = await getUploadToken(f.name, f.type, f.size);
       const { error } = await uploadWithToken(path, token, f);
-      
+
       if (error) throw error;
 
       toast({
@@ -63,7 +64,7 @@ const Files = () => {
       // Error logged via toast
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload file",
+        description: (error as Error).message || "Failed to upload file",
         variant: "destructive"
       });
     } finally {
@@ -75,7 +76,7 @@ const Files = () => {
     try {
       const path = `${uid}/${name}`;
       const { data, error } = await createDownloadUrl(path, 60);
-      
+
       if (error) throw error;
       if (data?.signedUrl) {
         window.open(data.signedUrl, "_blank");
@@ -84,7 +85,7 @@ const Files = () => {
       // Error logged via toast
       toast({
         title: "Download failed",
-        description: error.message || "Failed to download file",
+        description: (error as Error).message || "Failed to download file",
         variant: "destructive"
       });
     }
@@ -96,7 +97,7 @@ const Files = () => {
     try {
       const path = `${uid}/${name}`;
       const { error } = await deleteFile(path);
-      
+
       if (error) throw error;
 
       toast({
@@ -109,7 +110,7 @@ const Files = () => {
       // Error logged via toast
       toast({
         title: "Delete failed",
-        description: error.message || "Failed to delete file",
+        description: (error as Error).message || "Failed to delete file",
         variant: "destructive"
       });
     }

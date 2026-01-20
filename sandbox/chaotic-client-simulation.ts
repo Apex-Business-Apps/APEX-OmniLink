@@ -334,7 +334,7 @@ class ChaoticClientSimulator {
       }
 
       return await response.json();
-    } catch (_error) {
+    } catch {
       console.warn('⚠️  Agent API call failed, falling back to mock');
       return this.mockAgentResponse(message);
     }
@@ -365,10 +365,10 @@ class ChaoticClientSimulator {
       safe: !hasTrigger,
       guardianResult: hasTrigger
         ? {
-            safe: false,
-            reason: 'Message contains potential security bypass language',
-            violations: ['admin_access', 'bypass_controls'],
-          }
+          safe: false,
+          reason: 'Message contains potential security bypass language',
+          violations: ['admin_access', 'bypass_controls'],
+        }
         : { safe: true },
     };
   }

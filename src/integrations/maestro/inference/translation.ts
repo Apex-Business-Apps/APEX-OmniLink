@@ -193,7 +193,7 @@ export async function translateWithVerification(
       passed,
       translation_status: passed ? 'SUCCESS' : 'FAILED',
     };
-  } catch (error) {
+  } catch (_error) {
     // Translation failed (timeout, error, etc.)
     return {
       original_text: text,

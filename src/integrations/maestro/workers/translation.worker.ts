@@ -32,7 +32,7 @@ type TranslateResponse = {
   };
 };
 
-type WorkerResponse = TranslateResponse | HealthCheckResponse | ErrorResponse;
+type _WorkerResponse = TranslateResponse | HealthCheckResponse | ErrorResponse;
 
 /**
  * Translation pipeline (lazy-loaded)
