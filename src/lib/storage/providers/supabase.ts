@@ -52,7 +52,7 @@ export class SupabaseStorage implements IStorage {
     options?: { public?: boolean }
   ): Promise<StorageResult<boolean>> {
     try {
-      const { data, error } = await this.client.storage.createBucket(name, {
+      const { data: _data, error } = await this.client.storage.createBucket(name, {
         public: options?.public || false,
         fileSizeLimit: 52428800, // 50MB default
       })
@@ -72,7 +72,7 @@ export class SupabaseStorage implements IStorage {
 
   async deleteBucket(name: string): Promise<StorageResult<boolean>> {
     try {
-      const { data, error } = await this.client.storage.deleteBucket(name)
+      const { data: _data, error } = await this.client.storage.deleteBucket(name)
 
       if (error) {
         return { data: null, error: new Error(error.message) }
@@ -144,7 +144,7 @@ export class SupabaseStorage implements IStorage {
   async download(
     bucket: string,
     path: string,
-    options?: DownloadOptions
+    _options?: DownloadOptions
   ): Promise<StorageResult<Blob>> {
     try {
       // Supabase Storage doesn't support transformations in download
@@ -379,7 +379,7 @@ export class SupabaseStorage implements IStorage {
         sourcePath
       )
 
-      const { data: url, error: uploadError } = await this.upload(
+      const { data: _url, error: uploadError } = await this.upload(
         destBucket,
         destPath,
         blob,
@@ -515,15 +515,15 @@ export class SupabaseStorage implements IStorage {
       return {
         url: null,
         error: err instanceof Error ? err : new Error(String(err)),
-        abort: () => {},
+        abort: () => { },
       }
     }
   }
 
   async createPresignedPost(
-    bucket: string,
-    path: string,
-    options?: UploadOptions & { expiresIn?: number }
+    _bucket: string,
+    _path: string,
+    _options?: UploadOptions & { expiresIn?: number }
   ): Promise<
     StorageResult<{
       url: string

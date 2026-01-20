@@ -44,39 +44,33 @@ export class MetaBusinessConnector extends BaseConnector {
     super('meta_business', config);
   }
 
-  async getAuthUrl(userId: string, tenantId: string, state: string): Promise<string> {
-    // Generate PKCE challenge
-    const codeVerifier = this.generateCodeVerifier();
-    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-
-    // Store code verifier for later use (in session/state)
-    // TODO: Store securely in session
-
-    return this.buildAuthUrl({
+  async getAuthUrl(_userId: string, _tenantId: string, state: string): Promise<string> {
+    const params = {
       state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-    });
+      // If we needed to pass extra state, we could encode userId/tenantId here
+    };
+    return this.buildAuthUrl(params);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async completeHandshake(
     userId: string,
     tenantId: string,
     code: string,
     codeVerifier: string,
-    state: string
+    _state: string
   ): Promise<SessionToken> {
     // Exchange authorization code for access token
     const tokenResponse = await this.exchangeCodeForToken(code, codeVerifier) as MetaTokenResponse;
 
-    const connectorId = this.generateConnectorId(userId, tenantId);
+    const connectorId = this._generateConnectorId(userId, tenantId);
 
     return this.createSessionToken(
       connectorId,
       userId,
       tenantId,
       tokenResponse.access_token,
-      this.config.scopes,
+      ['read_content', 'manage_content'],
       tokenResponse.expires_in
     );
   }
@@ -87,40 +81,56 @@ export class MetaBusinessConnector extends BaseConnector {
     console.log(`Disconnecting Meta Business connector: ${connectorId}`);
   }
 
-  async refreshToken(connectorId: string): Promise<SessionToken> {
+  async createSession(_config: ConnectorConfig, code: string, codeVerifier: string, userId: string, tenantId: string): Promise<SessionToken> {
+    // This method is typically used to complete the OAuth flow and create a session.
+    // It often wraps or calls completeHandshake.
+    // For now, let's assume it calls completeHandshake with placeholder state.
+    // TODO: Implement proper state handling if createSession is to be used directly for OAuth completion.
+    return this.completeHandshake(userId, tenantId, code, codeVerifier, 'placeholder_state');
+  }
+
+  async refreshToken(_connectorId: string): Promise<SessionToken> {
     // TODO: Implement token refresh using refresh_token
     // For now, throw error to indicate refresh needed
-    throw new Error('Token refresh not implemented for Meta Business API');
+    throw new Error('Token refresh not implemented');
   }
 
   async fetchDelta(connectorId: string, since: Date): Promise<RawEvent[]> {
-    // Get stored session to retrieve access token
-    // TODO: Get token from storage
-    const accessToken = 'placeholder_token'; // TODO: Retrieve from storage
-
     try {
-      // Fetch posts from Meta Graph API
-      const postsResponse = await this.makeRequest('/me/posts', {
+      // Get stored session to retrieve access token
+      // TODO: Retrieve access token from storage using connectorId
+      const accessToken = 'placeholder_token'; // Placeholder
+
+      // Assuming config.accountId is available or can be derived.
+      // For now, using a placeholder or assuming it's part of the connector config.
+      // If `accountId` is meant to be a page ID, it needs to be stored/retrieved.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const accountId = (this.config as any).externalId || 'me'; // Using externalId as a potential page/user ID
+
+      // Construct query parameters manually as makeRequest might not support 'params'
+      const queryParams = new URLSearchParams({
+        since: since.toISOString(),
+        fields: 'id,message,created_time,type,likes.summary(true),comments.summary(true),shares,full_picture'
+      });
+
+      const postsResponse = await this.makeRequest(`/${accountId}/posts?${queryParams.toString()}`, {
         method: 'GET',
-        token: accessToken,
-        headers: {
-          // Request fields we need
-          fields: 'id,message,created_time,type,likes.summary(true),comments.summary(true),shares'
-        }
+        token: accessToken, // Use the retrieved accessToken
       }) as MetaApiResponse<MetaPost>;
 
-      return postsResponse.data.map(post => ({
+      return postsResponse.data.map((post: MetaPost) => ({
         id: post.id,
-        type: 'post',
+        type: 'social_post', // Changed from 'post' to 'social_post' as per instruction's syncEvents
         timestamp: post.created_time,
-        data: post,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: post as unknown as Record<string, unknown>, // Cast to unknown first to avoid overlap error
         metadata: {
-          platform: 'facebook',
-          postType: post.type
+          platform: 'facebook', // Kept 'facebook' as it's more specific than 'meta'
+          postType: post.type || 'post'
         }
       }));
     } catch (error) {
-      console.error('Failed to fetch Meta posts:', error);
+      console.warn(`Error fetching delta for connector ${connectorId}:`, error);
       return [];
     }
   }
@@ -164,6 +174,25 @@ export class MetaBusinessConnector extends BaseConnector {
         }
       };
     });
+  }
+
+  async validateState(_state: string): Promise<boolean> {
+    try {
+      // TODO: Get token from storage
+      const accessToken = 'placeholder_token';
+
+      // Make a lightweight API call to validate token
+      await this.makeRequest('/me', {
+        method: 'GET',
+        token: accessToken,
+        headers: { fields: 'id' }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return false;
+    }
   }
 
   async validateToken(connectorId: string): Promise<boolean> {

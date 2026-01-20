@@ -41,10 +41,9 @@ export async function semanticSearch(
     topK = 10,
     minSimilarity = 0.5,
     budget = createInferenceBudget(),
-  } = options || {};
+  } = options ?? {};
 
   const traceId = crypto.randomUUID();
-  const startTime = Date.now();
 
   try {
     // Step 1: Generate query embedding
@@ -245,7 +244,7 @@ export async function hybridSearch(
   // Add keyword scores
   keywordMatches.forEach((item) => {
     const existing = combinedScores.get(item.id);
-    const keywordScore = 1.0; // Binary: match or no match
+    const keywordScore = 1; // Binary: match or no match
     const weighted = keywordScore * keywordWeight;
 
     if (existing) {

@@ -30,7 +30,7 @@ export abstract class BaseConnector implements Connector {
   abstract normalizeToCanonical(rawEvents: RawEvent[]): Promise<CanonicalEvent[]>;
   abstract validateToken(connectorId: string): Promise<boolean>;
 
-  protected generateConnectorId(userId: string, tenantId: string): string {
+  protected _generateConnectorId(userId: string, tenantId: string): string {
     const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
     return `${this.provider}_${userId}_${tenantId}_${uuid.substring(0, 8)}`;
   }

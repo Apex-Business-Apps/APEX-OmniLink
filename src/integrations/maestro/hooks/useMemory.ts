@@ -106,6 +106,9 @@ export function useMemory(): UseMemoryReturn {
     [enabled, initialized]
   );
 
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  /* const _computeContentHash removed */
+
   const get = useCallback(
     async (tier: MemoryTier, id: string) => {
       if (!enabled || !initialized) {

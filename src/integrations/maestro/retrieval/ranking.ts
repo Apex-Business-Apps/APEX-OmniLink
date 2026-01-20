@@ -11,7 +11,7 @@ import type { MemoryItem, MemoryTier } from '../types';
  * Tier priority weights (higher = more important)
  */
 const TIER_WEIGHTS: Record<MemoryTier, number> = {
-  core: 1.0, // Highest priority (stable facts)
+  core: 1, // Highest priority (stable facts)
   semantic: 0.9, // High priority (derived knowledge)
   procedural: 0.8, // Medium-high (versioned recipes)
   episodic: 0.7, // Medium (event history)
@@ -90,7 +90,7 @@ export function computeProvenanceScore(
   provenanceRefs: string[],
   maxProvenance: number = 10
 ): number {
-  return Math.min(provenanceRefs.length / maxProvenance, 1.0);
+  return Math.min(provenanceRefs.length / maxProvenance, 1);
 }
 
 /**

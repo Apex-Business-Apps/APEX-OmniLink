@@ -12,7 +12,6 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useWalletVerification } from '@/hooks/useWalletVerification';
@@ -44,41 +43,41 @@ export function NFTGatedContent({ config, children, fallback }: NFTGatedContentP
   const [cacheHit, setCacheHit] = useState(false);
 
   useEffect(() => {
-    checkAccess();
-  }, [walletState.address, walletState.isVerified]);
-
-  const checkAccess = async () => {
-    if (!walletState.isVerified || !walletState.address) {
-      setHasAccess(false);
-      setIsChecking(false);
-      return;
-    }
-
-    setIsChecking(true);
-    setError(null);
-
-    try {
-      const result = await checkEntitlement({
-        walletAddress: walletState.address as `0x${string}`,
-        chainId: config.chainId,
-        contractAddress: config.contractAddress as `0x${string}`,
-        entitlementKey: config.entitlementKey,
-      });
-
-      setHasAccess(result.hasEntitlement);
-      setCacheHit(result.cacheHit || false);
-
-      if (!result.hasEntitlement && result.error) {
-        setError(result.error);
+    const checkAccess = async () => {
+      if (!walletState.isVerified || !walletState.address) {
+        setHasAccess(false);
+        setIsChecking(false);
+        return;
       }
-    } catch (err) {
-      console.error('Entitlement check error:', err);
-      setError((err as Error).message);
-      setHasAccess(false);
-    } finally {
-      setIsChecking(false);
-    }
-  };
+
+      setIsChecking(true);
+      setError(null);
+
+      try {
+        const result = await checkEntitlement({
+          walletAddress: walletState.address as `0x${string}`,
+          chainId: config.chainId,
+          contractAddress: config.contractAddress as `0x${string}`,
+          entitlementKey: config.entitlementKey,
+        });
+
+        setHasAccess(result.hasEntitlement);
+        setCacheHit(result.cacheHit || false);
+
+        if (!result.hasEntitlement && result.error) {
+          setError(result.error);
+        }
+      } catch (err) {
+        console.error('Entitlement check error:', err);
+        setError((err as Error).message);
+        setHasAccess(false);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkAccess();
+  }, [walletState.address, walletState.isVerified, config]);
 
   // Not connected state
   if (!walletState.isVerified) {

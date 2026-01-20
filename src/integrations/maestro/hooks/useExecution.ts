@@ -32,7 +32,7 @@ export function useExecution(): UseExecutionReturn {
   const { enabled, initialized } = useMaestroContext();
 
   const submitIntent = useCallback(
-    async (intent: ExecutionIntent) => {
+    async (_intent: ExecutionIntent) => {
       if (!enabled || !initialized) {
         throw new Error('MAESTRO not enabled or not initialized');
       }
@@ -47,7 +47,7 @@ export function useExecution(): UseExecutionReturn {
     [enabled, initialized]
   );
 
-  const isActionAllowed = useCallback((action: string) => {
+  const isActionAllowed = useCallback((_action: string) => {
     // Phase 1: Stub implementation
     // TODO Phase 5: Check against allowlist
     return false;

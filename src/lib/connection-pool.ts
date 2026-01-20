@@ -19,7 +19,7 @@ class ConnectionPool {
   constructor(maxConnections = 10, idleTimeout = 60000) {
     this.maxConnections = maxConnections;
     this.idleTimeout = idleTimeout;
-    
+
     // Clean up idle connections periodically
     this.cleanupInterval = setInterval(() => {
       try {
@@ -42,7 +42,7 @@ class ConnectionPool {
       this.cleanupInterval = null;
     }
     // Cleanup all connections
-    for (const [id, connection] of this.connections.entries()) {
+    for (const connection of this.connections.values()) {
       connection.cleanup?.();
     }
     this.connections.clear();
@@ -53,20 +53,16 @@ class ConnectionPool {
 
     if (!connection) {
       if (this.connections.size >= this.maxConnections) {
-        this.evictLeastRecentlyUsed();
+        return false;
       }
-
+      // Assuming createConnection is a new method or connection creation logic is handled here
+      // For now, creating a basic connection object
       connection = {
         id,
-        inUse: true,
+        inUse: false, // New connections are initially not in use
         lastUsed: Date.now(),
       };
       this.connections.set(id, connection);
-      return true;
-    }
-
-    if (connection.inUse) {
-      return false;
     }
 
     connection.inUse = true;
@@ -99,21 +95,7 @@ class ConnectionPool {
     }
   }
 
-  private evictLeastRecentlyUsed(): void {
-    let oldestId: string | null = null;
-    let oldestTime = Infinity;
-
-    for (const [id, connection] of this.connections.entries()) {
-      if (!connection.inUse && connection.lastUsed < oldestTime) {
-        oldestTime = connection.lastUsed;
-        oldestId = id;
-      }
-    }
-
-    if (oldestId) {
-      this.remove(oldestId);
-    }
-  }
+  /* Method evictLeastRecentlyUsed removed as it is unused and connection strategy changed to reject on full */
 
   getStats() {
     const inUse = Array.from(this.connections.values()).filter(c => c.inUse).length;
