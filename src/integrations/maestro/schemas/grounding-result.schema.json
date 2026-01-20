@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://apexbusiness-systems.com/schemas/maestro/grounding-result.json",
   "title": "Grounding Result",
   "description": "Memory retrieval result with similarity scores",

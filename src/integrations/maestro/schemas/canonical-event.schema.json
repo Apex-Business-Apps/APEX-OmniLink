@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://apexbusiness-systems.com/schemas/maestro/canonical-event.json",
   "title": "Canonical Event",
   "description": "Stable envelope for all MAESTRO events with locale tagging and E2EE support",
