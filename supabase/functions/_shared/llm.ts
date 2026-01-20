@@ -176,7 +176,7 @@ export async function callLLMJson<T = unknown>(
   try {
     const data = JSON.parse(response.content) as T;
     return { data, usage: response.usage };
-  } catch (e) {
+  } catch {
     console.error('[LLM] Failed to parse JSON response:', response.content);
     throw new Error('LLM returned invalid JSON');
   }

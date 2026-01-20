@@ -12,7 +12,6 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useWalletVerification } from '@/hooks/useWalletVerification';
@@ -45,6 +44,7 @@ export function NFTGatedContent({ config, children, fallback }: NFTGatedContentP
 
   useEffect(() => {
     checkAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletState.address, walletState.isVerified]);
 
   const checkAccess = async () => {

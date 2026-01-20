@@ -16,7 +16,7 @@ const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const SKIP_REASON = 'Supabase not configured - skipping backend integration tests';
+const _SKIP_REASON = 'Supabase not configured - skipping backend integration tests';
 const shouldSkip = !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !SUPABASE_ANON_KEY;
 
 describe.skipIf(shouldSkip)('MAESTRO Backend Integration', () => {

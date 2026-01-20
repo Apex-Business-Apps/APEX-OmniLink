@@ -2,7 +2,6 @@ import { Outlet } from 'react-router-dom';
 import { AlertCircle, Activity, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAdminAccess, useOmniDashSettings } from '@/omnidash/hooks';
 import { useQuery } from '@tanstack/react-query';

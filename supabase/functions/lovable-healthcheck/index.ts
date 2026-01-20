@@ -1,4 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+// Supabase client import reserved for future use
+// import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { buildCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
 function getEnv(name: string): string | undefined {

@@ -71,7 +71,7 @@ serve(async (req) => {
   }
 });
 
-async function executeEmailAction(config: unknown, supabase: unknown) {
+async function executeEmailAction(config: unknown, _supabase: unknown) {
   const resendKey = Deno.env.get('RESEND_API_KEY');
   if (!resendKey) throw new Error('Email service not configured');
 

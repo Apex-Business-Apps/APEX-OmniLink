@@ -138,7 +138,7 @@ describe('Retry Logic', () => {
         schemaVersion: '1.0.0',
       };
 
-      const chaosDecision = engine.decide(event, 1);
+      const _chaosDecision = engine.decide(event, 1);
 
       // Chaos should be applied (first attempt)
       const shouldApplyChaos0 = 0 === 0;

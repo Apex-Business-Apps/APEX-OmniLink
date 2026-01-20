@@ -49,7 +49,7 @@ describe('device registry with Supabase backend', () => {
 
   it('syncs device registry on login', { timeout: 10000 }, async () => {
     // Import and get the sync function
-    const { syncOnLogin, listDevices, upsertDevice } = await importRegistry();
+    const { syncOnLogin: _syncOnLogin, listDevices, upsertDevice } = await importRegistry();
 
     // First upsert a device to have something in the registry
     await upsertDevice('user-1', 'device-1', { os: 'test' }, 'trusted');

@@ -179,7 +179,7 @@ serve(async (req) => {
     try {
       structuredResponse = JSON.parse(assistantMessage);
       console.log('APEX: Successfully parsed structured response');
-    } catch (e) {
+    } catch {
       console.log('APEX: Response not in JSON format, wrapping as plain text');
       // If not JSON, return as plain text
       structuredResponse = {

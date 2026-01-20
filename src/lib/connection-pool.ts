@@ -42,7 +42,7 @@ class ConnectionPool {
       this.cleanupInterval = null;
     }
     // Cleanup all connections
-    for (const [id, connection] of this.connections.entries()) {
+    for (const [_id, connection] of this.connections.entries()) {
       connection.cleanup?.();
     }
     this.connections.clear();

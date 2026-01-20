@@ -24,6 +24,7 @@ const Automations = () => {
 
   useEffect(() => {
     fetchAutomations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAutomations = async () => {
@@ -49,7 +50,7 @@ const Automations = () => {
   const executeAutomation = async (automationId: string) => {
     setExecuting(automationId);
     try {
-      const { data, error } = await supabase.functions.invoke('execute-automation', {
+      const { data: _data, error } = await supabase.functions.invoke('execute-automation', {
         body: { automationId },
       });
 

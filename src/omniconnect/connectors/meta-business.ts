@@ -64,7 +64,7 @@ export class MetaBusinessConnector extends BaseConnector {
     tenantId: string,
     code: string,
     codeVerifier: string,
-    state: string
+    _state: string
   ): Promise<SessionToken> {
     // Exchange authorization code for access token
     const tokenResponse = await this.exchangeCodeForToken(code, codeVerifier) as MetaTokenResponse;
@@ -87,13 +87,13 @@ export class MetaBusinessConnector extends BaseConnector {
     console.log(`Disconnecting Meta Business connector: ${connectorId}`);
   }
 
-  async refreshToken(connectorId: string): Promise<SessionToken> {
+  async refreshToken(_connectorId: string): Promise<SessionToken> {
     // TODO: Implement token refresh using refresh_token
     // For now, throw error to indicate refresh needed
     throw new Error('Token refresh not implemented for Meta Business API');
   }
 
-  async fetchDelta(connectorId: string, since: Date): Promise<RawEvent[]> {
+  async fetchDelta(_connectorId: string, _since: Date): Promise<RawEvent[]> {
     // Get stored session to retrieve access token
     // TODO: Get token from storage
     const accessToken = 'placeholder_token'; // TODO: Retrieve from storage
@@ -166,7 +166,7 @@ export class MetaBusinessConnector extends BaseConnector {
     });
   }
 
-  async validateToken(connectorId: string): Promise<boolean> {
+  async validateToken(_connectorId: string): Promise<boolean> {
     try {
       // TODO: Get token from storage
       const accessToken = 'placeholder_token';

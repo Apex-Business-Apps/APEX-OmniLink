@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { filename, mime, size } = await req.json();
+    const { filename, mime: _mime, size } = await req.json();
 
     if (!filename) {
       return new Response(JSON.stringify({ error: "Filename is required" }), {
