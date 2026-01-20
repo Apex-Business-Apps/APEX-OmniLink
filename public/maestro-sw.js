@@ -10,11 +10,28 @@ const MODELS_PATH = '/models';
 
 /**
  * Allowlisted model assets
- * Phase 2: Update with actual model URLs and integrity hashes
+ * Models are cached from CDN (transformers.js default)
  */
 const ALLOWLISTED_MODELS = [
-  // Format: { url: '/models/model-name.bin', hash: 'sha256-...' }
-  // TODO Phase 2: Add model URLs with integrity hashes
+  {
+    name: 'all-MiniLM-L6-v2',
+    description: 'Sentence embeddings (384-dim)',
+    provider: 'Xenova',
+    // Note: transformers.js handles CDN caching internally
+    cached: true,
+  },
+  {
+    name: 'nllb-200-distilled-600M',
+    description: 'Multilingual translation (200 languages)',
+    provider: 'Xenova',
+    cached: true,
+  },
+  {
+    name: 'distilbart-cnn-6-6',
+    description: 'Text summarization',
+    provider: 'Xenova',
+    cached: true,
+  },
 ];
 
 /**
