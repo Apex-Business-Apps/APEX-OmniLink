@@ -56,6 +56,7 @@ export function MaestroProvider({ children, config: configOverride }: MaestroPro
     async function initialize() {
       try {
         if (config.debug) {
+          // eslint-disable-next-line no-console
           console.log('[MAESTRO] Initializing...');
         }
 
@@ -83,6 +84,7 @@ export function MaestroProvider({ children, config: configOverride }: MaestroPro
         setInitialized(true);
 
         if (config.debug) {
+          // eslint-disable-next-line no-console
           console.log('[MAESTRO] Initialized successfully');
         }
       } catch (err) {
