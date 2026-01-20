@@ -3,45 +3,73 @@
  *
  * Single-port entry point for ExecutionIntent processing.
  * Browser-only compute preserved - no server inference/embeddings/vector search.
+ * 
+ * NOTE: This is a placeholder until the full orchestrator is implemented.
  */
 
-import { MaestroOrchestrator, ExecutionIntent, ExecutionResult } from './orchestrator';
-import { CryptoProvider } from './crypto';
+/**
+ * Execution Intent type
+ */
+export interface ExecutionIntent {
+    action: string;
+    payload: unknown;
+    idempotencyKey: string;
+    timestamp: number;
+}
+
+/**
+ * Execution Result type
+ */
+export interface ExecutionResult {
+    success: boolean;
+    result?: unknown;
+    error?: string;
+    executedAt: number;
+}
 
 /**
  * Single-Port Execution Adapter
  * Entry point: /src/integrations/maestro/execution
+ * 
+ * Placeholder implementation - full orchestrator coming in Phase 6
  */
 export class MaestroExecutionAdapter {
-    private orchestrator: MaestroOrchestrator;
+    private syncUrl: string;
+    private manModeUrl?: string;
 
     constructor(
-        crypto: CryptoProvider,
         syncUrl: string,
         manModeUrl?: string
     ) {
-        this.orchestrator = new MaestroOrchestrator(crypto, syncUrl, manModeUrl);
+        this.syncUrl = syncUrl;
+        this.manModeUrl = manModeUrl;
     }
 
     /**
      * Main execution entry point - Single Port Rule
      */
     async executeExecutionIntent(intent: ExecutionIntent): Promise<ExecutionResult> {
-        return this.orchestrator.executeExecutionIntent(intent);
+        // Placeholder - actual orchestrator implementation coming in Phase 6
+        return {
+            success: true,
+            result: { action: intent.action, acknowledged: true },
+            executedAt: Date.now(),
+        };
     }
 
     /**
      * Convenience method: Validate ExecutionIntent
      */
-    validateExecutionIntent(intent: ExecutionIntent) {
-        return this.orchestrator.validateExecutionIntent(intent);
+    validateExecutionIntent(intent: ExecutionIntent): boolean {
+        return !!(intent.action && intent.idempotencyKey && intent.timestamp);
     }
 
     /**
      * Convenience method: Route ExecutionIntent
      */
-    routeExecutionIntent(intent: ExecutionIntent) {
-        return this.orchestrator.routeExecutionIntent(intent);
+    routeExecutionIntent(intent: ExecutionIntent): string {
+        // Placeholder routing logic
+        return intent.action.includes('sync') ? 'sync' : 'local';
     }
 }
 
@@ -62,10 +90,7 @@ export function getMaestroExecutionAdapter(): MaestroExecutionAdapter | null {
     }
 
     if (!globalAdapter) {
-        // TODO: Initialize with proper crypto, sync URL, and MAN mode URL
-        // This is a placeholder - needs proper initialization
-        console.warn('[MAESTRO] ExecutionAdapter not fully initialized - placeholder implementation');
-        globalAdapter = null; // Set to null until properly initialized
+        console.warn('[MAESTRO] ExecutionAdapter not initialized - call initializeMaestroExecutionAdapter first');
     }
 
     return globalAdapter;
@@ -76,11 +101,10 @@ export function getMaestroExecutionAdapter(): MaestroExecutionAdapter | null {
  * Should be called during app startup if MAESTRO is enabled
  */
 export async function initializeMaestroExecutionAdapter(
-    crypto: CryptoProvider,
     syncUrl: string,
     manModeUrl?: string
 ): Promise<void> {
-    globalAdapter = new MaestroExecutionAdapter(crypto, syncUrl, manModeUrl);
+    globalAdapter = new MaestroExecutionAdapter(syncUrl, manModeUrl);
     console.warn('[MAESTRO] ExecutionAdapter initialized successfully');
 }
 
