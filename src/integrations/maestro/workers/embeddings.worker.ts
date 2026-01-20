@@ -7,12 +7,17 @@
  * Uses: Xenova/all-MiniLM-L6-v2 (384-dimensional embeddings)
  */
 
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline } from '@xenova/transformers';
+import {
+  configureTransformersEnv,
+  handleHealthCheck,
+  createErrorResponse,
+  signalWorkerReady,
+  type HealthCheckRequest,
+  type ErrorResponse,
+} from './worker-utils';
 
-// Configure transformers.js for browser environment
-env.allowLocalModels = false; // Only use remote models (CDN)
-env.useBrowserCache = true; // Cache models in browser
-env.allowRemoteModels = true;
+configureTransformersEnv();
 
 /**
  * Worker message types
@@ -27,11 +32,6 @@ type EmbeddingsRequest = {
   };
 };
 
-type HealthCheckRequest = {
-  type: 'health';
-  id: string;
-};
-
 type WorkerRequest = EmbeddingsRequest | HealthCheckRequest;
 
 type EmbeddingsResponse = {
@@ -42,22 +42,6 @@ type EmbeddingsResponse = {
   model: string;
   dimensions: number;
 };
-
-type HealthCheckResponse = {
-  type: 'health';
-  id: string;
-  status: 'ok' | 'error';
-  model_loaded: boolean;
-  error?: string;
-};
-
-type ErrorResponse = {
-  type: 'error';
-  id: string;
-  error: string;
-};
-
-type WorkerResponse = EmbeddingsResponse | HealthCheckResponse | ErrorResponse;
 
 /**
  * Embeddings pipeline (lazy-loaded)
@@ -72,25 +56,15 @@ async function initPipeline() {
   if (embeddingsPipeline) return embeddingsPipeline;
 
   try {
-    embeddingsPipeline = await pipeline(
-      'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2',
-      {
-        // Use WebGPU if available, fallback to WASM
-        device: 'webgpu',
-      }
-    );
+    embeddingsPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      device: 'webgpu',
+    });
     return embeddingsPipeline;
   } catch (error) {
-    // Fallback to WASM if WebGPU fails
     console.warn('[Embeddings Worker] WebGPU failed, falling back to WASM');
-    embeddingsPipeline = await pipeline(
-      'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2',
-      {
-        device: 'wasm',
-      }
-    );
+    embeddingsPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      device: 'wasm',
+    });
     return embeddingsPipeline;
   }
 }
@@ -104,17 +78,14 @@ async function generateEmbeddings(
 ): Promise<number[][]> {
   const pipe = await initPipeline();
 
-  // Generate embeddings
   const output = await pipe(texts, {
     pooling: options?.pooling || 'mean',
-    normalize: options?.normalize !== false, // Default: normalize
+    normalize: options?.normalize !== false,
   });
 
-  // Convert to array format
   const embeddings: number[][] = [];
   for (let i = 0; i < texts.length; i++) {
-    const embedding = Array.from(output[i].data);
-    embeddings.push(embedding);
+    embeddings.push(Array.from(output[i].data));
   }
 
   return embeddings;
@@ -128,60 +99,30 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const startTime = performance.now();
 
   try {
-    switch (request.type) {
-      case 'embeddings': {
-        const embeddings = await generateEmbeddings(request.texts, request.options);
-        const duration_ms = Math.round(performance.now() - startTime);
-
-        const response: EmbeddingsResponse = {
-          type: 'embeddings',
-          id: request.id,
-          embeddings,
-          duration_ms,
-          model: 'Xenova/all-MiniLM-L6-v2',
-          dimensions: embeddings[0]?.length || 384,
-        };
-
-        globalThis.postMessage(response);
-        break;
-      }
-
-      case 'health': {
-        try {
-          const modelLoaded = embeddingsPipeline !== null;
-          const response: HealthCheckResponse = {
-            type: 'health',
-            id: request.id,
-            status: 'ok',
-            model_loaded: modelLoaded,
-          };
-          globalThis.postMessage(response);
-        } catch (error) {
-          const response: HealthCheckResponse = {
-            type: 'health',
-            id: request.id,
-            status: 'error',
-            model_loaded: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          };
-          globalThis.postMessage(response);
-        }
-        break;
-      }
-
-      default:
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        throw new Error(`Unknown request type: ${(request as any).type}`);
+    if (request.type === 'health') {
+      globalThis.postMessage(handleHealthCheck(request, embeddingsPipeline !== null));
+      return;
     }
+
+    if (request.type === 'embeddings') {
+      const embeddings = await generateEmbeddings(request.texts, request.options);
+      const response: EmbeddingsResponse = {
+        type: 'embeddings',
+        id: request.id,
+        embeddings,
+        duration_ms: Math.round(performance.now() - startTime),
+        model: 'Xenova/all-MiniLM-L6-v2',
+        dimensions: embeddings[0]?.length || 384,
+      };
+      globalThis.postMessage(response);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    throw new Error(`Unknown request type: ${(request as any).type}`);
   } catch (error) {
-    const errorResponse: ErrorResponse = {
-      type: 'error',
-      id: request.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-    globalThis.postMessage(errorResponse);
+    globalThis.postMessage(createErrorResponse(request.id, error));
   }
 };
 
-// Signal worker is ready
-globalThis.postMessage({ type: 'ready' });
+signalWorkerReady();
