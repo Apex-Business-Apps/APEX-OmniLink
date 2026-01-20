@@ -26,8 +26,8 @@ const MaestroContext = createContext<MaestroContextValue | undefined>(undefined)
 /**
  * MAESTRO Provider Props
  */
-export interface MaestroProviderProps {
-  children: React.ReactNode;
+export interface MaestroProviderProps extends Readonly<{
+  children: React.ReactNode;}> {
   config?: Partial<MaestroConfig>;
 }
 

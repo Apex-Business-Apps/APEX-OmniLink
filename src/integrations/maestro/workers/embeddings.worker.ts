@@ -142,7 +142,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           dimensions: embeddings[0]?.length || 384,
         };
 
-        self.postMessage(response);
+        globalThis.postMessage(response);
         break;
       }
 
@@ -155,7 +155,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
             status: 'ok',
             model_loaded: modelLoaded,
           };
-          self.postMessage(response);
+          globalThis.postMessage(response);
         } catch (error) {
           const response: HealthCheckResponse = {
             type: 'health',
@@ -164,7 +164,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
             model_loaded: false,
             error: error instanceof Error ? error.message : 'Unknown error',
           };
-          self.postMessage(response);
+          globalThis.postMessage(response);
         }
         break;
       }
@@ -179,9 +179,9 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       id: request.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
-    self.postMessage(errorResponse);
+    globalThis.postMessage(errorResponse);
   }
 };
 
 // Signal worker is ready
-self.postMessage({ type: 'ready' });
+globalThis.postMessage({ type: 'ready' });
