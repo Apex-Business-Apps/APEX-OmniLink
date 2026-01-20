@@ -30,18 +30,6 @@ export function useWalletVerification() {
     isVerified: false,
   });
 
-  // Check if wallet is already verified on mount
-  useEffect(() => {
-    if (address && isConnected) {
-      checkVerificationStatus(address);
-    } else {
-      setWalletState({
-        status: 'disconnected',
-        isVerified: false,
-      });
-    }
-  }, [address, isConnected, checkVerificationStatus]);
-
   /**
    * Check if wallet is already verified
    */
@@ -54,8 +42,9 @@ export function useWalletVerification() {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase
-        .from('wallet_identities')
+        .from('wallet_identities' as any)
         .select('*')
         .eq('wallet_address', walletAddress.toLowerCase())
         .eq('chain_id', resolvedChainId)
@@ -75,16 +64,19 @@ export function useWalletVerification() {
 
       if (data) {
         // Update last_used_at
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await supabase
-          .from('wallet_identities')
+          .from('wallet_identities' as any)
           .update({ last_used_at: new Date().toISOString() })
-          .eq('id', data.id);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .eq('id', (data as any).id);
 
         setWalletState({
           status: 'verified',
           address: walletAddress,
           chainId: resolvedChainId,
-          walletIdentityId: data.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          walletIdentityId: (data as any).id,
           isVerified: true,
         });
 
@@ -110,6 +102,18 @@ export function useWalletVerification() {
       });
     }
   }, [chainId]);
+
+  // Check if wallet is already verified on mount
+  useEffect(() => {
+    if (address && isConnected) {
+      checkVerificationStatus(address);
+    } else {
+      setWalletState({
+        status: 'disconnected',
+        isVerified: false,
+      });
+    }
+  }, [address, isConnected, checkVerificationStatus]);
 
   /**
    * Request nonce from backend
@@ -223,9 +227,11 @@ export function useWalletVerification() {
       console.error('Verification error:', error);
 
       await logError(error as Error, {
-        wallet: address,
-        chainId,
         action: 'wallet_verification',
+        metadata: {
+          wallet: address,
+          chainId,
+        },
       });
 
       setWalletState((prev) => ({
