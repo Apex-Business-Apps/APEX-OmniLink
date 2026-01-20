@@ -186,7 +186,7 @@ describe('MAESTRO Retrieval Tests', () => {
       const v = [-3, 4];
       const normalized = normalizeVector(v);
       const length = Math.sqrt(normalized.reduce((sum, val) => sum + val * val, 0));
-      expect(length).toBeCloseTo(1.0);
+      expect(length).toBeCloseTo(1);
     });
   });
 

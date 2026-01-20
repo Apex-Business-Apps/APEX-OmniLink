@@ -58,10 +58,10 @@ const MEDIUM_RISK_PATTERNS: Array<{ name: string; pattern: RegExp; score: number
     pattern: /[A-Za-z0-9+/]{20,}={0,2}/,
     score: 60,
   },
-  // Hex encoded payloads - fixed duplicate character class
-  { name: 'hex_payload', pattern: /(?:0x[a-fA-F0-9]{16,}|\\x[a-fA-F0-9]{2}(?:\\x[a-fA-F0-9]{2}){7,})/i, score: 65 },
-  // Unicode escapes - fixed duplicate character class
-  { name: 'unicode_escape', pattern: /(?:\\u[0-9a-fA-F]{4}){4,}/i, score: 60 },
+  // Hex encoded payloads - case-insensitive flag handles case
+  { name: 'hex_payload', pattern: /(?:0x[a-f0-9]{16,}|\\x[a-f0-9]{2}(?:\\x[a-f0-9]{2}){7,})/i, score: 65 },
+  // Unicode escapes - case-insensitive flag handles case
+  { name: 'unicode_escape', pattern: /(?:\\u[0-9a-f]{4}){4,}/i, score: 60 },
 ];
 
 /**
@@ -128,9 +128,7 @@ function checkPatterns(
       result.patterns_matched.push(name);
       result.risk_score = Math.max(result.risk_score, score);
 
-      if (alwaysBlockHighScore && score >= 70) {
-        result.blocked = true;
-      } else if (result.risk_score >= threshold) {
+      if ((alwaysBlockHighScore && score >= 70) || result.risk_score >= threshold) {
         result.blocked = true;
       }
     }
@@ -227,8 +225,8 @@ export function sanitizeInput(input: string): string {
   // Remove eval patterns
   sanitized = sanitized.replaceAll(/\beval\s*\([^)]*\)/gi, '[REMOVED]');
 
-  // Normalize special characters (remove non-ASCII printable)
-  sanitized = sanitized.replaceAll(/[^\x20-\x7E\s]/g, '');
+  // Normalize special characters (remove non-ASCII printable, keep tabs/newlines)
+  sanitized = sanitized.replaceAll(/[^\t\n\r\x20-\x7E]/g, '');
 
   // Normalize whitespace
   sanitized = sanitized.replaceAll(/\s+/g, ' ').trim();

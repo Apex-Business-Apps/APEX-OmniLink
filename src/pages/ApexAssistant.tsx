@@ -30,7 +30,7 @@ const ApexAssistant = () => {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [_isSpeaking, setIsSpeaking] = useState(false);
+  const [, setIsSpeaking] = useState(false);
   const { toast } = useToast();
 
   const handleVoiceTranscript = (text: string, isFinal: boolean) => {

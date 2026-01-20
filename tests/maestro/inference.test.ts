@@ -7,8 +7,8 @@
 import { describe, it, expect } from 'vitest';
 
 // Mock inference functions
-function mockGenerateEmbedding(text: string | null | undefined): number[] {
-  // Handle null/undefined gracefully
+function mockGenerateEmbedding(text: string | null | undefined = ''): number[] {
+  // Handle null/undefined gracefully via default parameter
   const safeText = text ?? '';
   // Generate a deterministic mock embedding based on text length
   const embedding: number[] = [];
@@ -184,8 +184,8 @@ describe('MAESTRO Inference Tests', () => {
     });
 
     it('should handle empty batch', () => {
-      const texts: string[] = [];
-      const embeddings = texts.map((t) => mockGenerateEmbedding(t));
+      // Test empty array handling - intentionally testing edge case
+      const embeddings = [].map((t: string) => mockGenerateEmbedding(t));
       expect(embeddings).toHaveLength(0);
     });
 
