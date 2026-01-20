@@ -32,18 +32,27 @@ describe('MAESTRO IndexedDB', () => {
     }
   });
 
+  // Helper to create valid memory items for testing
+  function createTestItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
+    return {
+      id: 'test-item-' + Date.now(),
+      tier: 'core',
+      locale: 'en-US',
+      content: 'Test content',
+      content_hash: 'hash-' + Date.now(),
+      provenance_refs: [],
+      created_at: new Date().toISOString(),
+      key_version: 1,
+      ...overrides,
+    };
+  }
+
   describe('storeMemoryItem', () => {
     it('should store a memory item in core tier', async () => {
-      const item: MemoryItem = {
+      const item = createTestItem({
         id: 'test-1',
-        tier: 'core',
-        locale: 'en-US',
         content: 'Test content',
-        content_hash: 'abc123',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('core', item);
 
@@ -54,16 +63,11 @@ describe('MAESTRO IndexedDB', () => {
     });
 
     it('should add expires_at for working tier items', async () => {
-      const item: MemoryItem = {
+      const item = createTestItem({
         id: 'test-working-1',
         tier: 'working',
-        locale: 'en-US',
         content: 'Temporary content',
-        content_hash: 'def456',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('working', item);
 
@@ -76,26 +80,16 @@ describe('MAESTRO IndexedDB', () => {
   describe('getMemoryItemsByLocale', () => {
     it('should retrieve items by locale', async () => {
       const items: MemoryItem[] = [
-        {
+        createTestItem({
           id: 'en-1',
-          tier: 'core',
           locale: 'en-US',
           content: 'English content',
-          content_hash: 'hash1',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
-        {
+        }),
+        createTestItem({
           id: 'fr-1',
-          tier: 'core',
           locale: 'fr-FR',
           content: 'French content',
-          content_hash: 'hash2',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
+        }),
       ];
 
       for (const item of items) {
@@ -114,17 +108,11 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('compactMemoryTier', () => {
     it('should remove expired items from working tier', async () => {
-      const expiredItem: MemoryItem = {
+      const expiredItem = createTestItem({
         id: 'expired-1',
         tier: 'working',
-        locale: 'en-US',
-        content: 'Expired content',
-        content_hash: 'expired-hash',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() - 1000).toISOString(), // Already expired
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('working', expiredItem);
 
@@ -138,16 +126,10 @@ describe('MAESTRO IndexedDB', () => {
 
   describe('deleteMemoryItem', () => {
     it('should delete a specific item', async () => {
-      const item: MemoryItem = {
+      const item = createTestItem({
         id: 'delete-test-1',
-        tier: 'core',
-        locale: 'en-US',
         content: 'To be deleted',
-        content_hash: 'delete-hash',
-        provenance_refs: [],
-        created_at: new Date().toISOString(),
-        key_version: 1,
-      };
+      });
 
       await storeMemoryItem('core', item);
 
@@ -164,26 +146,8 @@ describe('MAESTRO IndexedDB', () => {
   describe('clearMemoryTier', () => {
     it('should clear all items from a tier', async () => {
       const items: MemoryItem[] = [
-        {
-          id: 'clear-1',
-          tier: 'core',
-          locale: 'en-US',
-          content: 'Content 1',
-          content_hash: 'hash1',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
-        {
-          id: 'clear-2',
-          tier: 'core',
-          locale: 'en-US',
-          content: 'Content 2',
-          content_hash: 'hash2',
-          provenance_refs: [],
-          created_at: new Date().toISOString(),
-          key_version: 1,
-        },
+        createTestItem({ id: 'clear-1' }),
+        createTestItem({ id: 'clear-2' }),
       ];
 
       for (const item of items) {

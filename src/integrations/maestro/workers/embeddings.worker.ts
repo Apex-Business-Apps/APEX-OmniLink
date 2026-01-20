@@ -1,18 +1,7 @@
-/**
- * MAESTRO Embeddings Worker
- *
- * Generates sentence embeddings using transformers.js in a Web Worker.
- * Runs off the UI thread for non-blocking inference.
- *
- * Uses: Xenova/all-MiniLM-L6-v2 (384-dimensional embeddings)
- */
-
-import { pipeline, env } from '@xenova/transformers';
+import { configureTransformersEnv, initPipelineWithFallback, HealthCheckRequest, HealthCheckResponse, ErrorResponse } from './shared';
 
 // Configure transformers.js for browser environment
-env.allowLocalModels = false; // Only use remote models (CDN)
-env.useBrowserCache = true; // Cache models in browser
-env.allowRemoteModels = true;
+configureTransformersEnv();
 
 /**
  * Worker message types
@@ -27,11 +16,6 @@ type EmbeddingsRequest = {
   };
 };
 
-type HealthCheckRequest = {
-  type: 'health';
-  id: string;
-};
-
 type WorkerRequest = EmbeddingsRequest | HealthCheckRequest;
 
 type EmbeddingsResponse = {
@@ -41,20 +25,6 @@ type EmbeddingsResponse = {
   duration_ms: number;
   model: string;
   dimensions: number;
-};
-
-type HealthCheckResponse = {
-  type: 'health';
-  id: string;
-  status: 'ok' | 'error';
-  model_loaded: boolean;
-  error?: string;
-};
-
-type ErrorResponse = {
-  type: 'error';
-  id: string;
-  error: string;
 };
 
 type WorkerResponse = EmbeddingsResponse | HealthCheckResponse | ErrorResponse;
@@ -71,28 +41,12 @@ let embeddingsPipeline: any = null;
 async function initPipeline() {
   if (embeddingsPipeline) return embeddingsPipeline;
 
-  try {
-    embeddingsPipeline = await pipeline(
-      'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2',
-      {
-        // Use WebGPU if available, fallback to WASM
-        device: 'webgpu',
-      }
-    );
-    return embeddingsPipeline;
-  } catch (error) {
-    // Fallback to WASM if WebGPU fails
-    console.warn('[Embeddings Worker] WebGPU failed, falling back to WASM');
-    embeddingsPipeline = await pipeline(
-      'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2',
-      {
-        device: 'wasm',
-      }
-    );
-    return embeddingsPipeline;
-  }
+  embeddingsPipeline = await initPipelineWithFallback(
+    'feature-extraction',
+    'Xenova/all-MiniLM-L6-v2',
+    'Embeddings Worker'
+  );
+  return embeddingsPipeline;
 }
 
 /**

@@ -1,18 +1,7 @@
-/**
- * MAESTRO Translation Worker
- *
- * Performs multilingual translation using transformers.js in a Web Worker.
- * Supports forward + back-translation for verification.
- *
- * Uses: Xenova/nllb-200-distilled-600M (200 languages)
- */
-
-import { pipeline, env } from '@xenova/transformers';
+import { configureTransformersEnv, initPipelineWithFallback, HealthCheckRequest, HealthCheckResponse, ErrorResponse } from './shared';
 
 // Configure transformers.js for browser environment
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-env.allowRemoteModels = true;
+configureTransformersEnv();
 
 /**
  * Worker message types
@@ -28,11 +17,6 @@ type TranslateRequest = {
   };
 };
 
-type HealthCheckRequest = {
-  type: 'health';
-  id: string;
-};
-
 type WorkerRequest = TranslateRequest | HealthCheckRequest;
 
 type TranslateResponse = {
@@ -43,20 +27,9 @@ type TranslateResponse = {
   model: string;
   src_lang: string;
   tgt_lang: string;
-};
-
-type HealthCheckResponse = {
-  type: 'health';
-  id: string;
-  status: 'ok' | 'error';
-  model_loaded: boolean;
-  error?: string;
-};
-
-type ErrorResponse = {
-  type: 'error';
-  id: string;
-  error: string;
+  options?: {
+    max_length?: number;
+  };
 };
 
 type WorkerResponse = TranslateResponse | HealthCheckResponse | ErrorResponse;
@@ -73,26 +46,12 @@ let translationPipeline: any = null;
 async function initPipeline() {
   if (translationPipeline) return translationPipeline;
 
-  try {
-    translationPipeline = await pipeline(
-      'translation',
-      'Xenova/nllb-200-distilled-600M',
-      {
-        device: 'webgpu',
-      }
-    );
-    return translationPipeline;
-  } catch (error) {
-    console.warn('[Translation Worker] WebGPU failed, falling back to WASM');
-    translationPipeline = await pipeline(
-      'translation',
-      'Xenova/nllb-200-distilled-600M',
-      {
-        device: 'wasm',
-      }
-    );
-    return translationPipeline;
-  }
+  translationPipeline = await initPipelineWithFallback(
+    'translation',
+    'Xenova/nllb-200-distilled-600M',
+    'Translation Worker'
+  );
+  return translationPipeline;
 }
 
 /**
@@ -107,7 +66,8 @@ async function translate(
   const pipe = await initPipeline();
 
   // Translate
-  const output = await pipe(text, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const output: any = await pipe(text, {
     src_lang,
     tgt_lang,
     max_length: options?.max_length || 512,
