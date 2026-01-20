@@ -13,14 +13,13 @@
 
 import type { ExecutionIntent, RiskLane } from '../types';
 import { validateExecutionIntent } from '../utils/validation';
-import { detectInjection, checkInputSafety } from '../safety/injection-detection';
+import { checkInputSafety } from '../safety/injection-detection';
 import {
   logInjectionAttempt,
   logExecutionBlocked,
   createRiskEvent,
   logRiskEventWithBuffer,
 } from '../safety/risk-events';
-import { translateWithVerification } from '../inference/translation';
 
 /**
  * Execution result
@@ -68,6 +67,7 @@ const ALLOWLISTED_ACTIONS: Map<string, AllowlistedAction> = new Map([
       },
       executor: async (params) => {
         const level = (params.level as string) || 'info';
+        // eslint-disable-next-line no-console
         console.log(`[MAESTRO] ${level.toUpperCase()}: ${params.message}`);
         return { logged: true, timestamp: new Date().toISOString() };
       },
@@ -89,7 +89,7 @@ const ALLOWLISTED_ACTIONS: Map<string, AllowlistedAction> = new Map([
         },
         required: ['content', 'tier', 'locale'],
       },
-      executor: async (params) => {
+      executor: async (_params) => {
         // This would call useMemory.storeWithEmbedding in real implementation
         // For now, just validate and return
         return {
