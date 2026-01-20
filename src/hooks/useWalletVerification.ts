@@ -223,9 +223,11 @@ export function useWalletVerification() {
       console.error('Verification error:', error);
 
       await logError(error as Error, {
-        wallet: address,
-        chainId,
         action: 'wallet_verification',
+        metadata: {
+          wallet: address,
+          chainId,
+        },
       });
 
       setWalletState((prev) => ({
