@@ -25,7 +25,7 @@ function getAjv(): Ajv {
   if (!ajvInstance) {
     ajvInstance = new Ajv({
       allErrors: true,
-      strict: true,
+      strict: false, // Disable strict mode to avoid meta-schema issues
       validateFormats: true,
     });
 

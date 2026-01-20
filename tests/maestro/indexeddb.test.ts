@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import 'fake-indexeddb/auto'; // Polyfill IndexedDB for Node.js tests
 import {
   initMaestroDb,
   storeMemoryItem,
