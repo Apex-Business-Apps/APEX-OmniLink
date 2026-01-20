@@ -229,17 +229,17 @@ export async function verifyRequestSignature(
  */
 export function initializeSecurity(): void {
   const log = createDebugLogger('security.ts', 'A');
-  
+
   // #region agent log
   log('initializeSecurity entry');
   // #endregion
-  
+
   try {
     // #region agent log
     log('Before initializeCsrfProtection');
     // #endregion
     initializeCsrfProtection();
-    
+
     // #region agent log
     log('Before detectSuspiciousActivity');
     // #endregion
@@ -249,12 +249,12 @@ export function initializeSecurity(): void {
         console.warn('⚠️ Suspicious activity detected');
       }
     }
-    
+
     // #region agent log
     log('Before startGuardianLoops');
     // #endregion
     startGuardianLoops();
-    
+
     // #region agent log
     log('Security initialized successfully');
     // #endregion
@@ -271,4 +271,200 @@ export function initializeSecurity(): void {
       console.error('Failed to initialize security:', error);
     }
   }
+}
+
+// ===========================================================================
+// MAESTRO E2EE FUNCTIONS (AES-GCM + PBKDF2)
+// ===========================================================================
+
+/**
+ * Generate AES-GCM encryption key
+ */
+export async function generateEncryptionKey(): Promise<CryptoKey> {
+  return crypto.subtle.generateKey(
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    true, // extractable
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Derive encryption key from passphrase using PBKDF2
+ * @param passphrase User passphrase
+ * @param salt Salt for key derivation (store with key metadata)
+ * @param iterations Number of PBKDF2 iterations (default: 100000)
+ */
+export async function deriveKeyFromPassphrase(
+  passphrase: string,
+  salt: Uint8Array,
+  iterations = 100000
+): Promise<CryptoKey> {
+  const encoder = new TextEncoder();
+  const passphraseKey = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(passphrase),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations,
+      hash: 'SHA-256',
+    },
+    passphraseKey,
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    true, // extractable
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Generate random salt for PBKDF2
+ */
+export function generateSalt(): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(16));
+}
+
+/**
+ * Encrypt memory content using AES-GCM
+ * @param plaintext Content to encrypt
+ * @param key AES-GCM key
+ * @returns Base64-encoded ciphertext with IV prepended
+ */
+export async function encryptMemory(
+  plaintext: string,
+  key: CryptoKey
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plaintext);
+
+  // Generate random IV (12 bytes for AES-GCM)
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+    },
+    key,
+    data
+  );
+
+  // Prepend IV to ciphertext
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(ciphertext), iv.length);
+
+  // Return base64-encoded
+  return btoa(String.fromCharCode(...combined));
+}
+
+/**
+ * Decrypt memory content using AES-GCM
+ * @param ciphertext Base64-encoded ciphertext with IV prepended
+ * @param key AES-GCM key
+ * @returns Decrypted plaintext
+ */
+export async function decryptMemory(
+  ciphertext: string,
+  key: CryptoKey
+): Promise<string> {
+  // Decode base64
+  const combined = Uint8Array.from(atob(ciphertext), (c) => c.charCodeAt(0));
+
+  // Extract IV (first 12 bytes) and ciphertext
+  const iv = combined.slice(0, 12);
+  const data = combined.slice(12);
+
+  // Decrypt
+  const plaintext = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+    },
+    key,
+    data
+  );
+
+  // Decode
+  const decoder = new TextDecoder();
+  return decoder.decode(plaintext);
+}
+
+/**
+ * Compute SHA-256 hash of content
+ * @param content Content to hash
+ * @returns Hex-encoded SHA-256 hash
+ */
+export async function computeContentHash(content: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Export encryption key to raw format (for storage)
+ */
+export async function exportKey(key: CryptoKey): Promise<ArrayBuffer> {
+  return crypto.subtle.exportKey('raw', key);
+}
+
+/**
+ * Import encryption key from raw format
+ */
+export async function importKey(keyData: ArrayBuffer): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    'raw',
+    keyData,
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    true,
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Create passphrase verifier (for checking if passphrase is correct)
+ * @param passphrase User passphrase
+ * @param salt Salt used for key derivation
+ * @returns Hex-encoded verifier (first 32 bytes of derived key hash)
+ */
+export async function createPassphraseVerifier(
+  passphrase: string,
+  salt: Uint8Array
+): Promise<string> {
+  const key = await deriveKeyFromPassphrase(passphrase, salt);
+  const keyData = await exportKey(key);
+  const hash = await crypto.subtle.digest('SHA-256', keyData);
+  return Array.from(new Uint8Array(hash).slice(0, 32))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Verify passphrase against stored verifier
+ */
+export async function verifyPassphrase(
+  passphrase: string,
+  salt: Uint8Array,
+  storedVerifier: string
+): Promise<boolean> {
+  const computedVerifier = await createPassphraseVerifier(passphrase, salt);
+  return computedVerifier === storedVerifier;
 }
