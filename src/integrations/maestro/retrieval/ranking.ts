@@ -44,7 +44,7 @@ export interface RankingOptions {
    * Time decay factor (days)
    * Items lose recency score exponentially
    */
-  timeDe cayDays?: number;
+  timeDecayDays?: number;
 }
 
 /**

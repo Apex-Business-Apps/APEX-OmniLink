@@ -74,6 +74,7 @@ export async function detectInferenceCapabilities(): Promise<InferenceCapabiliti
   // Check WebGPU support
   if ('gpu' in navigator) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const adapter = await (navigator as any).gpu.requestAdapter();
       if (adapter) {
         capabilities.webgpu = true;
@@ -119,6 +120,7 @@ export interface InferenceRequest {
  * Inference response
  */
 export interface InferenceResponse {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   output: any;
   tokens_used: number;
   duration_ms: number;
