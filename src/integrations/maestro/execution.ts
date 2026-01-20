@@ -153,12 +153,12 @@ const ALLOWLISTED_ACTIONS = new Set(['email.send']);
  * - Fail-closed on errors
  */
 export class MaestroExecutionAdapter {
-  private receiptClaimer: ReceiptClaimer;
-  private riskSink: RiskEventSink;
-  private manMode: ManModeEscalator;
-  private executor: ActionExecutor;
-  private syncUrl: string;
-  private manModeUrl: string;
+  private readonly receiptClaimer: ReceiptClaimer;
+  private readonly riskSink: RiskEventSink;
+  private readonly manMode: ManModeEscalator;
+  private readonly executor: ActionExecutor;
+  private readonly syncUrl: string;
+  private readonly manModeUrl: string;
 
   constructor(
     crypto: CryptoProvider | null,
@@ -184,6 +184,193 @@ export class MaestroExecutionAdapter {
         ? new HttpManMode(manModeUrl)
         : new ConsoleManMode());
     this.executor = options?.executor || new DefaultActionExecutor();
+  }
+
+  /**
+   * Validate intent and return error result if invalid
+   */
+  private validateIntentOrError(
+    intent: ExecutionIntent
+  ): ExecutionResult | null {
+    // Locale validation
+    if (!this.isValidBCP47Locale(intent.locale)) {
+      this.riskSink.log('Invalid locale format', {
+        intent: intent.trace_id,
+        locale: intent.locale,
+      });
+      return {
+        success: false,
+        error: 'Invalid locale format (expected BCP-47)',
+      };
+    }
+
+    // Confidence range validation
+    if (intent.confidence < 0 || intent.confidence > 1) {
+      this.riskSink.log('Invalid confidence range', {
+        intent: intent.trace_id,
+        confidence: intent.confidence,
+      });
+      return {
+        success: false,
+        error: 'Confidence must be between 0 and 1',
+      };
+    }
+
+    // Translation status check
+    if (intent.translation_status === 'FAILED') {
+      this.riskSink.log('Translation failed', {
+        intent: intent.trace_id,
+      });
+      return {
+        success: false,
+        error: 'Translation failed',
+      };
+    }
+
+    // Confidence threshold check
+    if (intent.confidence < 0.7) {
+      this.riskSink.log('Confidence below threshold', {
+        intent: intent.trace_id,
+        confidence: intent.confidence,
+      });
+      return {
+        success: false,
+        error: `Confidence ${intent.confidence} below threshold 0.7`,
+      };
+    }
+
+    // User confirmation check
+    if (!intent.user_confirmed) {
+      this.riskSink.log('User confirmation required', {
+        intent: intent.trace_id,
+      });
+      return {
+        success: false,
+        error: 'User confirmation required',
+      };
+    }
+
+    return null; // Valid
+  }
+
+  /**
+   * Route intent based on risk lane
+   */
+  private async routeByRiskLane(
+    intent: ExecutionIntent
+  ): Promise<ExecutionResult | null> {
+    if (intent.risk_lane === 'BLOCKED') {
+      this.riskSink.log('Risk lane BLOCKED', {
+        intent: intent.trace_id,
+      });
+      return {
+        success: false,
+        error: 'Risk lane BLOCKED',
+      };
+    }
+
+    if (intent.risk_lane === 'RED') {
+      try {
+        await this.manMode.escalate(intent);
+        return {
+          success: true,
+          result: { man_mode_escalated: true, task_id: 'pending' },
+        };
+      } catch (error) {
+        this.riskSink.log('MAN mode escalation failed', {
+          intent: intent.trace_id,
+          error:
+            error instanceof Error ? error.message : 'Unknown error',
+        });
+        return {
+          success: false,
+          error: 'MAN mode escalation failed',
+        };
+      }
+    }
+
+    return null; // Continue to execution
+  }
+
+  /**
+   * Execute allowlisted action with idempotency check
+   */
+  private async executeAllowlistedAction(
+    intent: ExecutionIntent
+  ): Promise<ExecutionResult> {
+    // Check allowlist
+    if (!ALLOWLISTED_ACTIONS.has(intent.canonical_action_type)) {
+      this.riskSink.log(
+        `Action ${intent.canonical_action_type} not allowlisted`,
+        { intent: intent.trace_id }
+      );
+      return {
+        success: false,
+        error: `Action ${intent.canonical_action_type} not allowlisted`,
+      };
+    }
+
+    // Claim receipt (idempotency)
+    let receiptClaimed: { claimed: boolean };
+    try {
+      receiptClaimed = await this.receiptClaimer.claim(
+        intent.idempotency_key
+      );
+    } catch (error) {
+      this.riskSink.log('Receipt claim failed', {
+        intent: intent.trace_id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        success: false,
+        error: 'Receipt claim failed',
+      };
+    }
+
+    // Return idempotent result if already claimed
+    if (!receiptClaimed.claimed) {
+      return {
+        success: true,
+        receipt: intent.idempotency_key,
+        result: { idempotent: true },
+      };
+    }
+
+    // Execute action
+    try {
+      const result = await this.executor.execute(
+        intent.canonical_action_type,
+        intent.canonical_object_id,
+        intent.params
+      );
+
+      // Sync to backend (fire and forget)
+      fetch(this.syncUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotency_key: intent.idempotency_key,
+          result,
+        }),
+      }).catch(() => {
+        // Ignore sync errors (already executed locally)
+      });
+
+      return {
+        success: true,
+        receipt: intent.idempotency_key,
+        result,
+      };
+    } catch (error) {
+      this.riskSink.log('Execution failed', {
+        intent: intent.trace_id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        success: false,
+        error: 'Execution failed',
+      };
+    }
   }
 
   /**
@@ -215,172 +402,20 @@ export class MaestroExecutionAdapter {
 
     const typedIntent = intent as ExecutionIntent;
 
-    // 2. Validate locale format (BCP-47)
-    if (!this.isValidBCP47Locale(typedIntent.locale)) {
-      this.riskSink.log('Invalid locale format', {
-        intent: typedIntent.trace_id,
-        locale: typedIntent.locale,
-      });
-      return {
-        success: false,
-        error: 'Invalid locale format (expected BCP-47)',
-      };
+    // 2. Validate intent (locale, confidence, translation, user confirmation)
+    const intentValidationError = this.validateIntentOrError(typedIntent);
+    if (intentValidationError) {
+      return intentValidationError;
     }
 
-    // 3. Validate confidence range
-    if (
-      typedIntent.confidence < 0 ||
-      typedIntent.confidence > 1
-    ) {
-      this.riskSink.log('Invalid confidence range', {
-        intent: typedIntent.trace_id,
-        confidence: typedIntent.confidence,
-      });
-      return {
-        success: false,
-        error: 'Confidence must be between 0 and 1',
-      };
+    // 3. Route by risk lane (BLOCKED/RED)
+    const routingResult = await this.routeByRiskLane(typedIntent);
+    if (routingResult) {
+      return routingResult;
     }
 
-    // 4. Check translation status
-    if (typedIntent.translation_status === 'FAILED') {
-      this.riskSink.log('Translation failed', {
-        intent: typedIntent.trace_id,
-      });
-      return {
-        success: false,
-        error: 'Translation failed',
-      };
-    }
-
-    // 5. Check confidence threshold (>= 0.7)
-    if (typedIntent.confidence < 0.7) {
-      this.riskSink.log('Confidence below threshold', {
-        intent: typedIntent.trace_id,
-        confidence: typedIntent.confidence,
-      });
-      return {
-        success: false,
-        error: `Confidence ${typedIntent.confidence} below threshold 0.7`,
-      };
-    }
-
-    // 6. Check user confirmation
-    if (!typedIntent.user_confirmed) {
-      this.riskSink.log('User confirmation required', {
-        intent: typedIntent.trace_id,
-      });
-      return {
-        success: false,
-        error: 'User confirmation required',
-      };
-    }
-
-    // 7. Route by risk lane
-    if (typedIntent.risk_lane === 'BLOCKED') {
-      this.riskSink.log('Risk lane BLOCKED', {
-        intent: typedIntent.trace_id,
-      });
-      return {
-        success: false,
-        error: 'Risk lane BLOCKED',
-      };
-    }
-
-    if (typedIntent.risk_lane === 'RED') {
-      // Escalate to MAN mode
-      try {
-        await this.manMode.escalate(typedIntent);
-        return {
-          success: true,
-          result: { man_mode_escalated: true, task_id: 'pending' },
-        };
-      } catch (error) {
-        this.riskSink.log('MAN mode escalation failed', {
-          intent: typedIntent.trace_id,
-          error:
-            error instanceof Error ? error.message : 'Unknown error',
-        });
-        return {
-          success: false,
-          error: 'MAN mode escalation failed',
-        };
-      }
-    }
-
-    // 8. Check if action is allowlisted
-    if (!ALLOWLISTED_ACTIONS.has(typedIntent.canonical_action_type)) {
-      this.riskSink.log(
-        `Action ${typedIntent.canonical_action_type} not allowlisted`,
-        { intent: typedIntent.trace_id }
-      );
-      return {
-        success: false,
-        error: `Action ${typedIntent.canonical_action_type} not allowlisted`,
-      };
-    }
-
-    // 9. Claim receipt (idempotency check)
-    let receiptClaimed: { claimed: boolean };
-    try {
-      receiptClaimed = await this.receiptClaimer.claim(
-        typedIntent.idempotency_key
-      );
-    } catch (error) {
-      this.riskSink.log('Receipt claim failed', {
-        intent: typedIntent.trace_id,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      return {
-        success: false,
-        error: 'Receipt claim failed',
-      };
-    }
-
-    // 10. If receipt already claimed, return idempotent result
-    if (!receiptClaimed.claimed) {
-      return {
-        success: true,
-        receipt: typedIntent.idempotency_key,
-        result: { idempotent: true },
-      };
-    }
-
-    // 11. Execute allowlisted action
-    try {
-      const result = await this.executor.execute(
-        typedIntent.canonical_action_type,
-        typedIntent.canonical_object_id,
-        typedIntent.params
-      );
-
-      // 12. Sync to backend (fire and forget)
-      fetch(this.syncUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idempotency_key: typedIntent.idempotency_key,
-          result,
-        }),
-      }).catch(() => {
-        // Ignore sync errors (already executed locally)
-      });
-
-      return {
-        success: true,
-        receipt: typedIntent.idempotency_key,
-        result,
-      };
-    } catch (error) {
-      this.riskSink.log('Execution failed', {
-        intent: typedIntent.trace_id,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      return {
-        success: false,
-        error: 'Execution failed',
-      };
-    }
+    // 4. Execute allowlisted action with idempotency
+    return this.executeAllowlistedAction(typedIntent);
   }
 
   /**

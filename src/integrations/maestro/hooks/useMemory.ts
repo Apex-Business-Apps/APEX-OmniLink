@@ -17,7 +17,6 @@ import {
   compactMemoryTier,
 } from '../stores/indexeddb';
 import { generateEmbeddings } from '../inference/embeddings';
-import { computeContentHash } from '@/lib/security';
 import type { MemoryItem, MemoryTier, LocaleString } from '../types';
 
 /**
@@ -219,7 +218,7 @@ export function useMemory(): UseMemoryReturn {
       }
 
       const allItems = await getAllMemoryItems(tier);
-      return allItems
+      return [...allItems]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, limit);
     },
