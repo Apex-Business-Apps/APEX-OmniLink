@@ -522,7 +522,7 @@ class SemanticCacheService:
         return parameterized
 
     @staticmethod
-    def _generate_plan_id(goal: str) -> str:
+    def _generate_plan_id(_goal: str) -> str:
         """Generate unique plan instance ID."""
         import uuid
         from datetime import UTC, datetime

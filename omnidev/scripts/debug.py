@@ -62,6 +62,20 @@ ERROR_PATTERNS = {
             fix="Add base case or convert to iteration",
             example="if (depth > 1000) return; // Add recursion limit",
         ),
+        ErrorPattern(
+            pattern=r"(HTTP (\d{3})|CORS|Access-Control-Allow-Origin)",
+            category="HTTP/Network Error",
+            cause="API request failed or CORS policy violation",
+            fix="Check API docs, auth headers, or server CORS config",
+            example="res.status(200).set('Access-Control-Allow-Origin', '*')",
+        ),
+        ErrorPattern(
+            pattern=r"(duplicate key|unique constraint|foreign key constraint|deadlock)",
+            category="Database Error",
+            cause="Constraint violation or transaction deadlock",
+            fix="Check existing records, parent records, or retry transaction",
+            example="INSERT INTO ... ON CONFLICT DO UPDATE",
+        ),
     ],
     "python": [
         ErrorPattern(
@@ -91,6 +105,27 @@ ERROR_PATTERNS = {
             cause="Inconsistent indentation (tabs vs spaces)",
             fix="Use consistent indentation (4 spaces recommended)",
             example="# Configure editor: 4 spaces, no tabs",
+        ),
+        ErrorPattern(
+            pattern=r"ValueError: invalid literal for int\(\) with base (\d+): ['\"]?(.+)['\"]?",
+            category="Invalid Conversion",
+            cause="Comparing incompatible types or invalid string-to-int conversion",
+            fix="Validate input is numeric before conversion",
+            example="if value.isdigit(): int(value)",
+        ),
+        ErrorPattern(
+            pattern=r"(ConnectionRefusedError|ConnectionError)",
+            category="Connection Failed",
+            cause="Target service unreachable or port closed",
+            fix="Check service status and host/port configuration",
+            example="curl -v http://localhost:PORT/health",
+        ),
+        ErrorPattern(
+            pattern=r"(TimeoutError|asyncio\.TimeoutError)",
+            category="Operation Timeout",
+            cause="Operation took longer than configured limit",
+            fix="Increase timeout, optimize query, or check network latency",
+            example="timeout=30.0 # Increase from default",
         ),
     ],
     "go": [
@@ -186,11 +221,12 @@ def extract_stack_trace(content: str) -> list[str]:
     return relevant[:5]  # Top 5 relevant lines
 
 
-def print_analysis(language: str, matches: list[dict], stack_lines: list[str]):
+def print_analysis(error_input: str, language: str, matches: list[dict], stack_lines: list[str]):
     """Print formatted analysis."""
     print(f"\n{'═' * 60}")
     print("  OMNIDEV DEBUG ANALYSIS")
     print("  APEX Business Systems Ltd.")
+    print(f"{'═' * 60}")
     print(f"{'═' * 60}")
     print(f"  Language: {language.upper()}")
     print(f"{'═' * 60}\n")
@@ -258,7 +294,7 @@ def main():
     stack_lines = extract_stack_trace(content)
 
     # Output
-    print_analysis(language, matches, stack_lines)
+    print_analysis(content, language, matches, stack_lines)
 
     sys.exit(0)
 

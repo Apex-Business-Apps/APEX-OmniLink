@@ -9,8 +9,8 @@ Usage: python project-init.py <name> --type <api|cli|lib|frontend> [--lang <pyth
 
 Exit: 0=success, 1=input error, 2=system error
 """
-import argparse
 import sys
+import argparse
 from pathlib import Path
 
 TEMPLATES = {
@@ -265,7 +265,7 @@ def main():
     
     print("=" * 50)
     print(f"✅ Created: {project_path}")
-    print("\nNext steps:")
+    print(f"\nNext steps:")
     print(f"   cd {args.name}")
     if args.lang == "python":
         print("   python -m venv .venv && source .venv/bin/activate")

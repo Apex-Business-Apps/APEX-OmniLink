@@ -1,34 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { createServiceClient } from "../_shared/supabaseClient.ts";
-import {
-  type IntegrationConfig,
-  type TestResult,
-  validateConfigKey,
-  testApiConnection,
-  buildBearerAuth,
-  buildTokenAuth,
-} from "../_shared/integration-test.ts";
+import { createSupabaseClient } from '../_shared/auth.ts';
+import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight with origin validation
-  if (req.method === 'OPTIONS') {
-    return handlePreflight(req);
-  }
-
-  const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
-  const corsHeaders = buildCorsHeaders(requestOrigin);
-
-  // Validate origin
-  if (!isOriginAllowed(requestOrigin)) {
-    return new Response(
-      JSON.stringify({ error: 'Origin not allowed' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createSupabaseClient();
 
     const { integrationId } = await req.json();
 
@@ -70,15 +50,10 @@ serve(async (req) => {
       })
       .eq('id', integrationId);
 
-    return new Response(JSON.stringify(testResult), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return corsJsonResponse(testResult);
   } catch (error) {
     console.error('Integration test error:', error);
-    return new Response(JSON.stringify({ connected: false, error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return corsJsonResponse({ connected: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
   }
 });
 

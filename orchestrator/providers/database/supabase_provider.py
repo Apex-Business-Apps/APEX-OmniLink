@@ -3,7 +3,7 @@ from typing import Any
 
 from supabase import Client, create_client
 
-from .base import DatabaseError, DatabaseProvider, NotFound
+from .base import DatabaseError, DatabaseProvider, NotFoundError
 
 # SECURITY: Allowlist of valid table names (SQL injection prevention)
 ALLOWED_TABLES = frozenset(
@@ -28,6 +28,9 @@ ALLOWED_TABLES = frozenset(
         "events",
         "workflows",
         "workflow_runs",
+        # MAN Mode tables
+        "man_tasks",
+        "man_notifications",
     ]
 )
 
@@ -63,7 +66,7 @@ def validate_column_name(column: str) -> str:
     return column
 
 
-class SupabaseProvider(DatabaseProvider):
+class SupabaseDatabaseProvider(DatabaseProvider):
     """
     Supabase implementation of the DatabaseProvider.
 
@@ -108,7 +111,7 @@ class SupabaseProvider(DatabaseProvider):
         self,
         table: str,
         record: dict[str, Any],
-        conflict_columns: list[str] | None = None,
+        _conflict_columns: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Perform an upsert (insert or update on conflict).
@@ -147,14 +150,51 @@ class SupabaseProvider(DatabaseProvider):
         except Exception as e:
             raise DatabaseError(f"Database get failed: {str(e)}") from e
 
+    async def select(
+        self,
+        table: str,
+        filters: dict[str, Any] | None = None,
+        select_fields: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Select records from a table with optional filtering.
+
+        Args:
+            table: Table name to query
+            filters: Dictionary of field-value pairs to filter by
+            select_fields: Comma-separated field names to select (None = all)
+
+        Returns:
+            List of matching records as dictionaries
+
+        Raises:
+            DatabaseError: For database errors including disallowed tables
+        """
+        try:
+            validated_table = validate_table_name(table)
+            fields = select_fields if select_fields else "*"
+            query = self.client.table(validated_table).select(fields)
+
+            if filters:
+                for key, value in filters.items():
+                    validated_key = validate_column_name(key)
+                    query = query.eq(validated_key, value)
+
+            response = query.execute()
+            return response.data or []
+        except DatabaseError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Database select failed: {str(e)}") from e
+
     async def select_one(self, table: str, query_params: dict[str, Any]) -> dict[str, Any]:
         """
-        Retrieve a single record. Raises NotFound if not found.
+        Retrieve a single record. Raises NotFoundError if not found.
         """
         results = await self.get(table, query_params)
         if not results:
             params_str = ", ".join(f"{k}={v}" for k, v in query_params.items())
-            raise NotFound(f"Record not found in {table} matching: {params_str}")
+            raise NotFoundError(f"Record not found in {table} matching: {params_str}")
         return results[0]
 
     async def update(
@@ -180,15 +220,21 @@ class SupabaseProvider(DatabaseProvider):
             response = query.execute()
 
             if not response.data:
-                raise NotFound(f"No records to update in {validated_table} with {filters}")
+                raise NotFoundError(f"No records to update in {validated_table} with {filters}")
 
             return response.data[0]
-        except (DatabaseError, NotFound):
-            raise
         except Exception as e:
+            if isinstance(e, (DatabaseError, NotFoundError)):
+                raise
             raise DatabaseError(f"Database update failed: {str(e)}") from e
 
-    async def delete(self, table: str, filters: dict[str, Any]) -> bool:
+    async def delete(self, table: str, filters: dict[str, Any]) -> int:
+        """
+        Delete records from table matching filters.
+
+        Returns:
+            Number of records deleted (0..n)
+        """
         try:
             if not filters:
                 raise DatabaseError("Delete requires at least one filter")
@@ -205,8 +251,11 @@ class SupabaseProvider(DatabaseProvider):
 
             response = query.execute()
 
-            return len(response.data) > 0
-        except DatabaseError:
-            raise
+            return len(response.data) if response.data else 0
         except Exception as e:
+            # Catch-all for database errors, including DatabaseError
             raise DatabaseError(f"Database delete failed: {str(e)}") from e
+
+
+# Backwards compatibility alias
+SupabaseProvider = SupabaseDatabaseProvider

@@ -1,170 +1,150 @@
 /**
- * Shared Authentication Utilities for Edge Functions
+ * Shared authentication utilities for Supabase Edge Functions
  *
- * Provides JWT verification and user extraction for authenticated endpoints.
- * CVE Remediation: Centralized auth prevents inconsistent authentication patterns.
+ * Provides standardized JWT validation and user authentication
+ * to eliminate duplication across functions.
  *
- * Usage:
- *   import { requireAuth, getUser, AuthError } from '../_shared/auth.ts';
+ * Author: OmniLink APEX
+ * Date: 2026-01-19
  */
 
 import { createClient, User } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { buildCorsHeaders } from './cors.ts';
-
-export class AuthError extends Error {
-  constructor(
-    message: string,
-    public code: 'missing_token' | 'invalid_token' | 'expired_token' | 'unauthorized',
-    public status: number = 401
-  ) {
-    super(message);
-    this.name = 'AuthError';
-  }
-}
 
 export interface AuthResult {
-  user: User;
-  token: string;
+  success: boolean;
+  user?: User;
+  error?: string;
 }
 
 /**
- * Extract JWT token from Authorization header
+ * Initialize Supabase client with service role
+ * @returns Configured Supabase client
  */
-export function extractToken(req: Request): string | null {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return null;
-
-  // Support both "Bearer <token>" and raw token
-  if (authHeader.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  return authHeader;
-}
-
-/**
- * Verify JWT and extract user information
- * Throws AuthError if authentication fails
- */
-export async function verifyAuth(req: Request): Promise<AuthResult> {
-  const token = extractToken(req);
-
-  if (!token) {
-    throw new AuthError(
-      'Missing authorization token',
-      'missing_token',
-      401
-    );
-  }
-
+export function createSupabaseClient(): ReturnType<typeof createClient> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new AuthError(
-      'Server configuration error',
-      'unauthorized',
-      500
-    );
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing required Supabase environment variables');
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  });
-
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw new AuthError(
-      error?.message || 'Invalid or expired token',
-      'invalid_token',
-      401
-    );
-  }
-
-  return { user, token };
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 /**
- * Get user from request without throwing (returns null if not authenticated)
+ * Validate JWT token and get authenticated user
+ * @param authHeader - Authorization header value
+ * @param supabase - Supabase client instance
+ * @returns Authentication result
  */
-export async function getUser(req: Request): Promise<User | null> {
-  try {
-    const result = await verifyAuth(req);
-    return result.user;
-  } catch {
-    return null;
+export async function authenticateUser(authHeader: string | null, supabase: ReturnType<typeof createClient>): Promise<AuthResult> {
+  if (!authHeader) {
+    return { success: false, error: 'Authentication required' };
   }
-}
 
-/**
- * Middleware-style auth check - returns error Response or null if auth passes
- */
-export async function requireAuth(req: Request): Promise<Response | AuthResult> {
+  if (!authHeader.startsWith('Bearer ')) {
+    return { success: false, error: 'Invalid authorization header format' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+
   try {
-    const result = await verifyAuth(req);
-    return result;
-  } catch (error) {
-    if (error instanceof AuthError) {
-      const origin = req.headers.get('origin');
-      return new Response(
-        JSON.stringify({
-          error: error.code,
-          message: error.message,
-        }),
-        {
-          status: error.status,
-          headers: {
-            ...buildCorsHeaders(origin),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error) {
+      return { success: false, error: 'Invalid or expired session' };
     }
-    throw error;
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    return { success: true, user };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { success: false, error: 'Authentication failed' };
   }
 }
 
 /**
- * Check if user has admin role (for sensitive operations)
+ * Get client IP address from request
+ * @param req - The request object
+ * @returns Client IP address
  */
-export function isAdmin(user: User): boolean {
-  const role = user.app_metadata?.role || user.user_metadata?.role;
-  return role === 'admin' || role === 'service_role';
+export function getClientIP(req: Request): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0] ||
+         req.headers.get('x-real-ip') ||
+         req.headers.get('cf-connecting-ip') ||
+         'unknown';
 }
 
 /**
- * WebSocket authentication - extract and verify token from URL or headers
+ * Get client user agent from request
+ * @param req - The request object
+ * @returns User agent string
  */
-export async function verifyWebSocketAuth(req: Request): Promise<AuthResult> {
-  // Try URL query param first (common for WebSocket clients)
-  const url = new URL(req.url);
-  const tokenFromUrl = url.searchParams.get('token');
-
-  if (tokenFromUrl) {
-    // Create a new request with the token in the header for verification
-    const fakeReq = new Request(req.url, {
-      headers: new Headers({
-        Authorization: `Bearer ${tokenFromUrl}`,
-      }),
-    });
-    return verifyAuth(fakeReq);
-  }
-
-  // Fall back to header-based auth
-  return verifyAuth(req);
+export function getUserAgent(req: Request): string {
+  return req.headers.get('user-agent') || 'unknown';
 }
 
 /**
- * Create unauthorized response for WebSocket upgrade denial
+ * Create standardized error response for authentication failures
+ * @param error - Error message
+ * @param status - HTTP status code (default: 401)
+ * @returns Response object
  */
-export function unauthorizedWebSocketResponse(): Response {
-  return new Response('Unauthorized', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Bearer realm="websocket"',
-    },
-  });
+export function createAuthErrorResponse(error: string, status: number = 401) {
+  return new Response(
+    JSON.stringify({
+      error: 'unauthorized',
+      message: error,
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+}
+
+/**
+ * Create standardized error response for method not allowed
+ * @param allowedMethods - Array of allowed HTTP methods
+ * @returns Response object
+ */
+export function createMethodNotAllowedResponse(allowedMethods: string[] = ['POST']) {
+  return new Response(
+    JSON.stringify({
+      error: 'method_not_allowed',
+      message: `Only ${allowedMethods.join(', ')} requests are allowed`,
+    }),
+    {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'Allow': allowedMethods.join(', '),
+      },
+    }
+  );
+}
+
+/**
+ * Create standardized error response for internal server errors
+ * @param message - Error message (sanitized for client)
+ * @returns Response object
+ */
+export function createInternalErrorResponse(message: string = 'An unexpected error occurred') {
+  return new Response(
+    JSON.stringify({
+      error: 'internal_error',
+      message,
+    }),
+    {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 }

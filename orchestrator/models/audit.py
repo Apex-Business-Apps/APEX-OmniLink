@@ -17,6 +17,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from providers.database.factory import get_database_provider
+
 
 class AuditAction(str, Enum):
     """Standardized audit actions for compliance tracking."""
@@ -25,8 +27,8 @@ class AuditAction(str, Enum):
     LOGIN = "login"
     LOGOUT = "logout"
     AUTH_FAILURE = "auth_failure"
-    TOKEN_REFRESH = "token_refresh"
-    PASSWORD_CHANGE = "password_change"
+    TOKEN_REFRESH = "token_refresh"  # noqa: S105
+    PASSWORD_CHANGE = "password_change"  # noqa: S105
 
     # Data Operations
     DATA_ACCESS = "data_access"
@@ -251,10 +253,46 @@ class AuditLogger:
             raise ValueError(f"Unsupported storage backend: {self.storage_backend}")
 
     async def _store_supabase(self, event: AuditLogEntry) -> None:
-        """Store audit event in Supabase."""
-        # Implementation would connect to Supabase audit_logs table
-        # This is a placeholder - actual implementation would use the Supabase client
-        pass
+        """
+        Store audit event in Supabase with fallback logging.
+
+        CRITICAL: Audit events must never be silently lost. If database
+        persistence fails, we log to stderr as a fallback.
+        """
+        try:
+            db = get_database_provider()
+
+            # Convert event to dict for storage
+            event_dict = event.model_dump(mode="json")
+
+            # Store in audit_logs table
+            await db.insert(
+                table="audit_logs",
+                record=event_dict,
+            )
+
+        except Exception as e:
+            # CRITICAL: Never silently lose audit logs
+            import sys
+
+            # Log critical error to stderr
+            print(
+                f"CRITICAL: Audit persistence failed: {e}",
+                file=sys.stderr,
+            )
+
+            # Fallback: Log essential audit data to stderr
+            # DO NOT log sensitive data like secrets or PII
+            print(
+                f"AUDIT_FALLBACK: id={event.id} "
+                f"action={event.action} "
+                f"resource_type={event.resource_type} "
+                f"resource_id={event.resource_id} "
+                f"actor_id={event.actor_id} "
+                f"status={event.status} "
+                f"timestamp={event.timestamp.isoformat()}",
+                file=sys.stderr,
+            )
 
     async def _store_file(self, event: AuditLogEntry) -> None:
         """Store audit event in local file (for development/testing)."""
@@ -309,9 +347,8 @@ class AuditLogger:
             if event.integrity_hash != expected_hash:
                 return False
 
-            if i > 0:
-                if event.previous_hash != events[i - 1].integrity_hash:
-                    return False
+            if i > 0 and event.previous_hash != events[i - 1].integrity_hash:
+                return False
 
         return True
 

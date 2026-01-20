@@ -30,22 +30,10 @@ export function useWalletVerification() {
     isVerified: false,
   });
 
-  // Check if wallet is already verified on mount
-  useEffect(() => {
-    if (address && isConnected) {
-      checkVerificationStatus(address);
-    } else {
-      setWalletState({
-        status: 'disconnected',
-        isVerified: false,
-      });
-    }
-  }, [address, isConnected]);
-
   /**
    * Check if wallet is already verified
    */
-  const checkVerificationStatus = async (walletAddress: string) => {
+  const checkVerificationStatus = useCallback(async (walletAddress: string) => {
     const resolvedChainId = chainId ?? 1;
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -109,7 +97,19 @@ export function useWalletVerification() {
         isVerified: false,
       });
     }
-  };
+  }, [chainId]);
+
+  // Check if wallet is already verified on mount
+  useEffect(() => {
+    if (address && isConnected) {
+      checkVerificationStatus(address);
+    } else {
+      setWalletState({
+        status: 'disconnected',
+        isVerified: false,
+      });
+    }
+  }, [address, isConnected, checkVerificationStatus]);
 
   /**
    * Request nonce from backend
@@ -223,9 +223,11 @@ export function useWalletVerification() {
       console.error('Verification error:', error);
 
       await logError(error as Error, {
-        wallet: address,
-        chainId,
         action: 'wallet_verification',
+        metadata: {
+          wallet: address,
+          chainId,
+        },
       });
 
       setWalletState((prev) => ({
