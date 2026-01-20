@@ -34,15 +34,14 @@ export interface ExecutionResult {
  * Placeholder implementation - full orchestrator coming in Phase 6
  */
 export class MaestroExecutionAdapter {
-    private syncUrl: string;
-    private manModeUrl?: string;
 
     constructor(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         syncUrl: string,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         manModeUrl?: string
     ) {
-        this.syncUrl = syncUrl;
-        this.manModeUrl = manModeUrl;
+        // Phase 6 placeholder
     }
 
     /**

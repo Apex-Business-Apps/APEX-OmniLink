@@ -35,7 +35,7 @@ describe.skipIf(shouldSkipTests)('MAESTRO Backend Integration', () => {
 
     // Create a test user (skip if already exists)
     const testEmail = `maestro-test-${Date.now()}@example.com`;
-    const testPassword = 'test-password-123!';
+    const testPassword = `test-password-${crypto.randomUUID()}!`;
 
     const { data: signUpData, error: signUpError } = await anonClient.auth.signUp({
       email: testEmail,
