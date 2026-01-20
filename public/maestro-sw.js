@@ -37,26 +37,27 @@ const ALLOWLISTED_MODELS = [
 /**
  * Install event - pre-cache model assets
  */
-self.addEventListener('install', (event) => {
+globalThis.addEventListener('install', (event) => {
   console.log('[MAESTRO SW] Installing...');
 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[MAESTRO SW] Opened cache');
       // Phase 2: Pre-cache allowlisted models
-      // return cache.addAll(ALLOWLISTED_MODELS.map(m => m.url));
-      return Promise.resolve();
+      // When implemented: return cache.addAll(ALLOWLISTED_MODELS.map(m => m.url));
+      // For now, cache is opened but no models pre-cached
+      return undefined;
     })
   );
 
   // Activate immediately
-  self.skipWaiting();
+  globalThis.skipWaiting();
 });
 
 /**
  * Activate event - clean up old caches
  */
-self.addEventListener('activate', (event) => {
+globalThis.addEventListener('activate', (event) => {
   console.log('[MAESTRO SW] Activating...');
 
   event.waitUntil(
@@ -67,19 +68,20 @@ self.addEventListener('activate', (event) => {
             console.log('[MAESTRO SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
+          return undefined;
         })
       );
     })
   );
 
   // Take control immediately
-  return self.clients.claim();
+  return globalThis.clients.claim();
 });
 
 /**
  * Fetch event - serve models from cache
  */
-self.addEventListener('fetch', (event) => {
+globalThis.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
@@ -117,8 +119,8 @@ self.addEventListener('fetch', (event) => {
 /**
  * Message event - commands from main thread
  */
-self.addEventListener('message', (event) => {
-  const { type, payload } = event.data;
+globalThis.addEventListener('message', (event) => {
+  const { type } = event.data;
 
   switch (type) {
     case 'MAESTRO_HEALTH_CHECK':

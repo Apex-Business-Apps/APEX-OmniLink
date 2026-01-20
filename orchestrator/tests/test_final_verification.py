@@ -66,7 +66,11 @@ class TestInterfaceCompliance:
             mock_response.data = [{"id": 1}, {"id": 2}]
 
             provider.client = MagicMock()
-            provider.client.table.return_value.delete.return_value.eq.return_value.execute.return_value = mock_response
+            mock_chain = (
+                provider.client.table.return_value.delete.return_value.eq
+                .return_value.execute
+            )
+            mock_chain.return_value = mock_response
 
             result = await provider.delete("audit_logs", {"id": 1})
 

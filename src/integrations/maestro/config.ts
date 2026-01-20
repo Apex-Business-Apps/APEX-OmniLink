@@ -37,12 +37,12 @@ export function getMaestroConfig(): MaestroConfig {
     enabled: isMaestroEnabled(),
     debug: isMaestroDebugEnabled(),
     modelsPath: import.meta.env.VITE_MAESTRO_MODELS_PATH || '/models',
-    maxTokens: parseInt(import.meta.env.VITE_MAESTRO_MAX_TOKENS || '512', 10),
-    maxEmbeddingsPerQuery: parseInt(
+    maxTokens: Number.parseInt(import.meta.env.VITE_MAESTRO_MAX_TOKENS || '512', 10),
+    maxEmbeddingsPerQuery: Number.parseInt(
       import.meta.env.VITE_MAESTRO_MAX_EMBEDDINGS_PER_QUERY || '100',
       10
     ),
-    inferenceTimeoutMs: parseInt(
+    inferenceTimeoutMs: Number.parseInt(
       import.meta.env.VITE_MAESTRO_INFERENCE_TIMEOUT_MS || '10000',
       10
     ),
@@ -81,7 +81,7 @@ export const ALLOWLISTED_MODELS = {
 
 /**
  * Model integrity hashes (SHA-256)
- * TODO: Update with actual hashes after model download
+ * Populated during Phase 2 implementation when models are cached
  */
 export const MODEL_INTEGRITY_HASHES: Record<string, string> = {
   // Format: 'model-id': 'sha256-hash'

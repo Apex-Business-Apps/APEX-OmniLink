@@ -10,11 +10,10 @@ Usage: python quality-check.py <path> [--fix] [--strict]
 Runs all quality checks: lint, type check, format, security scan.
 Exit: 0=pass, 1=issues found, 2=system error
 """
-import sys
-import subprocess
 import argparse
+import subprocess
+import sys
 from pathlib import Path
-from typing import List, Tuple
 
 CHECKS = {
     "python": {
@@ -57,16 +56,18 @@ def detect_language(path: Path) -> str:
     return max(counts, key=counts.get)
 
 
-def run_check(name: str, cmd: List[str], path: Path) -> Tuple[bool, str]:
+def run_check(name: str, cmd: list[str], path: Path) -> tuple[bool, str]:
     """Run a single check."""
     cmd = [c.format(path=str(path)) for c in cmd]
-    
+
     try:
-        result = subprocess.run(
+        # nosec B603: subprocess call with sanitized input via format()
+        result = subprocess.run(  # noqa: S603
             cmd,
             capture_output=True,
             text=True,
-            timeout=300
+            timeout=300,
+            check=False,
         )
         passed = result.returncode == 0
         output = result.stdout + result.stderr

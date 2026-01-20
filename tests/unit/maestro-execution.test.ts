@@ -3,13 +3,15 @@
  * Tests ExecutionIntent wiring, idempotency, injection defense, and MAN mode
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MaestroExecutionAdapter } from '../../src/integrations/maestro/execution';
 import { ExecutionIntent } from '../../src/integrations/maestro/orchestrator';
 import { CryptoProvider, Ciphertext } from '../../src/integrations/maestro/crypto';
 
 // Mock implementations
 class MockCryptoProvider implements CryptoProvider {
+    private uuidCounter = 0;
+
     async init(): Promise<void> {
         // Mock init - do nothing
     }
@@ -29,13 +31,15 @@ class MockCryptoProvider implements CryptoProvider {
     }
 
     randomUUID(): string {
-        return 'mock-uuid-' + Math.random().toString(36).substr(2, 9);
+        // Deterministic UUID for testing (no Math.random())
+        this.uuidCounter++;
+        return `mock-uuid-${this.uuidCounter}`;
     }
 }
 
 // Mock fetch globally
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 describe('MAESTRO: Phase 5-6 Execution Tests', () => {
     let adapter: MaestroExecutionAdapter;
