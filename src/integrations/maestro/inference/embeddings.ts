@@ -43,6 +43,7 @@ export function initEmbeddingsWorker(): Worker {
     const response = event.data;
 
     if (response.type === 'ready') {
+      // eslint-disable-next-line no-console
       console.log('[MAESTRO Embeddings] Worker ready');
       return;
     }
@@ -93,8 +94,7 @@ export async function generateEmbeddings(
   const effectiveBudget = budget || createInferenceBudget();
   if (!checkBudget(effectiveBudget, 0, texts.length)) {
     throw new Error(
-      `Budget exceeded: requested ${texts.length} embeddings, budget allows ${
-        effectiveBudget.max_embeddings - effectiveBudget.used_embeddings
+      `Budget exceeded: requested ${texts.length} embeddings, budget allows ${effectiveBudget.max_embeddings - effectiveBudget.used_embeddings
       }`
     );
   }

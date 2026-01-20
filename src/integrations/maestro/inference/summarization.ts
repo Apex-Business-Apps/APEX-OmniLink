@@ -98,6 +98,7 @@ export function initSummarizationWorker(): Worker {
     const response = event.data;
 
     if (response.type === 'ready') {
+      // eslint-disable-next-line no-console
       console.log('[MAESTRO Summarization] Worker ready');
       return;
     }

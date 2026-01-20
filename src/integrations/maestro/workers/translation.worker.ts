@@ -64,6 +64,7 @@ type WorkerResponse = TranslateResponse | HealthCheckResponse | ErrorResponse;
 /**
  * Translation pipeline (lazy-loaded)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let translationPipeline: any = null;
 
 /**
@@ -171,6 +172,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       }
 
       default:
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         throw new Error(`Unknown request type: ${(request as any).type}`);
     }
   } catch (error) {

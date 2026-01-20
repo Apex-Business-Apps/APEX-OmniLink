@@ -50,6 +50,7 @@ export function initTranslationWorker(): Worker {
     const response = event.data;
 
     if (response.type === 'ready') {
+      // eslint-disable-next-line no-console
       console.log('[MAESTRO Translation] Worker ready');
       return;
     }
