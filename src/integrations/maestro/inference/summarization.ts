@@ -7,6 +7,14 @@
 
 import { createInferenceBudget, checkBudget, updateBudget } from './runtime';
 import type { InferenceBudget } from './runtime';
+import {
+  type PendingRequest,
+  type HealthCheckResponse,
+  performHealthCheck,
+  createWorkerRequest,
+  handleWorkerResponse,
+  clearPendingRequests
+} from './client-base';
 
 /**
  * Summarization Worker instance (singleton)
@@ -16,14 +24,7 @@ let summarizationWorker: Worker | null = null;
 /**
  * Pending requests map
  */
-const pendingRequests = new Map<
-  string,
-  {
-    resolve: (value: string) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }
->();
+const pendingRequests = new Map<string, PendingRequest<string>>();
 
 /**
  * Initialize summarization worker
@@ -103,27 +104,17 @@ export function initSummarizationWorker(): Worker {
       return;
     }
 
-    const pending = pendingRequests.get(response.id);
-    if (!pending) return;
-
-    clearTimeout(pending.timeout);
-    pendingRequests.delete(response.id);
-
     if (response.type === 'error') {
-      pending.reject(new Error(response.error));
+      handleWorkerResponse(pendingRequests, response.id, null, response.error);
     } else if (response.type === 'summarize') {
-      pending.resolve(response.summary);
+      handleWorkerResponse(pendingRequests, response.id, response.summary);
     }
   };
 
   // Handle worker errors
   summarizationWorker.onerror = (error) => {
     console.error('[MAESTRO Summarization] Worker error:', error);
-    pendingRequests.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Summarization worker crashed'));
-    });
-    pendingRequests.clear();
+    clearPendingRequests(pendingRequests, 'Summarization worker crashed');
   };
 
   return summarizationWorker;
@@ -155,28 +146,28 @@ export async function summarizeText(
   const requestId = crypto.randomUUID();
   const timeoutMs = options?.timeout_ms || effectiveBudget.timeout_ms;
 
-  // Send request to worker
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error(`Summarization timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    pendingRequests.set(requestId, { resolve, reject, timeout });
-
-    worker.postMessage({
-      type: 'summarize',
-      id: requestId,
-      text,
-      options: {
-        max_length: options?.max_length,
-        min_length: options?.min_length,
-      },
-    });
-  }).then((summary: string) => {
-    updateBudget(effectiveBudget, estimatedTokens);
-    return summary;
+  // Post message to worker
+  worker.postMessage({
+    type: 'summarize',
+    id: requestId,
+    text,
+    options: {
+      max_length: options?.max_length,
+      min_length: options?.min_length,
+    },
   });
+
+  // Wait for response
+  const summary = await createWorkerRequest(
+    pendingRequests,
+    requestId,
+    timeoutMs,
+    `Summarization timed out after ${timeoutMs}ms`
+  );
+
+  // Update budget
+  updateBudget(effectiveBudget, estimatedTokens);
+  return summary;
 }
 
 /**
@@ -204,39 +195,8 @@ export async function compactMemory(
 /**
  * Health check for summarization worker
  */
-export async function checkSummarizationHealth(): Promise<{
-  status: 'ok' | 'error';
-  model_loaded: boolean;
-  error?: string;
-}> {
-  try {
-    const worker = initSummarizationWorker();
-    const requestId = crypto.randomUUID();
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Health check timed out'));
-      }, 5000);
-
-      const handler = (event: MessageEvent) => {
-        const response = event.data;
-        if (response.id === requestId && response.type === 'health') {
-          clearTimeout(timeout);
-          worker.removeEventListener('message', handler);
-          resolve(response);
-        }
-      };
-
-      worker.addEventListener('message', handler);
-      worker.postMessage({ type: 'health', id: requestId });
-    });
-  } catch (error) {
-    return {
-      status: 'error',
-      model_loaded: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+export async function checkSummarizationHealth(): Promise<HealthCheckResponse> {
+  return performHealthCheck(initSummarizationWorker, 'Summarization Worker');
 }
 
 /**
@@ -244,12 +204,7 @@ export async function checkSummarizationHealth(): Promise<{
  */
 export function terminateSummarizationWorker(): void {
   if (summarizationWorker) {
-    pendingRequests.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Worker terminated'));
-    });
-    pendingRequests.clear();
-
+    clearPendingRequests(pendingRequests, 'Worker terminated');
     summarizationWorker.terminate();
     summarizationWorker = null;
   }

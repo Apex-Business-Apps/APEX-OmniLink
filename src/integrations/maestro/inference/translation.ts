@@ -9,6 +9,14 @@ import { createInferenceBudget, checkBudget, updateBudget } from './runtime';
 import { generateEmbeddings, cosineSimilarity } from './embeddings';
 import type { InferenceBudget } from './runtime';
 import type { TranslationVerification } from '../types';
+import {
+  type PendingRequest,
+  type HealthCheckResponse,
+  performHealthCheck,
+  createWorkerRequest,
+  handleWorkerResponse,
+  clearPendingRequests
+} from './client-base';
 
 /**
  * Translation Worker instance (singleton)
@@ -18,14 +26,7 @@ let translationWorker: Worker | null = null;
 /**
  * Pending requests map
  */
-const pendingRequests = new Map<
-  string,
-  {
-    resolve: (value: string) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }
->();
+const pendingRequests = new Map<string, PendingRequest<string>>();
 
 /**
  * Similarity threshold for back-translation verification
@@ -55,27 +56,17 @@ export function initTranslationWorker(): Worker {
       return;
     }
 
-    const pending = pendingRequests.get(response.id);
-    if (!pending) return;
-
-    clearTimeout(pending.timeout);
-    pendingRequests.delete(response.id);
-
     if (response.type === 'error') {
-      pending.reject(new Error(response.error));
+      handleWorkerResponse(pendingRequests, response.id, null, response.error);
     } else if (response.type === 'translate') {
-      pending.resolve(response.translation);
+      handleWorkerResponse(pendingRequests, response.id, response.translation);
     }
   };
 
   // Handle worker errors
   translationWorker.onerror = (error) => {
     console.error('[MAESTRO Translation] Worker error:', error);
-    pendingRequests.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Translation worker crashed'));
-    });
-    pendingRequests.clear();
+    clearPendingRequests(pendingRequests, 'Translation worker crashed');
   };
 
   return translationWorker;
@@ -112,29 +103,29 @@ export async function translateText(
   const requestId = crypto.randomUUID();
   const timeoutMs = options?.timeout_ms || effectiveBudget.timeout_ms;
 
-  // Send request to worker
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error(`Translation timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    pendingRequests.set(requestId, { resolve, reject, timeout });
-
-    worker.postMessage({
-      type: 'translate',
-      id: requestId,
-      text,
-      src_lang,
-      tgt_lang,
-      options: {
-        max_length: options?.max_length,
-      },
-    });
-  }).then((translation: string) => {
-    updateBudget(effectiveBudget, estimatedTokens);
-    return translation;
+  // Post message to worker
+  worker.postMessage({
+    type: 'translate',
+    id: requestId,
+    text,
+    src_lang,
+    tgt_lang,
+    options: {
+      max_length: options?.max_length,
+    },
   });
+
+  // Wait for response
+  const translation = await createWorkerRequest(
+    pendingRequests,
+    requestId,
+    timeoutMs,
+    `Translation timed out after ${timeoutMs}ms`
+  );
+
+  // Update budget
+  updateBudget(effectiveBudget, estimatedTokens);
+  return translation;
 }
 
 /**
@@ -244,39 +235,8 @@ export async function batchTranslate(
 /**
  * Health check for translation worker
  */
-export async function checkTranslationHealth(): Promise<{
-  status: 'ok' | 'error';
-  model_loaded: boolean;
-  error?: string;
-}> {
-  try {
-    const worker = initTranslationWorker();
-    const requestId = crypto.randomUUID();
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Health check timed out'));
-      }, 5000);
-
-      const handler = (event: MessageEvent) => {
-        const response = event.data;
-        if (response.id === requestId && response.type === 'health') {
-          clearTimeout(timeout);
-          worker.removeEventListener('message', handler);
-          resolve(response);
-        }
-      };
-
-      worker.addEventListener('message', handler);
-      worker.postMessage({ type: 'health', id: requestId });
-    });
-  } catch (error) {
-    return {
-      status: 'error',
-      model_loaded: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+export async function checkTranslationHealth(): Promise<HealthCheckResponse> {
+  return performHealthCheck(initTranslationWorker, 'Translation Worker');
 }
 
 /**
@@ -284,12 +244,7 @@ export async function checkTranslationHealth(): Promise<{
  */
 export function terminateTranslationWorker(): void {
   if (translationWorker) {
-    pendingRequests.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Worker terminated'));
-    });
-    pendingRequests.clear();
-
+    clearPendingRequests(pendingRequests, 'Worker terminated');
     translationWorker.terminate();
     translationWorker = null;
   }

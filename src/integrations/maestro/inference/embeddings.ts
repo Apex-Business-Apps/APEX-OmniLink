@@ -7,6 +7,14 @@
 
 import { createInferenceBudget, checkBudget, updateBudget } from './runtime';
 import type { InferenceBudget } from './runtime';
+import {
+  type PendingRequest,
+  type HealthCheckResponse,
+  performHealthCheck,
+  createWorkerRequest,
+  handleWorkerResponse,
+  clearPendingRequests
+} from './client-base';
 
 /**
  * Embeddings Worker instance (singleton)
@@ -16,14 +24,7 @@ let embeddingsWorker: Worker | null = null;
 /**
  * Pending requests map
  */
-const pendingRequests = new Map<
-  string,
-  {
-    resolve: (value: number[][]) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }
->();
+const pendingRequests = new Map<string, PendingRequest<number[][]>>();
 
 /**
  * Initialize embeddings worker
@@ -48,28 +49,17 @@ export function initEmbeddingsWorker(): Worker {
       return;
     }
 
-    const pending = pendingRequests.get(response.id);
-    if (!pending) return;
-
-    clearTimeout(pending.timeout);
-    pendingRequests.delete(response.id);
-
     if (response.type === 'error') {
-      pending.reject(new Error(response.error));
+      handleWorkerResponse(pendingRequests, response.id, null, response.error);
     } else if (response.type === 'embeddings') {
-      pending.resolve(response.embeddings);
+      handleWorkerResponse(pendingRequests, response.id, response.embeddings);
     }
   };
 
   // Handle worker errors
   embeddingsWorker.onerror = (error) => {
     console.error('[MAESTRO Embeddings] Worker error:', error);
-    // Reject all pending requests
-    pendingRequests.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Embeddings worker crashed'));
-    });
-    pendingRequests.clear();
+    clearPendingRequests(pendingRequests, 'Embeddings worker crashed');
   };
 
   return embeddingsWorker;
@@ -106,32 +96,28 @@ export async function generateEmbeddings(
   const requestId = crypto.randomUUID();
   const timeoutMs = options?.timeout_ms || effectiveBudget.timeout_ms;
 
-  // Send request to worker
-  return new Promise((resolve, reject) => {
-    // Set timeout
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error(`Embeddings generation timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    // Store pending request
-    pendingRequests.set(requestId, { resolve, reject, timeout });
-
-    // Post message to worker
-    worker.postMessage({
-      type: 'embeddings',
-      id: requestId,
-      texts,
-      options: {
-        normalize: options?.normalize,
-        pooling: options?.pooling,
-      },
-    });
-  }).then((embeddings: number[][]) => {
-    // Update budget
-    updateBudget(effectiveBudget, 0, texts.length);
-    return embeddings;
+  // Post message to worker
+  worker.postMessage({
+    type: 'embeddings',
+    id: requestId,
+    texts,
+    options: {
+      normalize: options?.normalize,
+      pooling: options?.pooling,
+    },
   });
+
+  // Wait for response
+  const embeddings = await createWorkerRequest(
+    pendingRequests,
+    requestId,
+    timeoutMs,
+    `Embeddings generation timed out after ${timeoutMs}ms`
+  );
+
+  // Update budget
+  updateBudget(effectiveBudget, 0, texts.length);
+  return embeddings;
 }
 
 /**
@@ -183,39 +169,8 @@ export function findTopKSimilar(
 /**
  * Health check for embeddings worker
  */
-export async function checkEmbeddingsHealth(): Promise<{
-  status: 'ok' | 'error';
-  model_loaded: boolean;
-  error?: string;
-}> {
-  try {
-    const worker = initEmbeddingsWorker();
-    const requestId = crypto.randomUUID();
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Health check timed out'));
-      }, 5000);
-
-      const handler = (event: MessageEvent) => {
-        const response = event.data;
-        if (response.id === requestId && response.type === 'health') {
-          clearTimeout(timeout);
-          worker.removeEventListener('message', handler);
-          resolve(response);
-        }
-      };
-
-      worker.addEventListener('message', handler);
-      worker.postMessage({ type: 'health', id: requestId });
-    });
-  } catch (error) {
-    return {
-      status: 'error',
-      model_loaded: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+export async function checkEmbeddingsHealth(): Promise<HealthCheckResponse> {
+  return performHealthCheck(initEmbeddingsWorker, 'Embeddings Worker');
 }
 
 /**
@@ -223,14 +178,7 @@ export async function checkEmbeddingsHealth(): Promise<{
  */
 export function terminateEmbeddingsWorker(): void {
   if (embeddingsWorker) {
-    // Clear pending requests
-    pendingRequests.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Worker terminated'));
-    });
-    pendingRequests.clear();
-
-    // Terminate worker
+    clearPendingRequests(pendingRequests, 'Worker terminated');
     embeddingsWorker.terminate();
     embeddingsWorker = null;
   }
