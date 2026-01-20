@@ -45,3 +45,53 @@ export function corsJsonResponse(data: unknown, status: number = 200): Response 
     },
   });
 }
+
+/**
+ * Build CORS headers based on origin
+ * @param origin - Request origin header value
+ * @returns CORS headers object
+ */
+export function buildCorsHeaders(origin: string | null): HeadersInit {
+  return corsHeaders;
+}
+
+/**
+ * Handle CORS preflight request
+ * @param req - The incoming request
+ * @returns Response for OPTIONS preflight
+ */
+export function handlePreflight(req: Request): Response {
+  return new Response(null, {
+    headers: corsHeaders,
+    status: 204,
+  });
+}
+
+/**
+ * Check if origin is allowed
+ * @param origin - Request origin
+ * @returns True if allowed
+ */
+export function isOriginAllowed(origin: string | null): boolean {
+  // Allow all origins for now (can be refined with allowlist)
+  return true;
+}
+
+/**
+ * Create a CORS error response
+ * @param message - Error message
+ * @param status - HTTP status code
+ * @returns Error response with CORS headers
+ */
+export function corsErrorResponse(message: string, status: number = 400): Response {
+  return new Response(
+    JSON.stringify({ error: message }),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+}
