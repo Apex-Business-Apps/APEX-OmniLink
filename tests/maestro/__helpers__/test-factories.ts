@@ -51,26 +51,63 @@ export function createMockExecutionIntent(
 }
 
 /**
- * Assertion helper for injection detection results
+ * Assertion helper for injection detected and blocked
  */
-export function assertInjectionDetected(
-  result: { detected: boolean; blocked: boolean; patterns_matched?: string[] },
-  expectedPattern?: string
+export function expectInjectionBlocked(
+  result: { detected: boolean; blocked: boolean; patterns_matched?: string[]; risk_score?: number },
+  expectedPattern?: string,
+  minRiskScore?: number
 ) {
   expect(result.detected).toBe(true);
   expect(result.blocked).toBe(true);
   if (expectedPattern) {
     expect(result.patterns_matched).toContain(expectedPattern);
   }
+  if (minRiskScore !== undefined) {
+    expect(result.risk_score).toBeGreaterThan(minRiskScore);
+  }
 }
 
 /**
- * Assertion helper for safe input detection
+ * Assertion helper for injection detected (may not be blocked)
  */
-export function assertSafeInput(
+export function expectInjectionDetected(
+  result: { detected: boolean; patterns_matched?: string[] },
+  expectedPattern?: string
+) {
+  expect(result.detected).toBe(true);
+  if (expectedPattern) {
+    expect(result.patterns_matched).toContain(expectedPattern);
+  }
+}
+
+/**
+ * Assertion helper for safe input (no injection)
+ */
+export function expectSafeInput(
   result: { detected: boolean; blocked: boolean; risk_score: number }
 ) {
   expect(result.detected).toBe(false);
   expect(result.blocked).toBe(false);
   expect(result.risk_score).toBe(0);
+}
+
+/**
+ * Assertion helper for checkInputSafety - safe result
+ */
+export function expectInputSafe(
+  result: { safe: boolean; errors: string[] }
+) {
+  expect(result.safe).toBe(true);
+  expect(result.errors).toHaveLength(0);
+}
+
+/**
+ * Assertion helper for checkInputSafety - unsafe result
+ */
+export function expectInputUnsafe(
+  result: { safe: boolean; errors: string[]; injection?: { blocked: boolean } }
+) {
+  expect(result.safe).toBe(false);
+  expect(result.errors.length).toBeGreaterThan(0);
 }
