@@ -23,10 +23,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
-  signOut: async () => {},
+  signOut: async () => { },
   loading: true,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -38,25 +39,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const log = createDebugLogger('AuthContext.tsx', 'B');
-    
+
     // #region agent log
     log('AuthProvider useEffect entry');
     // #endregion
-    
+
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const supabaseAnonKey =
         import.meta.env.VITE_SUPABASE_ANON_KEY ??
         import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
+
       // #region agent log
       log('Environment variables check', {
         hasUrl: !!supabaseUrl,
         hasKey: !!supabaseAnonKey,
       });
       // #endregion
-      
+
       if (!supabaseUrl || !supabaseAnonKey) {
         if (import.meta.env.DEV) {
           console.warn(
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // #region agent log
       log('Before onAuthStateChange');
       // #endregion
-      
+
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (event, session) => {
           // #region agent log
@@ -90,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // #region agent log
       log('Before getSession');
       // #endregion
-      
+
       supabase.auth.getSession().then(({ data: { session } }) => {
         // #region agent log
         log('getSession result', {
@@ -135,19 +136,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const log = createDebugLogger('AuthContext.tsx', 'B');
-    
+
     // #region agent log
     log('Device sync useEffect entry', {
       hasSession: !!session,
       hasUser: !!session?.user,
     });
     // #endregion
-    
+
     if (!session?.user) {
       stopBackgroundDeviceSync();
       return;
     }
-    
+
     try {
       const deviceId = localStorage.getItem('device_id') || crypto.randomUUID();
       localStorage.setItem('device_id', deviceId);
@@ -166,22 +167,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           log('Before syncOnLogin');
           // #endregion
           await syncOnLogin(session.user.id);
-          
+
           // #region agent log
           log('Before upsertDevice');
           // #endregion
           await upsertDevice(session.user.id, deviceId, { fingerprint }, 'suspect');
-          
+
           // #region agent log
           log('Before markDeviceTrusted');
           // #endregion
           await markDeviceTrusted(deviceId);
-          
+
           // #region agent log
           log('Before startBackgroundDeviceSync');
           // #endregion
           startBackgroundDeviceSync(session.user.id);
-          
+
           recordAuditEvent({
             actorId: session.user.id,
             actionType: 'login',
@@ -189,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             resourceId: deviceId,
             metadata: { fingerprint },
           });
-          
+
           // #region agent log
           log('Device sync operations complete');
           // #endregion
@@ -214,7 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('Device sync setup error:', error);
       }
     }
-    
+
     return () => {
       const cleanupLog = createDebugLogger('AuthContext.tsx', 'F');
       // #region agent log

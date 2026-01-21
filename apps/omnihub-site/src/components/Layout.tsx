@@ -241,6 +241,28 @@ function Footer() {
           ))}
         </ul>
       </div>
+      {/* Maestro Observability Indicator */}
+      <div className="container" style={{
+        fontSize: '0.75rem',
+        color: 'var(--color-text-secondary)',
+        opacity: 0.7,
+        paddingTop: 'var(--space-4)',
+        borderTop: '1px solid var(--color-border)',
+        marginTop: 'var(--space-4)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
+      }}>
+        <div style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: import.meta.env.VITE_MAESTRO_ENABLED === 'true' ? 'var(--color-success)' : 'var(--color-text-muted)'
+        }} />
+        <span>
+          Maestro: {import.meta.env.VITE_MAESTRO_ENABLED === 'true' ? 'Active' : 'Disabled'}
+        </span>
+      </div>
     </footer>
   );
 }

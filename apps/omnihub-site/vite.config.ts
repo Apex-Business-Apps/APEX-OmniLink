@@ -3,8 +3,63 @@ import react from '@vitejs/plugin-react-swc';
 import { resolve } from 'node:path';
 
 // Multi-page static site configuration
+// PWA Configuration
+import { VitePWA } from 'vite-plugin-pwa';
+
+// Multi-page static site configuration
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'apex-badge.svg', 'apex-header-logo.png'],
+      manifest: {
+        name: 'APEX OmniHub',
+        short_name: 'OmniHub',
+        description: 'APEX OmniHub - Intelligence, Designed.',
+        theme_color: '#0f1729',
+        background_color: '#0f1729',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/',
+        orientation: 'portrait',
+        icons: [
+          {
+            src: 'apex-badge.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: 'apex-header-logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 3000000,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      }
+    })
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
