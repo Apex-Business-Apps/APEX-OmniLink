@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 
 -- Only service role can read/write app_settings (no client access)
-CREATE POLICY IF NOT EXISTS "Service role only" ON public.app_settings
+DROP POLICY IF EXISTS "Service role only" ON public.app_settings;
+CREATE POLICY "Service role only" ON public.app_settings
   FOR ALL USING (false);
 
 -- 2. Migrate existing hardcoded admin emails to app_settings
