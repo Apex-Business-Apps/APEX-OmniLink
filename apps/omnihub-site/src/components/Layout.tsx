@@ -64,6 +64,25 @@ function ThemeToggle() {
   );
 }
 
+function BurgerIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
 function CloseIcon() {
   return (
     <svg
@@ -128,9 +147,9 @@ function MobileDrawer({
         <div className="drawer__header">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <img
-              src="/apex-header-logo.png"
+              className="nav__logo-wordmark"
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
-              className="h-10 w-auto object-contain"
             />
           </a>
           <button
@@ -195,24 +214,32 @@ function Nav() {
     <>
       <nav className="nav">
         <div className="container nav__inner">
-          <a href="/" className="nav__logo h-[95%] flex items-center" aria-label="APEX OmniHub">
+          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <img
-              src="/apex-header-logo.png"
+              className="nav__logo-wordmark"
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
-              className="h-full w-auto object-contain py-0.5 transition-transform duration-300 hover:scale-[1.02]"
             />
           </a>
-          <ul className="nav__links">
-            {siteConfig.nav.links.map((link) => (
-              <li key={link.href}>
-                <a href={link.href} className="nav__link">
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+
           <div className="nav__actions">
+            <button
+              type="button"
+              className="nav__burger"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+            >
+              <BurgerIcon />
+            </button>
             <ThemeToggle />
+            <button
+              type="button"
+              className="nav__link nav__link--action nav__auth-btn"
+              onClick={handleAuthClick}
+            >
+              {isAuthenticated ? 'Log out' : 'Log in'}
+            </button>
           </div>
         </div>
       </nav>

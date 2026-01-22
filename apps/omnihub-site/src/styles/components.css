@@ -397,9 +397,10 @@
 }
 
 .nav__logo-wordmark {
-  height: 20px;
+  height: calc(64px * 0.95);
   width: auto;
   display: block;
+  filter: drop-shadow(0 0 12px rgba(196, 87, 28, 0.6)) drop-shadow(0 0 24px rgba(196, 87, 28, 0.4));
 }
 
 .nav__links {
@@ -1179,4 +1180,199 @@
 .section--navy .btn--secondary:hover {
   background-color: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.70);
+}
+
+/* === BURGER MENU & DRAWER === */
+.nav__burger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.nav__burger:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-muted);
+}
+
+/* Standalone BurgerMenu component - visible on ALL platforms */
+.burger-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+  z-index: 50;
+}
+
+.burger-menu:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-muted);
+}
+
+.burger-menu__icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 18px;
+  height: 14px;
+}
+
+.burger-menu__line {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background-color: currentColor;
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+.drawer__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.nav__auth-btn {
+  background: transparent;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav__auth-btn:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-muted);
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal);
+  animation: fadeIn 0.2s ease;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  max-width: 85vw;
+  height: 100vh;
+  background-color: var(--color-background);
+  z-index: calc(var(--z-modal) + 1);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+  box-shadow: var(--shadow-xl);
+  padding: 0;
+  border: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.drawer__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.drawer__close:hover {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.drawer__nav {
+  flex: 1;
+  padding: var(--space-4) 0;
+  overflow-y: auto;
+}
+
+.drawer__link {
+  display: block;
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.drawer__link:hover {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.drawer__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+@media (max-width: 768px) {
+  .nav__actions .nav__burger {
+    display: flex;
+  }
+
+  .nav__actions {
+    display: flex;
+  }
+
+  .nav__actions .theme-toggle,
+  .nav__actions .theme-toggle-segmented,
+  .nav__actions .nav__auth-btn {
+    display: none;
+  }
 }
