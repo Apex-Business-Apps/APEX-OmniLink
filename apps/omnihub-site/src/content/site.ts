@@ -36,11 +36,6 @@ function buildShowcaseItem(title: string, image: string) {
   return { title, image };
 }
 
-/** Build a tech spec section */
-function buildTechSpecSection(id: string, title: string, description: string, details: string[]) {
-  return { id, title, description, details };
-}
-
 export const siteConfig = {
   name: 'APEX OmniHub',
   domain: new URL(getSiteUrl()).hostname,
@@ -160,9 +155,7 @@ export const proofConfig = {
 /**
  * Tech Specs page content - evidence-first headings
  */
-
-// Tech spec data array to eliminate duplication
-const TECH_SPEC_DATA = [
+const techSpecSections = [
   {
     id: 'single-port',
     title: 'Single-Port Protocol',
@@ -229,12 +222,12 @@ const TECH_SPEC_DATA = [
       'Documented migration runbooks',
     ],
   },
-];
+] as const;
 
 export const techSpecsConfig = {
   title: 'Technical Specifications',
   subtitle: 'Evidence-first architecture and security posture',
-  sections: TECH_SPEC_DATA.map(spec => buildTechSpecSection(spec.id, spec.title, spec.description, spec.details)),
+  sections: techSpecSections,
 } as const;
 
 /**
