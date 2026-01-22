@@ -1,6 +1,6 @@
 import { chromium } from '@playwright/test';
-import { mkdirSync } from 'fs';
-import { join } from 'path';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 // Create screenshots directory in project root (safer than /tmp/)
 const screenshotsDir = join(process.cwd(), 'screenshots');
