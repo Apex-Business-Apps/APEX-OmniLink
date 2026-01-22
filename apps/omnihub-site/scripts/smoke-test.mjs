@@ -76,6 +76,22 @@ const CONTENT_CHECKS = [
   { content: 'Terms', description: 'Terms page' },
 ];
 
+/**
+ * Helper function to log test results and update exit code
+ * @param {boolean} passed - Whether the test passed
+ * @param {string} passMessage - Message to display on pass
+ * @param {string} failMessage - Message to display on fail
+ * @returns {number} 0 if passed, 1 if failed
+ */
+function logTestResult(passed, passMessage, failMessage) {
+  if (passed) {
+    console.log(`✅ PASS: ${passMessage}`);
+    return 0;
+  }
+  console.error(`❌ FAIL: ${failMessage}`);
+  return 1;
+}
+
 let exitCode = 0;
 
 console.log('🔍 APEX OmniHub Marketing Site - Smoke Test\n');
@@ -93,20 +109,18 @@ for (const check of PAGE_CHECKS) {
   const filePath = resolve(DIST_DIR, check.file);
 
   if (!existsSync(filePath)) {
-    console.error(`❌ FAIL: ${check.name} - File not found: ${check.file}`);
-    exitCode = 1;
+    exitCode = logTestResult(false, '', `${check.name} - File not found: ${check.file}`);
     continue;
   }
 
   const content = readFileSync(filePath, 'utf-8');
   const missing = check.htmlContains.filter(s => !content.includes(s));
 
-  if (missing.length > 0) {
-    console.error(`❌ FAIL: ${check.name} - Missing HTML structure`);
-    exitCode = 1;
-  } else {
-    console.log(`✅ PASS: ${check.name}`);
-  }
+  exitCode |= logTestResult(
+    missing.length === 0,
+    check.name,
+    `${check.name} - Missing HTML structure`
+  );
 }
 
 // Check JS bundles for content
@@ -119,27 +133,19 @@ if (!existsSync(ASSETS_JS_DIR)) {
 
 // Read all JS files
 const jsFiles = readdirSync(ASSETS_JS_DIR).filter(f => f.endsWith('.js'));
-let allJsContent = '';
-
-for (const jsFile of jsFiles) {
-  allJsContent += readFileSync(join(ASSETS_JS_DIR, jsFile), 'utf-8');
-}
+const allJsContent = jsFiles
+  .map(f => readFileSync(join(ASSETS_JS_DIR, f), 'utf-8'))
+  .join('');
 
 for (const check of CONTENT_CHECKS) {
-  if (allJsContent.includes(check.content)) {
-    console.log(`✅ PASS: ${check.description} ("${check.content}")`);
-  } else {
-    console.error(`❌ FAIL: ${check.description} - Missing: "${check.content}"`);
-    exitCode = 1;
-  }
+  exitCode |= logTestResult(
+    allJsContent.includes(check.content),
+    `${check.description} ("${check.content}")`,
+    `${check.description} - Missing: "${check.content}"`
+  );
 }
 
 console.log('');
-
-if (exitCode === 0) {
-  console.log('✅ All smoke tests passed!\n');
-} else {
-  console.error('❌ Some smoke tests failed.\n');
-}
+console.log(exitCode === 0 ? '✅ All smoke tests passed!\n' : '❌ Some smoke tests failed.\n');
 
 process.exit(exitCode);
