@@ -31,6 +31,11 @@ function buildField(label: string, placeholder: string, maxLength: number) {
   return { label, placeholder, maxLength };
 }
 
+/** Build a showcase item */
+function buildShowcaseItem(title: string, image: string) {
+  return { title, image };
+}
+
 /** Build a tech spec section */
 function buildTechSpecSection(id: string, title: string, description: string, details: string[]) {
   return { id, title, description, details };
@@ -43,10 +48,10 @@ export const siteConfig = {
   nav: {
     logo: 'APEX OmniHub',
     links: [
-      { label: 'Demo', href: '/demo.html' },
-      { label: 'Tech Specs', href: '/tech-specs.html' },
-      { label: 'Request Access', href: '/request-access.html' },
-      { label: 'Login', href: '/login.html' },
+      buildLink('Demo', '/demo.html'),
+      buildLink('Tech Specs', '/tech-specs.html'),
+      buildLink('Request Access', '/request-access.html'),
+      buildLink('Login', '/login'),
     ],
     primaryCta: buildLink('Get Started', '/request-access.html'),
   },
@@ -83,10 +88,10 @@ export const siteConfig = {
     title: 'Experience APEX OmniHub Today',
     subtitle: 'Unite. Automate. Excel.',
     items: [
-      { title: 'Project Management', image: '/placeholder-project.png' },
-      { title: 'Team Collaboration', image: '/placeholder-team.png' },
-      { title: 'Personal Dashboard', image: '/placeholder-dashboard.png' },
-      { title: 'Workflow Automation', image: '/placeholder-workflow.png' },
+      buildShowcaseItem('Project Management', '/placeholder-project.png'),
+      buildShowcaseItem('Team Collaboration', '/placeholder-team.png'),
+      buildShowcaseItem('Personal Dashboard', '/placeholder-dashboard.png'),
+      buildShowcaseItem('Workflow Automation', '/placeholder-workflow.png'),
     ],
   },
 
