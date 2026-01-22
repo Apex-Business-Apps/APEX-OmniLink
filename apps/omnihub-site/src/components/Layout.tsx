@@ -195,11 +195,11 @@ function Nav() {
     <>
       <nav className="nav">
         <div className="container nav__inner">
-          <a href="/" className="nav__logo h-[95%] flex items-center" aria-label="APEX OmniHub">
+          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <img
               src="/apex-header-logo.png"
               alt="APEX OmniHub"
-              className="h-full w-auto object-contain py-0.5 transition-transform duration-300 hover:scale-[1.02]"
+              className="h-6 w-auto object-contain"
             />
           </a>
           <ul className="nav__links">

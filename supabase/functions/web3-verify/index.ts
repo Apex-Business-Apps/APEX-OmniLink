@@ -33,10 +33,11 @@
  */
 
 import { verifyMessage, verifyTypedData } from 'https://esm.sh/viem@2.21.54';
-import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
-import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '../_shared/rate-limiting.ts';
+import { handleCors, corsJsonResponse, buildCorsHeaders, isOriginAllowed } from '../_shared/cors.ts';
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from '../_shared/rate-limit.ts';
 import { isValidWalletAddress, isValidSignature, validateRequestBody } from '../_shared/validation.ts';
 import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse, createInternalErrorResponse } from '../_shared/auth.ts';
+
 
 
 
@@ -100,14 +101,15 @@ Deno.serve(async (req) => {
     }
     const { user } = authResult;
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(user!.id, RATE_LIMITS.WEB3_VERIFY);
+    // Check rate limit (now async)
+    const rateLimit = await checkRateLimit(user!.id, RATE_LIMIT_CONFIGS.web3Verify);
     if (!rateLimit.allowed) {
       await logAuditEvent(supabase, user!.id, 'wallet_verify_rate_limited', 'unknown', {
         retry_after: Math.ceil(rateLimit.resetIn / 1000),
       });
 
-      return createRateLimitResponse(rateLimit.resetIn, `Too many verification attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds.`);
+      const origin = req.headers.get('origin');
+      return rateLimitExceededResponse(origin, rateLimit);
     }
 
     // Parse and validate request body
@@ -353,8 +355,8 @@ Deno.serve(async (req) => {
 
     // Get client metadata
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] ||
-                     req.headers.get('x-real-ip') ||
-                     'unknown';
+      req.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = req.headers.get('user-agent') || 'unknown';
 
     // Upsert wallet identity (idempotent)

@@ -5,6 +5,7 @@ write_output() {
   local key=$1
   local value=$2
   echo "${key}=${value}" >> "${GITHUB_OUTPUT:-/dev/null}"
+  return 0
 }
 
 normalize_bool() {
@@ -12,6 +13,7 @@ normalize_bool() {
     true|TRUE|True|1|yes|YES|Yes) echo "true" ;;
     *) echo "false" ;;
   esac
+  return 0
 }
 
 FORCE_EVAL=$(normalize_bool "${FORCE_EVAL:-false}")

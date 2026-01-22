@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -244,8 +244,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return <CloudSetupMessage />;
   }
 
+  const contextValue = React.useMemo(
+    () => ({ user, session, signOut, loading }),
+    [user, session, loading]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, session, signOut, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -83,7 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <Button onClick={this.handleReset} variant="outline">
                 Try again
               </Button>
-              <Button onClick={() => window.location.href = '/'} variant="default">
+              <Button onClick={() => globalThis.location.href = '/'} variant="default">
                 Go home
               </Button>
             </div>

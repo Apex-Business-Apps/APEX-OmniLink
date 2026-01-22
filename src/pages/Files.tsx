@@ -79,7 +79,7 @@ const Files = () => {
       
       if (error) throw error;
       if (data?.signedUrl) {
-        window.open(data.signedUrl, "_blank");
+        globalThis.open(data.signedUrl, "_blank");
       }
     } catch (error: unknown) {
       // Error logged via toast

@@ -16,14 +16,14 @@ export const usePWAInstall = () => {
       setIsInstallable(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    globalThis.addEventListener('beforeinstallprompt', handler);
 
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (globalThis.matchMedia('(display-mode: standalone)').matches) {
       setIsInstallable(false);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => globalThis.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const installPWA = async () => {

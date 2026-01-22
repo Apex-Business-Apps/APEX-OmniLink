@@ -39,14 +39,14 @@ export default function SecretLogin({
       const k = e.key.toLowerCase();
       const next = (seq + k).slice(-5);
       setSeq(next);
-      if (timer.current) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setSeq(""), 1500);
+      if (timer.current) globalThis.clearTimeout(timer.current);
+      timer.current = globalThis.setTimeout(() => setSeq(""), 1500);
       if (next === "login") go();
     };
-    window.addEventListener("keydown", onKey);
+    globalThis.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("keydown", onKey);
-      if (timer.current) window.clearTimeout(timer.current);
+      globalThis.removeEventListener("keydown", onKey);
+      if (timer.current) globalThis.clearTimeout(timer.current);
     };
   }, [seq, go]);
 
