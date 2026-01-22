@@ -2,6 +2,24 @@
 
 All notable changes to the APEX OmniHub Marketing Site.
 
+## [1.5.0] - 2026-01-22
+
+### Removed
+- **Restricted access page** - Removed `/restricted.html` and all references to restricted blocking behavior
+- Deleted `nav.login` dead link configuration pointing to non-existent restricted page
+
+### Changed
+- **Login navigation** - Updated Login link to point to `/login.html` instead of dead `/restricted.html`
+- **Routing system** - Added explicit clean URL rewrites to root `vercel.json` for all marketing pages
+- **Documentation** - Updated README.md to reflect actual page structure and routing behavior
+- **Smoke tests** - Replaced restricted page checks with login, privacy, and terms page validation
+- **Content checks** - Added "Welcome Back", "Privacy", and "Terms" to smoke test content validation
+
+### Added
+- **Clean URL support** - All marketing pages now accessible via both clean URLs (`/demo`) and `.html` URLs (`/demo.html`)
+- **Routing documentation** - Added "Routing" section to README explaining clean URL vs .html URL behavior
+- **Enhanced smoke tests** - Added checks for login, privacy, and terms pages with content validation
+
 ## [1.4.0] - 2026-01-16
 
 ### Added

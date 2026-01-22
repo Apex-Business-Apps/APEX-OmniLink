@@ -13,7 +13,7 @@ A static multi-page application (MPA) built for maximum portability and security
 
 ### Key Features
 
-- **Static-First Architecture**: 7 HTML entry points, works on any static host
+- **Static-First Architecture**: 7 HTML entry points, works on any static host (with clean URL support via rewrites)
 - **Zero External Dependencies**: Self-hosted fonts, no third-party scripts
 - **Security-Hardened**: A+ security headers, strict CSP, HSTS preload ready
 - **Theme Toggle**: White Fortress (light) ↔ Night Watch (dark)
@@ -68,7 +68,7 @@ apps/omnihub-site/
 │   │   ├── Demo.tsx            # Demo showcase
 │   │   ├── TechSpecs.tsx       # Technical specifications
 │   │   ├── RequestAccess.tsx   # Early access form
-│   │   ├── Restricted.tsx      # Authorization required
+│   │   ├── Login.tsx           # Login page
 │   │   ├── Privacy.tsx         # Privacy Policy
 │   │   └── Terms.tsx           # Terms of Service
 │   ├── styles/         # CSS (theme.css + components.css)
@@ -89,13 +89,22 @@ apps/omnihub-site/
 
 | Route | Description | Sections |
 |-------|-------------|----------|
-| `/` | Landing page | Hero, Features, Tri-Force, Orchestrator, Fortress, MAN Mode, Capabilities, CTA |
-| `/demo.html` | Demo video/interactive | Video placeholder, Interactive demo |
-| `/tech-specs.html` | Technical specifications | 6 spec sections with details |
-| `/request-access.html` | Early access form | Form with anti-abuse protection |
-| `/restricted.html` | Restricted fallback | Access denied with CTAs |
-| `/privacy.html` | Privacy Policy | 10 legal sections |
-| `/terms.html` | Terms of Service | 13 legal sections |
+| `/` or `/index.html` | Landing page | Hero, Features, Tri-Force, Orchestrator, Fortress, MAN Mode, Capabilities, CTA |
+| `/demo` or `/demo.html` | Demo video/interactive | Video placeholder, Interactive demo |
+| `/tech-specs` or `/tech-specs.html` | Technical specifications | 6 spec sections with details |
+| `/request-access` or `/request-access.html` | Early access form | Form with anti-abuse protection |
+| `/login` or `/login.html` | Login page | Authentication interface |
+| `/privacy` or `/privacy.html` | Privacy Policy | 10 legal sections |
+| `/terms` or `/terms.html` | Terms of Service | 13 legal sections |
+
+## Routing
+
+The marketing site supports both **clean URLs** (e.g., `/demo`) and **portable .html URLs** (e.g., `/demo.html`):
+
+- **Canonical pages** are `.html` files for maximum portability across static hosting providers
+- **Clean URLs** are supported in production via Vercel rewrites (configured in root `vercel.json`)
+- All internal links use `.html` extensions to ensure the site works on any static host without server configuration
+- The root `vercel.json` provides explicit rewrites for each marketing page, with no catch-all fallback (unknown paths return 404)
 
 ## Themes
 

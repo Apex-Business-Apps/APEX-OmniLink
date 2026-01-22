@@ -46,9 +46,8 @@ export const siteConfig = {
       { label: 'Demo', href: '/demo.html' },
       { label: 'Tech Specs', href: '/tech-specs.html' },
       { label: 'Request Access', href: '/request-access.html' },
-      { label: 'Login', href: '/login' },
+      { label: 'Login', href: '/login.html' },
     ],
-    login: buildLink('Log In', '/restricted.html'),
     primaryCta: buildLink('Get Started', '/request-access.html'),
   },
 

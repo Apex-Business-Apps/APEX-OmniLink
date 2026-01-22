@@ -43,8 +43,18 @@ const PAGE_CHECKS = [
     htmlContains: ['<div id="root">', '<script'],
   },
   {
-    file: 'restricted.html',
-    name: 'Restricted (/restricted)',
+    file: 'login.html',
+    name: 'Login (/login)',
+    htmlContains: ['<div id="root">', '<script'],
+  },
+  {
+    file: 'privacy.html',
+    name: 'Privacy (/privacy)',
+    htmlContains: ['<div id="root">', '<script'],
+  },
+  {
+    file: 'terms.html',
+    name: 'Terms (/terms)',
     htmlContains: ['<div id="root">', '<script'],
   },
 ];
@@ -61,6 +71,9 @@ const CONTENT_CHECKS = [
   { content: 'Single-Port Protocol', description: 'Tech spec section' },
   { content: 'Technical Specifications', description: 'Tech specs page title' },
   { content: 'Request Access', description: 'Request access page' },
+  { content: 'Welcome Back', description: 'Login page title' },
+  { content: 'Privacy', description: 'Privacy page' },
+  { content: 'Terms', description: 'Terms page' },
 ];
 
 let exitCode = 0;
