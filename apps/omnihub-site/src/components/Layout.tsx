@@ -64,17 +64,6 @@ function ThemeToggle() {
   );
 }
 
-function LogoMark() {
-  return (
-    <img
-      src="/apex-badge.png"
-      alt=""
-      aria-hidden="true"
-      className="nav__logo-badge"
-    />
-  );
-}
-
 function BurgerIcon() {
   return (
     <svg
@@ -157,7 +146,6 @@ function MobileDrawer({
       >
         <div className="drawer__header">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
-            <LogoMark />
             <img
               className="nav__logo-wordmark"
               src="/apex-omnihub-wordmark.svg"
@@ -227,7 +215,6 @@ function Nav() {
       <nav className="nav">
         <div className="container nav__inner">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
-            <LogoMark />
             <img
               className="nav__logo-wordmark"
               src="/apex-omnihub-wordmark.svg"
