@@ -7,6 +7,34 @@ import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/c
 // Maximum request body size (100KB)
 const MAX_REQUEST_SIZE = 100 * 1024;
 
+/**
+ * Build standardized error response
+ * @param error - Error message or object
+ * @param status - HTTP status code
+ * @param corsHeaders - CORS headers to include
+ * @param additionalHeaders - Optional additional headers
+ * @returns Response object
+ */
+function errorResponse(
+  error: string | Record<string, unknown>,
+  status: number,
+  corsHeaders: Record<string, string>,
+  additionalHeaders?: Record<string, string>
+): Response {
+  const body = typeof error === 'string' ? { error } : error;
+  return new Response(
+    JSON.stringify(body),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        ...additionalHeaders,
+      }
+    }
+  );
+}
+
 const systemPromptPromise = getOmniLinkIntegrationBrainPrompt();
 
 serve(async (req) => {
@@ -20,18 +48,16 @@ serve(async (req) => {
 
   // Validate origin for non-preflight requests
   if (!isOriginAllowed(requestOrigin)) {
-    return new Response(
-      JSON.stringify({ error: 'Origin not allowed' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return errorResponse('Origin not allowed', 403, corsHeaders);
   }
 
   // Check request size limit
   const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
   if (contentLength > MAX_REQUEST_SIZE) {
-    return new Response(
-      JSON.stringify({ error: 'Request body too large', max_size: MAX_REQUEST_SIZE }),
-      { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return errorResponse(
+      { error: 'Request body too large', max_size: MAX_REQUEST_SIZE },
+      413,
+      corsHeaders
     );
   }
 
@@ -41,26 +67,17 @@ serve(async (req) => {
     const traceId = crypto.randomUUID();
 
     if (!openAIKey) {
-      return new Response(
-        JSON.stringify({ error: 'OPENAI_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return errorResponse('OPENAI_API_KEY not configured', 500, corsHeaders);
     }
 
     if (typeof query !== 'string' || !query.trim()) {
-      return new Response(
-        JSON.stringify({ error: 'Query must be a non-empty string' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return errorResponse('Query must be a non-empty string', 400, corsHeaders);
     }
 
     const promptSafety = evaluatePromptSafety(query);
     if (!promptSafety.safe) {
       console.warn('APEX: Prompt rejected', { traceId, violations: promptSafety.violations });
-      return new Response(
-        JSON.stringify({ error: 'Prompt rejected by safety guardrails' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return errorResponse('Prompt rejected by safety guardrails', 400, corsHeaders);
     }
 
     const systemPrompt = await systemPromptPromise;
@@ -99,10 +116,7 @@ serve(async (req) => {
     } catch (error) {
       clearTimeout(timeout);
       if (error instanceof Error && error.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({ error: 'Request timed out' }),
-          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Request timed out', 504, corsHeaders);
       }
       throw error;
     } finally {
@@ -139,23 +153,25 @@ serve(async (req) => {
             throw new Error('Fallback model also failed');
           }
         } catch {
-          return new Response(
-            JSON.stringify({ 
-              error: 'AI request failed', 
+          return errorResponse(
+            {
+              error: 'AI request failed',
               details: errorText,
-              message: 'Please ensure OPENAI_API_KEY is configured correctly' 
-            }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              message: 'Please ensure OPENAI_API_KEY is configured correctly'
+            },
+            500,
+            corsHeaders
           );
         }
       } else {
-        return new Response(
-          JSON.stringify({ 
-            error: 'AI request failed', 
+        return errorResponse(
+          {
+            error: 'AI request failed',
             details: errorText,
-            message: 'Please ensure OPENAI_API_KEY is configured correctly' 
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            message: 'Please ensure OPENAI_API_KEY is configured correctly'
+          },
+          500,
+          corsHeaders
         );
       }
     }
@@ -168,10 +184,7 @@ serve(async (req) => {
     const outputSafety = validateLLMOutput(assistantMessage);
     if (!outputSafety.safe) {
       console.error('APEX: Output failed safety validation', { traceId, violations: outputSafety.violations });
-      return new Response(
-        JSON.stringify({ error: 'AI response blocked by safety guardrails' }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return errorResponse('AI response blocked by safety guardrails', 502, corsHeaders);
     }
 
     // Try to parse as JSON for structured output
@@ -197,9 +210,10 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('APEX assistant error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return errorResponse(
+      error instanceof Error ? error.message : 'Unknown error',
+      500,
+      corsHeaders
     );
   }
 });
