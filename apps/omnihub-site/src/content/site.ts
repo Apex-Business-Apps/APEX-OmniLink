@@ -37,7 +37,7 @@ function buildShowcaseItem(title: string, image: string) {
 }
 
 /** Build a tech spec section */
-function buildTechSpecSection(id: string, title: string, description: string, details: string[]) {
+function spec(id: string, title: string, description: string, ...details: string[]) {
   return { id, title, description, details };
 }
 
