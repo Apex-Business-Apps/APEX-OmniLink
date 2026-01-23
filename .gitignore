@@ -57,3 +57,12 @@ __pycache__/
 venv/
 ENV/
 test-results/
+
+# Hardhat
+cache/
+artifacts/
+typechain/
+typechain-types/
+coverage/
+coverage.json
+.openzeppelin/
