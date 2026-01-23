@@ -216,10 +216,7 @@ function Nav() {
         <div className="container nav__inner">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <img
-              className="nav__logo-wordmark"
-              src="/apex-omnihub-wordmark.svg"
-              alt="APEX OmniHub"
-              className="h-6 w-auto object-contain"
+              className="nav__logo-wordmark h-6 w-auto object-contain"
             />
           </a>
 
