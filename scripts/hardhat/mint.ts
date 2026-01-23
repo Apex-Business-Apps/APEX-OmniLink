@@ -64,8 +64,8 @@ async function main() {
       const tx = await contract.mintMembership(recipient);
       const receipt = await tx.wait();
 
-      // Get token ID from event
-      const event = receipt?.logs.find(
+      // Get token ID from event (unused but kept for debugging)
+      const _event = receipt?.logs.find(
         (log: { fragment?: { name: string } }) => log.fragment?.name === "MembershipMinted"
       );
 

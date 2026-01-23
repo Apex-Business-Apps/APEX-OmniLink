@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { APEXMembershipNFT } from "../../typechain-types";
