@@ -112,7 +112,7 @@ describe("APEXMembershipNFT", function () {
     });
 
     it("should enforce batch size limit", async function () {
-      const recipients = Array(101).fill(user1.address);
+      const recipients = new Array<string>(101).fill(user1.address);
       await expect(
         contract.batchMintMembership(recipients)
       ).to.be.revertedWith("APEXMembershipNFT: batch size exceeds limit");
