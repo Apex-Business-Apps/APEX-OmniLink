@@ -9,27 +9,22 @@ import { getSiteUrl } from '@/lib/site-url';
 // Helper functions to reduce duplication in config objects
 // ============================================================================
 
+/** Generic factory to build config objects */
+const build = <T>(obj: T): T => obj;
+
 /** Build a navigation link */
-function buildLink(label: string, href: string) {
-  return { label, href };
-}
-
-
+const buildLink = (label: string, href: string) => build({ label, href });
 
 /** Build a titled item with description */
-function buildItem(title: string, description: string) {
-  return { title, description };
-}
+const buildItem = (title: string, description: string) => build({ title, description });
 
 /** Build a proof tile */
-function buildProofTile(id: string, label: string, value: string, verified: boolean) {
-  return { id, label, value, verified };
-}
+const buildProofTile = (id: string, label: string, value: string, verified: boolean) =>
+  build({ id, label, value, verified });
 
 /** Build a form field config */
-function buildField(label: string, placeholder: string, maxLength: number) {
-  return { label, placeholder, maxLength };
-}
+const buildField = (label: string, placeholder: string, maxLength: number) =>
+  build({ label, placeholder, maxLength });
 
 /** Build a showcase item */
 function buildShowcaseItem(title: string, image: string) {
@@ -37,9 +32,8 @@ function buildShowcaseItem(title: string, image: string) {
 }
 
 /** Build a tech spec section */
-function spec(id: string, title: string, description: string, ...details: string[]) {
-  return { id, title, description, details };
-}
+const buildTechSpecSection = (id: string, title: string, description: string, details: string[]) =>
+  build({ id, title, description, details });
 
 export const siteConfig = {
   name: 'APEX OmniHub',

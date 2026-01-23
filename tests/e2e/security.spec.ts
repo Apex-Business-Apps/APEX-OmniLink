@@ -44,12 +44,23 @@ beforeEach(() => {
     },
   });
 
-  // Mock window
-  vi.stubGlobal('window', {
-    location: {
-      origin: 'https://example.com',
-      hostname: 'localhost',
-    },
+  // Nuclear Mocking Option for Vitest/JSDOM consistency
+  const mockLocation = {
+    origin: 'https://example.com',
+    hostname: 'example.com',
+    href: 'https://example.com/',
+    toString: () => 'https://example.com/'
+  };
+
+  // Force assignment to global scope
+  Object.defineProperty(global, 'location', {
+    writable: true,
+    value: mockLocation,
+  });
+
+  Object.defineProperty(global, 'window', {
+    writable: true,
+    value: { location: mockLocation },
   });
 });
 

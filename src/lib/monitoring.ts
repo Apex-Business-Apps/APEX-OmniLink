@@ -179,7 +179,7 @@ export function initializeMonitoring(): void {
     // #endregion
 
     // Set up global error handler
-    window.addEventListener('error', (event) => {
+    globalThis.addEventListener('error', (event) => {
       // #region agent log
       log('Global error caught', {
         message: event.message,
@@ -188,7 +188,7 @@ export function initializeMonitoring(): void {
       });
       // #endregion
       logError(new Error(event.message), {
-        route: window.location.pathname,
+        route: globalThis.location.pathname,
         metadata: {
           filename: event.filename,
           lineno: event.lineno,
@@ -198,7 +198,7 @@ export function initializeMonitoring(): void {
     });
 
     // Set up unhandled promise rejection handler
-    window.addEventListener('unhandledrejection', (event) => {
+    globalThis.addEventListener('unhandledrejection', (event) => {
       // #region agent log
       log('Unhandled promise rejection', {
         reason: event.reason instanceof Error ? event.reason.message : String(event.reason),
@@ -206,7 +206,7 @@ export function initializeMonitoring(): void {
       // #endregion
       const errorMessage = event.reason instanceof Error ? event.reason.message : String(event.reason);
       logError(new Error(errorMessage), {
-        route: window.location.pathname,
+        route: globalThis.location.pathname,
         metadata: { type: 'unhandled_promise' },
       });
     });

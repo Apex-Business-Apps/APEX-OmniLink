@@ -125,8 +125,8 @@ export function useWalletVerification() {
       body: JSON.stringify({
         wallet_address: walletAddress,
         chain_id: resolvedChainId,
-        domain: window.location.host,
-        uri: window.location.origin,
+        domain: globalThis.location.host,
+        uri: globalThis.location.origin,
       }),
     });
 

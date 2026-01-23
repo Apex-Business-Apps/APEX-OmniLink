@@ -24,7 +24,7 @@
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 import { encodeHex } from 'https://deno.land/std@0.177.0/encoding/hex.ts';
 import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
-import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from '../_shared/rate-limiting.ts';
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from '../_shared/rate-limit.ts';
 import { isValidWalletAddress } from '../_shared/validation.ts';
 import { createSupabaseClient, createMethodNotAllowedResponse, createInternalErrorResponse } from '../_shared/auth.ts';
 
@@ -71,13 +71,14 @@ Deno.serve(async (req) => {
   try {
     // Get client IP for rate limiting
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] ||
-                     req.headers.get('x-real-ip') ||
-                     'unknown';
+      req.headers.get('x-real-ip') ||
+      'unknown';
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(clientIp, RATE_LIMITS.WEB3_NONCE);
+    // Check rate limit (now async)
+    const rateLimit = await checkRateLimit(clientIp, RATE_LIMIT_CONFIGS.web3Nonce);
     if (!rateLimit.allowed) {
-      return createRateLimitResponse(rateLimit.resetIn, `Too many requests. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds.`);
+      const origin = req.headers.get('origin');
+      return rateLimitExceededResponse(origin, rateLimit);
     }
 
     // Parse request body

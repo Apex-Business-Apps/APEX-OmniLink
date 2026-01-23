@@ -10,7 +10,7 @@ export type Environment = 'development' | 'staging' | 'production';
  * Detect current environment
  */
 export function getEnvironment(): Environment {
-  const hostname = window.location.hostname;
+  const hostname = globalThis.location.hostname;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'development';

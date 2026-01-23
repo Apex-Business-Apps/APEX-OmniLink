@@ -65,8 +65,8 @@ export function sanitizeInput(input: string): string {
  */
 export function isValidRedirectUrl(url: string): boolean {
   try {
-    const parsed = new URL(url, window.location.origin);
-    return parsed.origin === window.location.origin;
+    const parsed = new URL(url, globalThis.location.origin);
+    return parsed.origin === globalThis.location.origin;
   } catch {
     return false;
   }

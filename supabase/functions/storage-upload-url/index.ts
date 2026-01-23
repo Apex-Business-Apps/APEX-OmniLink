@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES, addRateLimitHeaders } from "../_shared/ratelimit.ts";
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from "../_shared/rate-limit.ts";
 import { createServiceClient } from "../_shared/supabaseClient.ts";
 
 // Maximum request body size (1MB for upload metadata)
@@ -82,10 +82,10 @@ serve(async (req) => {
     }
 
     // Distributed rate limiting check
-    const rateCheck = await checkRateLimit(user.id, RATE_LIMIT_PROFILES.upload);
+    const rateCheck = await checkRateLimit(user.id, RATE_LIMIT_CONFIGS.storageUploadUrl);
     if (!rateCheck.allowed) {
       console.warn(`[${requestId}] Rate limit exceeded for user ${user.id}`);
-      return rateLimitExceededResponse(rateCheck, RATE_LIMIT_PROFILES.upload, corsHeaders);
+      return rateLimitExceededResponse(requestOrigin, rateCheck);
     }
 
     // Parse request body
@@ -133,15 +133,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ path, token: data.token, signedUrl: data.signedUrl }),
       {
-        headers: addRateLimitHeaders(
-          {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "X-Request-ID": requestId,
-          },
-          rateCheck,
-          RATE_LIMIT_PROFILES.upload
-        ),
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "X-Request-ID": requestId,
+          ...Object.fromEntries(rateCheck.headers.entries())
+        },
         status: 200
       }
     );
