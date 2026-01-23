@@ -12,12 +12,15 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 // MOCKS - Must be defined before imports
 // =============================================================================
 
-// Mock uuid
+// Deterministic counter for test IDs (avoids Math.random() security hotspot)
+const testIdCounter = vi.hoisted(() => ({ value: 0 }));
+
+// Mock uuid with deterministic IDs for reproducible tests
 vi.mock('uuid', async (importOriginal) => {
   const actual = await importOriginal<typeof import('uuid')>();
   return {
     ...actual,
-    v4: vi.fn(() => 'test-correlation-id-' + Math.random().toString(36).substring(7)),
+    v4: vi.fn(() => `test-correlation-id-${(++testIdCounter.value).toString(16).padStart(6, '0')}`),
   };
 });
 
