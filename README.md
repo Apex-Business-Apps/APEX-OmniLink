@@ -158,21 +158,40 @@ Production-grade workflow orchestration with enterprise reliability patterns:
 
  
 
-### Web3 Integration
+### Web3 Integration (Phase 0 Complete)
 
- 
+
 
 Blockchain-native authentication and access control:
 
- 
+
 
 - **Wallet Support**: MetaMask, WalletConnect, Coinbase Wallet
 
-- **NFT Gating**: Premium features via APEXMembershipNFT (ERC-721)
+- **NFT Gating**: APEX Genesis Key (ERC-721A) for premium access
 
-- **Multi-Chain**: Ethereum Mainnet and Polygon Mainnet
+- **Multi-Chain**: Polygon Amoy (testnet) / Polygon Mainnet (production)
 
-- **SIWE**: Sign-In with Ethereum for cryptographic authentication
+- **SIWE**: Sign-In with Ethereum (EIP-4361) with replay protection
+
+- **Smart Contracts**: Hardhat + Solidity 0.8.20 with gas optimization
+
+- **Revocation**: Automatic access revocation on NFT transfer
+
+
+
+#### Smart Contract Deployment
+
+```bash
+# Compile contracts
+npx hardhat compile
+
+# Deploy to Polygon Amoy testnet
+npx hardhat run scripts/deploy-phase0.js --network polygonAmoy
+
+# Run e2e tests (73 tests)
+npx hardhat test test/e2e/
+```
 
  
 
@@ -435,6 +454,16 @@ APEX-OmniHub/
 
 │   └── providers/          # Context providers
 
+├── contracts/              # Solidity smart contracts (Phase 0)
+
+│   ├── ApexGenesisKeyV3.sol    # Genesis Key NFT (ERC721A)
+
+│   └── test/MockUSDC.sol       # Mock payment token
+
+├── scripts/                # Deployment scripts
+
+│   └── deploy-phase0.js        # Polygon Amoy deployment
+
 ├── orchestrator/           # Python Temporal.io worker
 
 │   ├── workflows/          # Workflow definitions
@@ -449,13 +478,15 @@ APEX-OmniHub/
 
 ├── supabase/
 
-│   ├── functions/          # 15 Edge Functions
+│   ├── functions/          # 17 Edge Functions (+siwe-nonce, verify-nft)
 
-│   └── migrations/         # 18 database migrations
+│   └── migrations/         # 19 database migrations (+SIWE foundation)
 
 ├── terraform/              # Infrastructure modules
 
 ├── tests/                  # Comprehensive test suite
+
+│   └── e2e/                    # Blockchain e2e tests (73 tests)
 
 ├── docs/                   # Documentation (50+ files)
 
@@ -579,7 +610,7 @@ cd orchestrator && pytest
 
 
 
-- **517 tests total** (87.0% pass rate, 450 passing)
+- **590+ tests total** (87.0%+ pass rate)
 
 - 59 test files (48 TypeScript + 11 Python)
 
@@ -594,6 +625,11 @@ cd orchestrator && pytest
 - Web3 wallet integration tests
 
 - Chaos simulation and recovery tests
+
+- **Phase 0 Blockchain Tests (73 tests)**:
+  - 48 smart contract tests (ApexGenesisKeyV3 + MockUSDC)
+  - 25 SIWE verification flow tests
+  - Gas optimization validation (ERC721A ~55% savings)
 
  
 

@@ -99,9 +99,71 @@ npx ts-node -e "const {Wallet} = require('ethers'); const wallet = Wallet.create
 
 ## Smart Contract Deployment
 
-### APEXMembershipNFT Contract
+### Phase 0: APEX Genesis Key (Recommended)
 
-**Technology:** OpenZeppelin ERC721 standard
+**Status:** ✅ Production Ready (73 tests passing)
+**Technology:** ERC721A + OpenZeppelin (gas-optimized)
+
+#### Contracts Included
+
+| Contract | Purpose | Network |
+|----------|---------|---------|
+| **ApexGenesisKeyV3** | Premium membership NFT (ERC721A) | Polygon Amoy / Mainnet |
+| **MockUSDC** | Test payment token (testnet only) | Polygon Amoy |
+
+#### Quick Deployment
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment (.env)
+AMOY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_KEY
+PRIVATE_KEY=YOUR_DEPLOYER_PRIVATE_KEY
+
+# 3. Compile contracts
+npx hardhat compile
+
+# 4. Deploy to Polygon Amoy testnet
+npx hardhat run scripts/deploy-phase0.js --network polygonAmoy
+
+# 5. Run tests (73 tests)
+npx hardhat test test/e2e/
+```
+
+#### Contract Features
+
+**ApexGenesisKeyV3:**
+- ERC721A for gas-efficient batch minting (~55% savings)
+- ERC20 payment token support (USDC)
+- Per-wallet mint limits (5 max)
+- Owner-controlled sale state
+- ReentrancyGuard protection
+- SafeERC20 transfers
+
+**Gas Report:**
+| Operation | Gas Used |
+|-----------|----------|
+| Batch mint (5 tokens) | 134,973 |
+| Single transfer | 74,355 |
+| Contract deployment | 1,766,323 |
+
+#### Post-Deployment Steps
+
+1. Copy deployed `ApexGenesisKeyV3` address
+2. Set `MEMBERSHIP_NFT_ADDRESS` in Supabase Edge Function secrets
+3. Apply SIWE migration: `supabase db push`
+4. Deploy edge functions:
+   ```bash
+   supabase functions deploy siwe-nonce
+   supabase functions deploy verify-nft
+   ```
+
+---
+
+### Legacy: APEXMembershipNFT Contract
+
+**Technology:** OpenZeppelin ERC721 standard (simpler, higher gas)
 
 **Deployment Steps:**
 

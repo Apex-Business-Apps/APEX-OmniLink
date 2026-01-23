@@ -423,9 +423,97 @@ npm install
 
 ---
 
+## 🔷 Phase 0: NFT Verification with Hardhat + SIWE (NEW)
+
+**Status:** ✅ COMPLETE (73 tests passing)
+**Date:** 2026-01-24
+
+### Smart Contracts Deployed
+
+| Contract | Network | Purpose |
+|----------|---------|---------|
+| **ApexGenesisKeyV3** | Polygon Amoy | ERC721A Genesis Key NFT with USDC payments |
+| **MockUSDC** | Polygon Amoy | Test payment token (6 decimals) |
+
+### SIWE Authentication Flow
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Client    │────▶│  siwe-nonce  │────▶│  Database   │
+│             │     │  (Edge Fn)   │     │ auth_nonces │
+└─────────────┘     └──────────────┘     └─────────────┘
+       │                                        │
+       │ 1. Request nonce                       │
+       │◀───────────────────────────────────────┤
+       │    { nonce, message, expires_at }      │
+       │                                        │
+       │ 2. Sign message with wallet            │
+       │                                        │
+       ▼                                        │
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Wallet    │────▶│  verify-nft  │────▶│  Blockchain │
+│  (MetaMask) │     │  (Edge Fn)   │     │    RPC      │
+└─────────────┘     └──────────────┘     └─────────────┘
+                           │
+                           │ 3. Verify signature + check NFT balance
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │  Response   │
+                    │ has_premium │
+                    │ nft_balance │
+                    └─────────────┘
+```
+
+### Security Features
+
+| Feature | Implementation |
+|---------|----------------|
+| **Replay Protection** | Atomic nonce consumption via `use_auth_nonce()` |
+| **Domain Binding** | EIP-4361 domain validation |
+| **Chain ID Binding** | Polygon Amoy (80002) enforced |
+| **Signature Verification** | viem ECDSA recovery |
+| **Revocation** | Automatic on NFT transfer (balance = 0) |
+| **Rate Limiting** | 5 nonce/min, 10 verify/hr per user |
+
+### Quick Start
+
+```bash
+# 1. Compile contracts
+npx hardhat compile
+
+# 2. Deploy to Polygon Amoy
+npx hardhat run scripts/deploy-phase0.js --network polygonAmoy
+
+# 3. Run tests (73 tests)
+npx hardhat test test/e2e/
+
+# 4. Apply SIWE migration
+supabase db push
+```
+
+### Test Results (73/73 PASSING)
+
+| Category | Tests |
+|----------|-------|
+| ApexGenesisKeyV3 | 39 |
+| MockUSDC | 9 |
+| SIWE Verification | 25 |
+| **TOTAL** | **73** |
+
+### Gas Report (ERC721A Optimized)
+
+| Operation | Gas Used | Savings vs ERC721 |
+|-----------|----------|-------------------|
+| Batch mint (5 tokens) | 134,973 | ~55% |
+| Single transfer | 74,355 | Standard |
+| Contract deployment | 1,766,323 | 2.9% of block |
+
+---
+
 ## ✅ Summary
 
-The Web3 Verification Module is now **fully integrated** into OmniLink APEX:
+The Web3 Verification Module is now **fully integrated** into APEX OmniHub:
 
 ✅ **Backend:** Database tables, edge functions, RLS policies
 ✅ **Frontend:** React components, hooks, providers, utilities
@@ -433,8 +521,9 @@ The Web3 Verification Module is now **fully integrated** into OmniLink APEX:
 ✅ **Documentation:** 1,600+ lines of guides and examples
 ✅ **Integration:** Seamlessly wired into existing app architecture
 ✅ **Mocks:** Demo keys provided for immediate development
+✅ **Phase 0:** Smart contracts + SIWE + revocation (73 tests)
 
-**Total Implementation:** 3,853 lines across 19 files
+**Total Implementation:** 5,000+ lines across 25+ files
 
 Everything is ready for development and testing. Simply run `npm install` and `npm run dev` to start!
 
@@ -442,6 +531,6 @@ Everything is ready for development and testing. Simply run `npm install` and `n
 
 **Questions?** Check `/docs/WEB3_VERIFICATION_RUNBOOK.md` for comprehensive documentation.
 
-**Last Updated:** 2026-01-01
-**Branch:** `claude/add-web3-verification-YVXYo`
+**Last Updated:** 2026-01-24
+**Branch:** `claude/apex-dev-setup-1pOrb`
 **Status:** ✅ Production-Ready (with proper API keys)
