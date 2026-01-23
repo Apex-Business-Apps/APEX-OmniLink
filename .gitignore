@@ -44,6 +44,12 @@ dev-server.log
 # Screenshots and artifacts
 artifacts/
 
+# Hardhat
+cache/
+typechain-types/
+coverage/
+coverage.json
+
 # Python
 __pycache__/
 *.py[cod]
