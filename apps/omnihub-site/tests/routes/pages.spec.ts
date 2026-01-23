@@ -10,9 +10,6 @@ import { test, expect } from '@playwright/test';
  * This prevents 404s and validates the Vercel rewrite configuration.
  */
 
-// Test configuration
-const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
-
 // Page test matrix: [route, expectedContent]
 const PAGE_TESTS = [
   { route: '/', htmlRoute: '/index.html', content: 'Intelligence Designed', description: 'Homepage hero title' },

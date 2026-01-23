@@ -32,7 +32,7 @@ function buildShowcaseItem(title: string, image: string) {
 }
 
 /** Build a tech spec section */
-const buildTechSpecSection = (id: string, title: string, description: string, details: string[]) =>
+const _buildTechSpecSection = (id: string, title: string, description: string, details: string[]) =>
   build({ id, title, description, details });
 
 export const siteConfig = {

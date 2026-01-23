@@ -225,7 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [session]);
 
-  const signOut = async () => {
+  const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
     stopBackgroundDeviceSync();
     if (session?.user) {
@@ -237,12 +237,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     }
     navigate('/auth');
-  };
+  }, [session, navigate]);
 
   // useMemo MUST come before any early returns (Rules of Hooks)
   const contextValue = React.useMemo(
     () => ({ user, session, signOut, loading }),
-    [user, session, loading]
+    [user, session, signOut, loading]
   );
 
   // Show setup message if Cloud is not configured
