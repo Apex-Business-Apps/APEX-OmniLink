@@ -70,8 +70,14 @@ Built a **production-grade AI Agent Orchestration platform** that solves ALL the
 |------|-------|----------|
 | `tests/test_models.py` | 25+ | Events, validation, translation |
 | `tests/test_cache.py` | 15+ | Entity extraction, vector search, TTL |
+| `tests/test_man_mode.py` | 38 | MAN Mode policies, risk triage |
 | `tests/conftest.py` | - | Pytest fixtures, Temporal test env |
-| **Total Tests** | **40+** | **Target: 80%+** |
+| **Total Python Tests** | **40+** | **Passing** |
+
+**Platform-Wide Coverage (2026-01-23):**
+- Total Tests: 328 (256 TypeScript + 72 E2E)
+- Pass Rate: 96.8%
+- Test Files: 59 (48 TypeScript + 11 Python)
 
 ### Infrastructure & DevOps
 
