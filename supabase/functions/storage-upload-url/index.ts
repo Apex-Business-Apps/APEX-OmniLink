@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS, addRateLimitHeaders } from "../_shared/rate-limit.ts";
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from "../_shared/rate-limit.ts";
 import { createServiceClient } from "../_shared/supabaseClient.ts";
 
 // Maximum request body size (1MB for upload metadata)

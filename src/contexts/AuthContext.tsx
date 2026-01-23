@@ -239,15 +239,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigate('/auth');
   };
 
-  // Show setup message if Cloud is not configured
-  if (!cloudConfigured) {
-    return <CloudSetupMessage />;
-  }
-
+  // useMemo MUST come before any early returns (Rules of Hooks)
   const contextValue = React.useMemo(
     () => ({ user, session, signOut, loading }),
     [user, session, loading]
   );
+
+  // Show setup message if Cloud is not configured
+  if (!cloudConfigured) {
+    return <CloudSetupMessage />;
+  }
 
   return (
     <AuthContext.Provider value={contextValue}>
