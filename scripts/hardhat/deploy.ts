@@ -32,7 +32,7 @@ async function main() {
   // Deployment configuration
   const config = {
     baseURI: process.env.NFT_BASE_URI || "https://api.apexomnihub.com/nft/metadata/",
-    maxSupply: process.env.NFT_MAX_SUPPLY ? parseInt(process.env.NFT_MAX_SUPPLY) : 0, // 0 = unlimited
+    maxSupply: process.env.NFT_MAX_SUPPLY ? Number.parseInt(process.env.NFT_MAX_SUPPLY, 10) : 0, // 0 = unlimited
   };
 
   console.log("Deployment Configuration:");
@@ -109,12 +109,12 @@ async function main() {
   };
 }
 
-main()
-  .then((result) => {
-    console.log("\nDeployment result:", JSON.stringify(result, null, 2));
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error("Deployment failed:", error);
-    process.exit(1);
-  });
+// Execute deployment
+try {
+  const result = await main();
+  console.log("\nDeployment result:", JSON.stringify(result, null, 2));
+  process.exit(0);
+} catch (error) {
+  console.error("Deployment failed:", error);
+  process.exit(1);
+}

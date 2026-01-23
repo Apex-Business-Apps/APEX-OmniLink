@@ -46,7 +46,8 @@ async function main() {
   // Check current supply
   const totalMinted = await contract.totalMinted();
   const maxSupply = await contract.maxSupply();
-  console.log(`Current Supply: ${totalMinted}${maxSupply > 0 ? ` / ${maxSupply}` : " (unlimited)"}`);
+  const supplyDisplay = maxSupply > 0 ? " / " + String(maxSupply) : " (unlimited)";
+  console.log("Current Supply: " + String(totalMinted) + supplyDisplay);
   console.log("");
 
   // Mint to each recipient
@@ -83,9 +84,11 @@ async function main() {
   console.log("=".repeat(60));
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error("Minting failed:", error);
-    process.exit(1);
-  });
+// Execute minting
+try {
+  await main();
+  process.exit(0);
+} catch (error) {
+  console.error("Minting failed:", error);
+  process.exit(1);
+}
