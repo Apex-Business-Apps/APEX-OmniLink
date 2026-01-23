@@ -35,7 +35,7 @@
 import { createPublicClient, http } from 'https://esm.sh/viem@2.43.4';
 import { polygon, mainnet } from 'https://esm.sh/viem@2.43.4/chains';
 import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
-import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from '../_shared/rate-limit.ts';
+import { checkRateLimit, RATE_LIMIT_CONFIGS } from '../_shared/rate-limit.ts';
 import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse } from '../_shared/auth.ts';
 
 // Cache configuration

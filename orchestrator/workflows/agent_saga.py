@@ -622,7 +622,7 @@ class AgentWorkflow:
         4. Pass results to dependent steps
         """
         # Build DAG structure
-        step_lookup, dependencies, dependents, in_degree = self._build_dag_structure()
+        step_lookup, _, dependents, in_degree = self._build_dag_structure()
 
         # Find all steps with no dependencies (ready to execute)
         ready_queue = [step_id for step_id, degree in in_degree.items() if degree == 0]
