@@ -33,10 +33,59 @@
  */
 
 import { verifyMessage, verifyTypedData } from 'https://esm.sh/viem@2.21.54';
+import { parseSiweMessage } from 'https://esm.sh/viem@2.21.54/siwe';
 import { handleCors, corsJsonResponse, buildCorsHeaders, isOriginAllowed } from '../_shared/cors.ts';
 import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from '../_shared/rate-limit.ts';
 import { isValidWalletAddress, isValidSignature, validateRequestBody } from '../_shared/validation.ts';
 import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse, createInternalErrorResponse } from '../_shared/auth.ts';
+
+/**
+ * Resolve origin from a URI string
+ */
+function resolveOriginFromUri(uri: string): string {
+  const url = new URL(uri);
+  return `${url.protocol}//${url.host}`;
+}
+
+/**
+ * Validate SIWE message fields
+ */
+function validateSiweMessage(params: {
+  message: ReturnType<typeof parseSiweMessage>;
+  address: `0x${string}`;
+  domain: string;
+  nonce: string;
+  time: Date;
+}): boolean {
+  const { message, address, domain, nonce, time } = params;
+
+  // Check address matches
+  if (message.address?.toLowerCase() !== address.toLowerCase()) {
+    return false;
+  }
+
+  // Check domain matches
+  if (message.domain !== domain) {
+    return false;
+  }
+
+  // Check nonce matches
+  if (message.nonce !== nonce) {
+    return false;
+  }
+
+  // Check not expired
+  if (message.expirationTime && message.expirationTime < time) {
+    return false;
+  }
+
+  // Check not before time
+  if (message.notBefore && message.notBefore > time) {
+    return false;
+  }
+
+  return true;
+}
 
 
 
@@ -159,8 +208,25 @@ Deno.serve(async (req) => {
       return corsJsonResponse({ error: 'invalid_message', message: 'Message does not contain a valid nonce' }, 400);
     }
 
+    // Parse SIWE message to extract structured data
+    let siweMessage: ReturnType<typeof parseSiweMessage>;
+    try {
+      siweMessage = parseSiweMessage(message);
+    } catch (parseError) {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
+        reason: 'siwe_parse_failed',
+        error: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+      });
+
+      return corsJsonResponse({ error: 'invalid_message', message: 'Failed to parse SIWE message' }, 400);
+    }
+
+    // Extract nonce and chain ID from parsed SIWE message
+    const messageNonce = siweMessage.nonce || nonce;
+    const resolvedChainId = siweMessage.chainId || 1; // Default to Ethereum mainnet
+
     if (!siweMessage.domain || !siweMessage.uri) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'missing_siwe_fields',
       });
 
@@ -174,7 +240,7 @@ Deno.serve(async (req) => {
     try {
       messageOrigin = resolveOriginFromUri(siweMessage.uri);
     } catch {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'invalid_siwe_uri',
       });
 
@@ -186,7 +252,7 @@ Deno.serve(async (req) => {
 
     const expectedDomain = new URL(siweMessage.uri).host;
     if (siweMessage.domain !== expectedDomain) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'siwe_domain_mismatch',
       });
 
@@ -197,7 +263,7 @@ Deno.serve(async (req) => {
     }
 
     if (requestOrigin && requestOrigin !== messageOrigin) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'origin_mismatch',
       });
 
@@ -208,7 +274,7 @@ Deno.serve(async (req) => {
     }
 
     if (!isOriginAllowed(messageOrigin)) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'origin_not_allowed',
       });
 
@@ -219,7 +285,7 @@ Deno.serve(async (req) => {
     }
 
     if (!siweMessage.chainId || siweMessage.chainId !== resolvedChainId) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'chain_id_mismatch',
         chain_id: resolvedChainId,
         message_chain_id: siweMessage.chainId,
@@ -264,7 +330,7 @@ Deno.serve(async (req) => {
 
     const expirationTime = siweMessage.expirationTime;
     if (!expirationTime || expirationTime.getTime() !== expiresAt.getTime()) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'expiration_mismatch',
         nonce: messageNonce,
       });
@@ -284,7 +350,7 @@ Deno.serve(async (req) => {
     });
 
     if (!isValidSiwe) {
-      await logAuditEvent(supabase, user.id, 'wallet_verify_failed', normalizedAddress, {
+      await logAuditEvent(supabase, user!.id, 'wallet_verify_failed', normalizedAddress, {
         reason: 'siwe_validation_failed',
         nonce: messageNonce,
       });
@@ -308,7 +374,7 @@ Deno.serve(async (req) => {
           message: typedData,
           signature: signature as `0x${string}`,
         });
-        await logAuditEvent(supabase, user.id, 'wallet_verify_typed_data_attempt', normalizedAddress, {
+        await logAuditEvent(supabase, user!.id, 'wallet_verify_typed_data_attempt', normalizedAddress, {
           verification_type: 'eip712',
           primary_type: primaryType,
         });
@@ -319,7 +385,7 @@ Deno.serve(async (req) => {
           message,
           signature: signature as `0x${string}`,
         });
-        await logAuditEvent(supabase, user.id, 'wallet_verify_personal_sign_attempt', normalizedAddress, {
+        await logAuditEvent(supabase, user!.id, 'wallet_verify_personal_sign_attempt', normalizedAddress, {
           verification_type: 'personal_sign',
         });
       } else {
@@ -364,7 +430,7 @@ Deno.serve(async (req) => {
       .from('wallet_identities')
       .upsert(
         {
-          user_id: user.id,
+          user_id: user!.id,
           wallet_address: normalizedAddress,
           chain_id: resolvedChainId,
           signature,
@@ -407,7 +473,7 @@ Deno.serve(async (req) => {
       success: true,
       wallet_identity_id: walletIdentity.id,
       wallet_address: normalizedAddress,
-      chain_id: chainId,
+      chain_id: resolvedChainId,
       verified_at: walletIdentity.verified_at,
     });
 

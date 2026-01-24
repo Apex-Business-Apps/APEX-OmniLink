@@ -17,6 +17,8 @@ export default defineConfig({
       'tests/e2e-playwright/**',
       '**/playwright/**',
       'node_modules/**',
+      // Skip Hardhat contract tests (run with `npm run hardhat:test`)
+      'tests/contracts/**',
       // Skip integration tests in CI (require real Supabase infrastructure)
       ...(process.env.CI ? ['tests/integration/**'] : [])
     ],

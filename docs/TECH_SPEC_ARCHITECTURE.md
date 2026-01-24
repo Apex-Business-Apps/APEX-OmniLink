@@ -9,6 +9,7 @@
 
 ## Key Modules
 - **OmniDash v2 Navigation UI**: Revolutionary icon-based navigation (`src/components/OmniDashNavIconButton.tsx`, `src/pages/OmniDash/OmniDashLayout.tsx`) with zero-overlap flexbox layout, mobile bottom tabs, and tooltip integration.
+- **OmniPort Ingress Engine**: Proprietary fortified ingress gateway (`src/omniconnect/ingress/`) with Zero-Trust gate, idempotency, MAN Mode governance, and circuit breaker. Supports text, voice, and webhook inputs. See dedicated section below.
 - Auth/session: `src/contexts/AuthContext.tsx` (supabase session, device registration, audit logging on login/logout).
 - Guardian heartbeats: `src/guardian/heartbeat.ts`, loops in `src/guardian/loops.ts`, CLI `npm run guardian:status`.
 - Prompt defense: Config `src/security/promptDefenseConfig.ts`, evaluator `src/security/promptDefense.ts`, tests `tests/prompt-defense`.
@@ -58,6 +59,65 @@ Agent Step → risk_triage() → Lane?
 
 **Performance:** Policy engine uses cached `frozenset` for O(1) tool lookups. Database schema includes partial indexes and GIN index for JSONB queries. 38 unit tests validate models, policy, and edge cases.
 
+## OmniPort Ingress Engine (TypeScript Frontend/Backend)
+
+The `src/omniconnect/ingress/` directory contains the proprietary ingress fortress for APEX OmniHub—a unified gateway for all input sources (text, voice, webhook) with enterprise-grade security and governance.
+
+### Core Philosophy
+1. **Defensive Ingress**: Nothing enters without Identity + Rate Limit validation
+2. **Deterministic Execution**: All side effects wrapped in `withIdempotency`
+3. **Proprietary Governance**: High-risk intents tagged for MAN Mode approval
+
+### Architecture
+
+**Input Sources (Zod-validated):**
+| Source | Schema | Key Fields |
+|--------|--------|------------|
+| `TextSource` | `src/omniconnect/types/ingress.ts` | `content`, `source` (web/sms), `userId` |
+| `VoiceSource` | `src/omniconnect/types/ingress.ts` | `transcript`, `confidence` (0-1), `audioUrl`, `durationMs` |
+| `WebhookSource` | `src/omniconnect/types/ingress.ts` | `payload`, `provider`, `signature` |
+
+**Execution Pipeline (Strict Order):**
+```
+RawInput → Zero-Trust Gate → Idempotency Wrapper → Semantic Normalization → Resilient Dispatch
+    ↓           ↓                   ↓                      ↓                      ↓
+  Validate   Check Device      Compute Hash         Map to Canonical      Deliver or DLQ
+             (blocked/suspect)  (FNV-1a)            + MAN Mode Analysis
+```
+
+**Risk Classification (OmniPort-level):**
+| Lane | Trigger | Behavior |
+|------|---------|----------|
+| GREEN | Normal content | Standard processing |
+| RED | Suspect device OR high-risk intent (`delete`, `transfer`, `grant_access`) | Flag `requires_man_approval = true` |
+| BLOCKED | Device status = `blocked` | Throw `SecurityError`, reject immediately |
+
+**Key Files:**
+- Engine: `src/omniconnect/ingress/OmniPort.ts` (singleton with full pipeline)
+- Types: `src/omniconnect/types/ingress.ts` (Zod schemas for `RawInput`, `IngestResult`)
+- Metrics: `src/omniconnect/ingress/omniport-metrics.ts` (real-time observability for OmniDash)
+- Voice: `src/omniconnect/ingress/omniport-voice.ts` (natural language command handler)
+- DLQ Schema: `supabase/migrations/20260124000000_omniport_dlq.sql` (`ingress_buffer` table)
+
+**Dead Letter Queue (Circuit Breaker):**
+When delivery fails, OmniPort writes to `ingress_buffer` with risk-prioritized replay:
+- `risk_score` (0-100): RED lane +50, high-risk intent +30, webhook +10
+- `status` enum: `pending`, `replaying`, `failed`
+- RLS policies for tenant isolation
+
+**Observability (OmniDash Integration):**
+```typescript
+import { getOmniPortMetrics, getOmniPortStatus } from '@/omniconnect/ingress';
+
+const metrics = getOmniPortMetrics(60000); // Last 60 seconds
+// { totalIngestions, accepted, blocked, buffered, redLaneEvents, avgLatencyMs, p95LatencyMs }
+
+const status = getOmniPortStatus();
+// { health: 'healthy'|'degraded'|'critical', eventsPerSecond, dlqDepth, uptimeSeconds }
+```
+
+**Performance:** E2E ingestion < 50ms. FNV-1a hash for browser+Node.js compatibility. 27 unit tests covering speed, moat logic, shield, and safety net scenarios.
+
 ## Runtime & Ops
 - Build: Vite with SWC, terser minification, chunk splitting (`vite.config.ts`), console stripping in production.
 - Env: Requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Auth provider guards missing env and surfaces setup message.
@@ -71,11 +131,13 @@ Agent Step → risk_triage() → Lane?
 - Health: Supabase edge healthcheck function invoked via `runHealthCheck` (used in guardian loop).
 
 ## Data & Models
-- Supabase models: profiles, health_checks (from edge function), plus implied tables for app features.
+- Supabase models: profiles, health_checks (from edge function), ingress_buffer (DLQ), plus implied tables for app features.
 - In-app models:
   - Audit events: `{id, timestamp, actorId, actionType, resourceType, resourceId, metadata}`.
   - Device registry: `{deviceId, userId, firstSeenAt, lastSeenAt, deviceFingerprint, status}`.
   - Guardian heartbeats: `{loopName, lastSeen, ageMs, status}` (in-memory).
+  - OmniPort ingress: `RawInput` (text/voice/webhook), `IngestResult` (correlationId, status, riskLane, latencyMs).
+  - OmniPort DLQ: `{id, correlation_id, raw_input, error_reason, status, risk_score, created_at}` (Supabase).
 
 ## Security & Compliance
 - Prompt injection defenses with configurable rules and tests; analysis tooling to measure FP rate.

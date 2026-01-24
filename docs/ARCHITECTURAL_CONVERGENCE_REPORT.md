@@ -557,15 +557,22 @@ async def booking_workflow():
 
 ### 6.1 Test Coverage
 
+**Current Status (2026-01-23 Full Audit):**
+- Total Tests: 517 (450 passed, 67 skipped)
+- Pass Rate: 87.0%
+- Test Suites: 43 (37 passed, 6 skipped)
+- Test Files: 59 (48 TypeScript + 11 Python)
+
 #### Unit Tests
 ```bash
 # Python test coverage
 pytest --cov=orchestrator --cov-report=html
-# Target: 90%+ coverage
+# Status: 11 test files with 40+ tests
 
 # TypeScript test coverage
 npm run test:unit
-# Target: 85%+ coverage
+# Status: 450 passed, 67 skipped (87.0% pass rate)
+# Duration: 22.95s
 ```
 
 #### Integration Tests
