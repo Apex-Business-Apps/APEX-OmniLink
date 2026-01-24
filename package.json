@@ -35,6 +35,7 @@
     "sim:validate": "tsx sim/cli.ts --validate",
     "sim:report": "tsx sim/evidence.ts --report",
     "sim:clean": "rm -rf evidence/*",
+    "eval:ci": "tsx sim/cli.ts --mode eval",
     "test:sim": "vitest run sim/tests",
     "test:wwwct": "tsx scripts/worldwide-wildcard/run.ts --mode mock",
     "test:wwwct:sandbox": "tsx scripts/worldwide-wildcard/run.ts --mode sandbox",

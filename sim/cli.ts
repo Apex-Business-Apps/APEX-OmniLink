@@ -14,6 +14,7 @@
 import { runSimulation, quickTest } from './runner';
 import { assertGuardRails } from './guard-rails';
 import { DEFAULT_CHAOS_CONFIG, LIGHT_CHAOS_CONFIG, HEAVY_CHAOS_CONFIG, NO_CHAOS_CONFIG } from './chaos-engine';
+import { runEvaluation, saveEvalReport, printEvalSummary } from './eval-runner';
 import type { Beat, SimulationResult } from './runner';
 import type { CallReceivedPayload, AppointmentScheduledPayload, AppName } from './contracts';
 import fs from 'fs';
@@ -24,7 +25,7 @@ import path from 'path';
 // ============================================================================
 
 interface CLIOptions {
-  mode: 'chaos' | 'dry' | 'quick' | 'burst' | 'custom';
+  mode: 'chaos' | 'dry' | 'quick' | 'burst' | 'custom' | 'eval';
   seed?: number;
   chaos?: 'light' | 'default' | 'heavy' | 'none';
   beats?: number;
@@ -189,8 +190,8 @@ async function runChaosMode(options: CLIOptions): Promise<void> {
 
   const chaosConfig = options.chaos === 'light' ? LIGHT_CHAOS_CONFIG
     : options.chaos === 'heavy' ? HEAVY_CHAOS_CONFIG
-    : options.chaos === 'none' ? NO_CHAOS_CONFIG
-    : DEFAULT_CHAOS_CONFIG;
+      : options.chaos === 'none' ? NO_CHAOS_CONFIG
+        : DEFAULT_CHAOS_CONFIG;
 
   const allBeats = getFullStoryBeats();
   const beats = options.beats ? allBeats.slice(0, options.beats) : allBeats;
@@ -279,9 +280,9 @@ async function runBurstMode(options: CLIOptions): Promise<void> {
       tenantId: process.env.SANDBOX_TENANT || `burst-${Date.now()}`,
       seed: options.seed || 42,
       chaos: options.chaos === 'none' ? NO_CHAOS_CONFIG :
-             options.chaos === 'light' ? LIGHT_CHAOS_CONFIG :
-             options.chaos === 'heavy' ? HEAVY_CHAOS_CONFIG :
-             DEFAULT_CHAOS_CONFIG,
+        options.chaos === 'light' ? LIGHT_CHAOS_CONFIG :
+          options.chaos === 'heavy' ? HEAVY_CHAOS_CONFIG :
+            DEFAULT_CHAOS_CONFIG,
       beats: burstBeats,
       dryRun: true, // Dry run for load testing (no real backend calls)
     });
@@ -319,6 +320,34 @@ async function runBurstMode(options: CLIOptions): Promise<void> {
   } catch (error) {
     console.error('\n❌ Burst mode failed:', error);
     throw error;
+  }
+}
+
+// ============================================================================
+// EVAL MODE HANDLER
+// ============================================================================
+
+async function runEvalMode(): Promise<void> {
+  console.log('🔬 Starting EVAL MODE (deterministic evaluation)...\n');
+
+  const fixturesDir = path.join(process.cwd(), 'sim', 'fixtures', 'evals');
+  const outputDir = path.join(process.cwd(), 'artifacts', 'evals');
+
+  try {
+    const report = await runEvaluation(fixturesDir);
+    saveEvalReport(report, outputDir);
+    printEvalSummary(report);
+
+    if (!report.overall_passed) {
+      console.error('\n❌ Eval failed - thresholds not met');
+      process.exit(1);
+    }
+
+    console.log('✅ Eval passed - all thresholds met');
+    process.exit(0);
+  } catch (error) {
+    console.error('\n❌ Eval mode failed:', error);
+    process.exit(1);
   }
 }
 
@@ -430,6 +459,10 @@ async function main() {
 
       case 'custom':
         console.log('⚠️  Custom mode not yet implemented');
+        break;
+
+      case 'eval':
+        await runEvalMode();
         break;
 
       default:

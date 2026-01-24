@@ -561,6 +561,12 @@ npm run lint
 
  
 
+# Deterministic security eval
+
+npm run eval:ci
+
+ 
+
 # E2E tests
 
 npm run test:e2e
