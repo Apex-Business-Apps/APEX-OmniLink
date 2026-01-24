@@ -166,8 +166,8 @@ async def evaluate_policy(ctx: dict[str, Any]) -> dict[str, Any]:
     """
     decision = await _evaluator.evaluate(ctx)
 
-    # Audit logging must never block policy enforcement; best-effort only.
     with contextlib.suppress(Exception):
+        # Audit logging must never block policy enforcement; best-effort only.
         await log_audit_event(
             actor_id=ctx.get("user_id", "unknown"),
             action=AuditAction.CONFIG_CHANGE,
