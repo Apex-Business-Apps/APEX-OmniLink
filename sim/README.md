@@ -29,6 +29,7 @@ cat evidence/latest/scorecard.json
 sim/
 ├── cli.ts                    # Main CLI entry point
 ├── runner.ts                 # Simulation orchestration
+├── eval-runner.ts            # OmniEval deterministic evaluation
 ├── contracts.ts              # Event contracts for all 12 apps
 ├── guard-rails.ts            # Production protection
 ├── chaos-engine.ts           # Deterministic chaos injection
@@ -38,6 +39,10 @@ sim/
 ├── evidence.ts               # Evidence bundler
 ├── index.ts                  # Main exports
 ├── README.md                 # This file
+├── fixtures/                 # Eval fixtures
+│   └── evals/
+│       ├── golden/           # 8 golden test cases
+│       └── redteam/          # 8 red-team security cases
 ├── adapters/                 # App-specific adapters
 └── tests/                    # Unit tests
     ├── guard-rails.test.ts
@@ -69,6 +74,7 @@ This framework simulates a **chaotic, non-technical client** (Sarah Martinez) ha
 | `npm run sim:dry` | Dry run (no API calls) | 5-10s | CI/CD pipelines |
 | `npm run sim:quick` | Minimal smoke test | 1-2s | Rapid iteration |
 | `npm run sim:burst` | Load testing | 60-120s | Performance testing |
+| `npm run eval:ci` | Deterministic eval | < 2s | **CI security gate** |
 | `npm run test:sim` | Unit tests | 5s | Development |
 
 ---
@@ -189,9 +195,42 @@ npm run sim:report
 
 ---
 
+## 🔬 OmniEval (Deterministic Evaluation)
+
+Security gate with golden + red-team fixtures:
+
+```bash
+# Run deterministic evaluation 
+npm run eval:ci
+
+# Output: artifacts/evals/report.json
+```
+
+**Thresholds:**
+- pass_rate >= 95%
+- policy_violations == 0  
+- tool_misuse_rate == 0
+
+**Fixtures:**
+- `fixtures/evals/golden/` — 8 valid interaction tests
+- `fixtures/evals/redteam/` — 8 adversarial attack tests
+
+---
+
 ## 🎯 Integration with CI/CD
 
 ```yaml
+# OmniEval Gate (Phase 2.5)
+- name: Run OmniEval
+  run: npm run eval:ci
+
+- name: Upload Report
+  uses: actions/upload-artifact@v4
+  with:
+    name: omnieval-report
+    path: artifacts/evals/report.json
+
+# Chaos Simulation (Optional)
 - name: Chaos Simulation
   env:
     SIM_MODE: 'true'
