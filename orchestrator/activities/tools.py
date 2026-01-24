@@ -594,7 +594,7 @@ async def update_agent_run_completion(params: dict[str, Any]) -> dict[str, Any]:
             update_data["error_message"] = str(agent_response.get("error", "Unknown error"))
 
         # Update the agent_run record
-        updated = await db.update(
+        await db.update(
             table="agent_runs",
             updates=update_data,
             filters={"id": trace_id}
