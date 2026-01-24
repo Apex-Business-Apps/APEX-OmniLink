@@ -741,9 +741,7 @@ class AgentWorkflow:
             )
 
         if decision == "DEFER":
-            workflow.logger.warning(
-                f"  🛑 Policy DEFER: {step['tool']} - awaiting MAN approval"
-            )
+            workflow.logger.warning(f"  🛑 Policy DEFER: {step['tool']} - awaiting MAN approval")
 
             idempotency_key = create_idempotency_key(
                 workflow.info().workflow_id,
@@ -957,17 +955,17 @@ class AgentWorkflow:
         }
 
         # Extract trace_id from workflow context if available
-        trace_id = workflow.info().search_attributes.get("trace_id", [""])[0] if hasattr(workflow.info(), 'search_attributes') else ""
+        trace_id = (
+            workflow.info().search_attributes.get("trace_id", [""])[0]
+            if hasattr(workflow.info(), "search_attributes")
+            else ""
+        )
 
         if trace_id:
             try:
                 await workflow.execute_activity(
                     "update_agent_run_completion",
-                    args=[{
-                        "trace_id": trace_id,
-                        "status": "completed",
-                        "agent_response": result
-                    }],
+                    args=[{"trace_id": trace_id, "status": "completed", "agent_response": result}],
                     start_to_close_timeout=timedelta(seconds=10),
                     retry_policy=RetryPolicy(maximum_attempts=2),
                 )
