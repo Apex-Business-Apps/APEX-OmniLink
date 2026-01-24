@@ -35,6 +35,7 @@ from activities.man_mode import (
     resolve_man_task,
     risk_triage,
 )
+from activities.omni_policy import evaluate_policy_activity
 from activities.notify_man_task import notify_man_task
 from activities.omnitrace_activities import get_omnitrace_activities
 from activities.tools import (
@@ -162,6 +163,7 @@ async def start_worker() -> None:
             delete_record,
             send_email,
             call_webhook,
+            evaluate_policy_activity,
             # Distributed locking activities
             acquire_distributed_lock,
             release_distributed_lock,

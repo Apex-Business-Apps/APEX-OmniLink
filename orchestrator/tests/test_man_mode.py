@@ -167,6 +167,11 @@ class TestIdempotencyKey:
         key = create_idempotency_key("wf-123", "")
         assert key == "wf-123:"
 
+    def test_namespaced_tool_key(self):
+        """Should include namespace and tool when provided."""
+        key = create_idempotency_key("wf-123", "step-5", tool_name="delete_record", namespace="man")
+        assert key == "man:wf-123:step-5:delete_record"
+
 
 class TestManPolicy:
     """Test ManPolicy risk classification engine."""

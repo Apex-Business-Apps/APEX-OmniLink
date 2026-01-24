@@ -49,6 +49,20 @@ jobs:
           REQUIRE_SUPABASE_INTEGRATION_TESTS: "false"
 
       # ─────────────────────────────────────────────────────────────
+      # PHASE 2.5: OmniEval Deterministic Evaluation
+      # ─────────────────────────────────────────────────────────────
+      - name: Run OmniEval (deterministic eval gate)
+        run: npm run eval:ci
+
+      - name: Upload OmniEval report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omnieval-report
+          path: artifacts/evals/report.json
+          retention-days: 30
+
+      # ─────────────────────────────────────────────────────────────
       # PHASE 3: Build
       # ─────────────────────────────────────────────────────────────
       - name: Build production bundle

@@ -7,6 +7,7 @@ from activities.man_mode import (
     resolve_man_task,
     risk_triage,
 )
+from activities.omni_policy import evaluate_policy_activity
 from activities.tools import (
     check_semantic_cache,
     generate_plan_with_llm,
@@ -18,6 +19,8 @@ __all__ = [
     "check_semantic_cache",
     "generate_plan_with_llm",
     "setup_activities",
+    # Policy enforcement
+    "evaluate_policy_activity",
     # MAN Mode activities
     "check_man_decision",
     "create_man_task",
