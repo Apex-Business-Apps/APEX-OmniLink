@@ -125,9 +125,13 @@ async def create_man_task(params: dict[str, Any]) -> dict[str, Any]:
         intent_data = params["intent"]
         triage_data = params.get("triage_result", {})
         timeout_hours = params.get("timeout_hours", 24)
+        provided_key = params.get("idempotency_key")
+        tool_name = intent_data.get("tool_name")
 
         # Create idempotency key
-        idempotency_key = create_idempotency_key(workflow_id, step_id)
+        idempotency_key = provided_key or create_idempotency_key(
+            workflow_id, step_id, tool_name=tool_name, namespace="man"
+        )
 
         # Calculate expiration (timezone-aware)
         expires_at = (datetime.now(UTC) + timedelta(hours=timeout_hours)).isoformat()

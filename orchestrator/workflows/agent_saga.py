@@ -58,6 +58,7 @@ with workflow.unsafe.imports_passed_through():
         WorkflowCompleted,
         WorkflowFailed,
     )
+    from models.man_mode import create_idempotency_key
 
 
 # ============================================================================
@@ -299,6 +300,7 @@ class AgentWorkflow:
         self.MAX_HISTORY_SIZE = 1000
         self.step_count = 0
         self.start_time: float | None = None
+        self.workflow_context: dict[str, Any] = {}
 
     # =========================================================================
     # OPERATOR SUPREMACY SIGNALS (MAN Mode 2.0)
@@ -403,6 +405,7 @@ class AgentWorkflow:
 
         # Initialize Saga context
         self.saga = SagaContext(workflow_instance=self)
+        self.workflow_context = context or {}
 
         # Restore snapshot if this is a continue-as-new
         if context and "step_results" in context:
@@ -552,6 +555,25 @@ class AgentWorkflow:
 
         return step_lookup, dependencies, dependents, in_degree
 
+    def _build_policy_ctx(self, step: dict[str, Any], step_id: str) -> dict[str, Any]:
+        """
+        Build bounded policy context for OmniPolicy evaluation.
+        """
+        input_payload = step.get("input", {}) or {}
+        resource = input_payload.get("table") or input_payload.get("resource")
+        data_class = input_payload.get("data_class") or input_payload.get("classification")
+
+        return {
+            "tenant_id": self.workflow_context.get("tenant_id") or self.user_id,
+            "user_id": self.user_id,
+            "workflow_id": workflow.info().workflow_id,
+            "step_id": step_id,
+            "tool": step.get("tool"),
+            "action": step.get("name") or step.get("action") or step.get("tool"),
+            "resource": resource,
+            "data_class": data_class,
+        }
+
     async def _execute_dag_level(
         self, ready_queue: list[str], step_lookup: dict[str, dict], level: int
     ) -> list[tuple[str, Any]]:
@@ -696,6 +718,88 @@ class AgentWorkflow:
 
         workflow.logger.info(f"  ⚙ Starting step: {step_name}")
         self.step_count += 1
+
+        # =====================================================================
+        # OmniPolicy choke point (cached, deterministic)
+        # =====================================================================
+        policy_ctx = self._build_policy_ctx(step, step_id)
+        policy_result = await workflow.execute_activity(
+            "evaluate_policy",
+            args=[policy_ctx],
+            start_to_close_timeout=timedelta(seconds=15),
+            retry_policy=RetryPolicy(maximum_attempts=2),
+        )
+
+        decision = policy_result.get("decision", "ALLOW")
+        if decision == "DENY":
+            workflow.logger.error(
+                f"  🚫 Policy DENY: {step['tool']} - {policy_result.get('reason')}"
+            )
+            raise ApplicationError(
+                f"Action denied by policy: {policy_result.get('reason')}",
+                non_retryable=True,
+            )
+
+        if decision == "DEFER":
+            workflow.logger.warning(
+                f"  🛑 Policy DEFER: {step['tool']} - awaiting MAN approval"
+            )
+
+            idempotency_key = create_idempotency_key(
+                workflow.info().workflow_id,
+                step_id,
+                tool_name=step.get("tool"),
+                namespace="man",
+            )
+
+            man_task_result = await workflow.execute_activity(
+                "create_man_task",
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "step_id": step_id,
+                        "intent": {
+                            "tool_name": step["tool"],
+                            "params": step.get("input", {}),
+                            "workflow_id": workflow.info().workflow_id,
+                            "step_id": step_id,
+                            "irreversible": step.get("irreversible", False),
+                        },
+                        "triage_result": policy_result,
+                        "timeout_hours": 24,
+                        "idempotency_key": idempotency_key,
+                    }
+                ],
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=RetryPolicy(maximum_attempts=3),
+            )
+
+            deferred_result = {
+                "status": "deferred",
+                "reason": policy_result.get("reason", "Requires human approval"),
+                "man_task_id": man_task_result.get("task_id"),
+                "step_id": step_id,
+                "tool_name": step["tool"],
+                "awaiting_approval": True,
+                "policy": policy_result,
+            }
+
+            self.deferred_steps[step_id] = {
+                "step": step,
+                "man_task_id": man_task_result.get("task_id"),
+                "triage_result": policy_result,
+            }
+
+            await self._append_event(
+                ToolResultReceived(
+                    correlation_id=workflow.info().workflow_id,
+                    tool_name=step["tool"],
+                    step_id=step_id,
+                    success=True,
+                    result=deferred_result,
+                )
+            )
+            return deferred_result
 
         # =====================================================================
         # MAN MODE: Risk Triage

@@ -131,18 +131,30 @@ class ManTask(BaseModel):
     )
 
 
-def create_idempotency_key(workflow_id: str, step_id: str) -> str:
+def create_idempotency_key(
+    workflow_id: str,
+    step_id: str,
+    tool_name: str | None = None,
+    namespace: str | None = None,
+) -> str:
     """Generate idempotency key for task creation.
 
     Args:
         workflow_id: Parent workflow identifier
         step_id: Step identifier within workflow
+        tool_name: Optional tool name for stronger uniqueness
+        namespace: Optional prefix (e.g., "man")
 
     Returns:
-        Idempotency key in format "{workflow_id}:{step_id}"
+        Idempotency key in format "namespace:{workflow_id}:{step_id}:{tool}"
 
     Example:
         >>> create_idempotency_key("wf-123", "step-5")
         'wf-123:step-5'
     """
-    return f"{workflow_id}:{step_id}"
+    parts = [workflow_id, step_id]
+    if tool_name:
+        parts.append(tool_name)
+
+    key_body = ":".join(parts)
+    return f"{namespace}:{key_body}" if namespace else key_body
