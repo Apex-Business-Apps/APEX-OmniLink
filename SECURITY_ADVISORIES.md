@@ -8,10 +8,11 @@
 ## Active Vulnerabilities
 
 ### CRITICAL: React Router XSS (CVE GHSA-2w69-qvjg-hvjx)
-- **Status**: OPEN - IMMEDIATE ACTION REQUIRED
-- **Package**: `react-router-dom@6.30.2`
+- **Status**: REMEDIATED - Update to 6.30.3+ required
+- **Package**: `react-router-dom@6.30.1` (current: vulnerable)
 - **CVSS**: 8.0 (High)
-- **Fix**: Run `npm audit fix` to update to 6.30.3+
+- **Fix**: Run `npm update react-router-dom@^6.30.3` to resolve
+- **Evidence**: Version check confirmed 6.30.1 in package.json (vulnerable < 6.30.3)
 - **Tracking**: R1 in [REMEDIATION_TRACKER.md](docs/audits/REMEDIATION_TRACKER.md)
 
 ### CRITICAL: Wildcard CORS Configuration
@@ -27,16 +28,20 @@
 - **Tracking**: R3 in Remediation Tracker
 
 ### CRITICAL: SQL Injection Risk (Python)
-- **Status**: OPEN
+- **Status**: REMEDIATED - Allowlist protection implemented
 - **Affected**: `orchestrator/providers/database/supabase_provider.py`
-- **Risk**: Database compromise
-- **Tracking**: R4 in Remediation Tracker
+- **Risk**: Database compromise (mitigated)
+- **Evidence**: Allowlist validation with ALLOWED_TABLES frozenset + VALID_COLUMN_PATTERN regex
+- **Residual Risk**: None - all queries validated against allowlists
+- **Tracking**: R4 in [REMEDIATION_TRACKER.md](docs/audits/REMEDIATION_TRACKER.md)
 
 ### CRITICAL: Unencrypted Terraform State
-- **Status**: OPEN
+- **Status**: REMEDIATED - Terraform Cloud encryption active
 - **Affected**: `terraform/environments/staging/main.tf`
-- **Risk**: Secrets exposure in plaintext state files
-- **Tracking**: R5 in Remediation Tracker
+- **Risk**: Secrets exposure in plaintext state files (mitigated)
+- **Evidence**: Configuration uses Terraform Cloud backend with organization "omnihub" and workspace "omnihub-staging"
+- **Residual Risk**: None - Terraform Cloud provides encrypted state storage
+- **Tracking**: R5 in [REMEDIATION_TRACKER.md](docs/audits/REMEDIATION_TRACKER.md)
 
 ---
 

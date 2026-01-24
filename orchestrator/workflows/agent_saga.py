@@ -1077,6 +1077,34 @@ class AgentWorkflow:
         """Handle successful workflow completion."""
         workflow.logger.info("✓ Workflow completed successfully")
 
+        # Update agent_runs table with completion status and response
+        result = {
+            "status": "success",
+            "goal": self.goal,
+            "plan_id": self.plan_id,
+            "steps_executed": len(self.step_results),
+            "results": self.step_results,
+        }
+
+        # Extract trace_id from workflow context if available
+        trace_id = (
+            workflow.info().search_attributes.get("trace_id", [""])[0]
+            if hasattr(workflow.info(), "search_attributes")
+            else ""
+        )
+
+        if trace_id:
+            try:
+                await workflow.execute_activity(
+                    "update_agent_run_completion",
+                    args=[{"trace_id": trace_id, "status": "completed", "agent_response": result}],
+                    start_to_close_timeout=timedelta(seconds=10),
+                    retry_policy=RetryPolicy(maximum_attempts=2),
+                )
+                workflow.logger.info(f"✓ Updated agent_runs for trace_id: {trace_id}")
+            except Exception as e:
+                workflow.logger.warning(f"Failed to update agent_runs: {str(e)}")
+
         await self._append_event(
             WorkflowCompleted(
                 correlation_id=workflow.info().workflow_id,

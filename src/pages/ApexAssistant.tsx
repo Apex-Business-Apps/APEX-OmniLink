@@ -31,6 +31,7 @@ const ApexAssistant = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [threadId] = useState(() => crypto.randomUUID()); // Stable per UI session
   const { toast } = useToast();
 
   const handleVoiceTranscript = (text: string, isFinal: boolean) => {
@@ -53,40 +54,90 @@ const ApexAssistant = () => {
     setLoading(true);
 
     try {
-      const history = messages.map(m => ({ role: m.role, content: m.content }));
-      
-      const { data, error } = await supabase.functions.invoke('apex-assistant', {
-        body: { query, history },
+      // Generate traceId (this becomes the agent_run.id)
+      const traceId = crypto.randomUUID();
+
+      // Insert into agent_runs with status='queued'
+      const { error: insertError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('agent_runs' as any)
+        .insert({
+          id: traceId,
+          thread_id: threadId,
+          user_message: query,
+          status: 'queued'
+        });
+
+      if (insertError) throw insertError;
+
+      // Call omnilink-agent with { query, traceId }
+      const { error: invokeError } = await supabase.functions.invoke('omnilink-agent', {
+        body: { query, traceId },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (invokeError) throw invokeError;
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.raw,
-        structured: data.response,
-      };
+      // Subscribe to realtime updates on this agent_run
+      const channel = supabase
+        .channel(`agent_run_${traceId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'agent_runs',
+            filter: `id=eq.${traceId}`
+          },
+          (payload) => {
+            const updatedRun = payload.new;
 
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      toast({
-        title: 'APEX Response',
-        description: 'Successfully retrieved knowledge',
-      });
+            if (updatedRun.status === 'completed' && updatedRun.agent_response) {
+              try {
+                // Parse the agent_response as structured data
+                const structuredResponse = JSON.parse(updatedRun.agent_response);
+                const assistantMessage: Message = {
+                  role: 'assistant',
+                  content: updatedRun.agent_response,
+                  structured: structuredResponse,
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+
+                toast({
+                  title: 'APEX Response',
+                  description: 'Successfully retrieved knowledge',
+                });
+              } catch {
+                // If not JSON, treat as plain text
+                const assistantMessage: Message = {
+                  role: 'assistant',
+                  content: updatedRun.agent_response,
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+              } finally {
+                setLoading(false);
+                channel.unsubscribe();
+              }
+            } else if (updatedRun.status === 'failed') {
+              const errorMsg = updatedRun.error_message || 'Agent execution failed';
+              toast({
+                title: 'Error',
+                description: errorMsg,
+                variant: 'destructive',
+              });
+              setLoading(false);
+              channel.unsubscribe();
+            }
+          }
+        )
+        .subscribe();
+
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to get response from APEX';
-      const isAuthError = errorMsg.includes('API key') || errorMsg.includes('configured');
-      
       toast({
         title: 'Error',
-        description: isAuthError 
-          ? 'OPENAI_API_KEY not configured. Please add it in backend settings.'
-          : errorMsg,
+        description: errorMsg,
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };

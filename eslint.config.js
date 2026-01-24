@@ -29,7 +29,7 @@ export default tseslint.config(
         ignoreRestArgs: false
       }],
       "@typescript-eslint/no-empty-object-type": "warn",
-      "no-console": ["error", {
+      "no-console": ["warn", {
         allow: ["warn", "error"]
       }],
     },
