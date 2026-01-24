@@ -20,7 +20,7 @@ import hashlib
 import json
 import logging
 import os
-import random
+import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -319,12 +319,8 @@ class OmniTraceRecorder:
 
         if not self._sample_decision_made:
             sample_rate = get_sample_rate()
-            # SECURITY REVIEW: random.random() is intentionally used here.
-            # This is for telemetry sampling (e.g., "record 10% of runs"), NOT for:
-            # - Authentication tokens, encryption keys, or session IDs
-            # - Any security-sensitive randomness
-            # Predictability of sampling decisions has no security impact.
-            self._sampled = random.random() < sample_rate  # noqa: S311
+            # Use secrets for cryptographically secure sampling
+            self._sampled = (secrets.randbelow(1000) / 1000.0) < sample_rate
             self._sample_decision_made = True
             logger.debug(
                 f"OmniTrace sample decision: {self._sampled} "
