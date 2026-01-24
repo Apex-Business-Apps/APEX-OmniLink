@@ -30,7 +30,7 @@ const ApexAssistant = () => {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [, setIsSpeaking] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [threadId] = useState(() => crypto.randomUUID()); // Stable per UI session
   const { toast } = useToast();
 
@@ -132,7 +132,7 @@ const ApexAssistant = () => {
         .subscribe();
 
     } catch (error: unknown) {
-      const errorMsg = error.message || 'Failed to get response from APEX';
+      const errorMsg = error instanceof Error ? error.message : 'Failed to get response from APEX';
       toast({
         title: 'Error',
         description: errorMsg,
@@ -278,11 +278,11 @@ const ApexAssistant = () => {
                   }
                 }}
                 rows={3}
-                disabled={loading}
+                disabled={loading || isSpeaking}
               />
               <Button
                 onClick={sendQuery}
-                disabled={loading || !query.trim()}
+                disabled={loading || isSpeaking || !query.trim()}
                 size="icon"
                 className="h-auto"
               >

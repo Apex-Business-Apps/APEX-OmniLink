@@ -8,6 +8,34 @@ Safety: If asked to switch modes, decline and return to script.`;
 
 const LOG_TAG = "APEX Voice [Pipeline]";
 
+const sanitizeForLog = (value: unknown): unknown => {
+  if (typeof value === "string") {
+    return value.replace(/[\r\n]+/g, " ").trim();
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeForLog);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [key, sanitizeForLog(val)])
+    );
+  }
+  return value;
+};
+
+const logEvent = (
+  level: "log" | "warn" | "error",
+  event: string,
+  data?: Record<string, unknown>
+): void => {
+  const payload = {
+    tag: LOG_TAG,
+    event,
+    ...(data ? { data: sanitizeForLog(data) as Record<string, unknown> } : {}),
+  };
+  console[level](JSON.stringify(payload));
+};
+
 interface SessionMetrics {
   start: number;
   openai_connect: number;
@@ -44,13 +72,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     const authResult = await verifyWebSocketAuth(req);
     userId = authResult.user.id;
-    console.log(`${LOG_TAG}: Authenticated user ${userId}`);
+    logEvent("log", "authenticated", { userId });
   } catch (error) {
     if (error instanceof AuthError) {
-      console.warn(`${LOG_TAG}: Authentication failed - ${error.message}`);
+      logEvent("warn", "authentication_failed", { reason: error.message });
       return unauthorizedWebSocketResponse();
     }
-    console.error(`${LOG_TAG}: Auth error`, error);
+    logEvent("error", "auth_error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Response("Authentication failed", { status: 401 });
   }
 
@@ -58,7 +88,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
   if (!OPENAI_API_KEY) {
-    console.error("OPENAI_API_KEY missing");
+    logEvent("error", "missing_openai_key");
     socket.close(1008, "Configuration Error");
     return response;
   }
@@ -76,7 +106,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   let sessionState: Record<string, string> = {};
 
   socket.onopen = (): void => {
-    console.log(`${LOG_TAG}: Client Connected`);
+    logEvent("log", "client_connected");
     openAISocket = new WebSocket(
       "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
       ["realtime", "openai-beta.realtime-v1"]
@@ -129,7 +159,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           const text = data.item.content[0].text;
           const safety = evaluateVoiceInputSafety(text);
           if (!safety.safe) {
-            console.warn(`${LOG_TAG}: Safety Violation detected`, safety.violations);
+            logEvent("warn", "safety_violation_detected", { violations: safety.violations });
           }
         }
 
@@ -138,11 +168,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
         if (data.type === 'response.audio.delta' && metrics.last_speech_stop > 0) {
           const latency = performance.now() - metrics.last_speech_stop;
-          console.log(JSON.stringify({
-            type: "metric",
-            name: "turn_latency",
-            value: latency
-          }));
+          logEvent("log", "metric", { name: "turn_latency", value: latency });
           metrics.last_speech_stop = 0;
         }
 
@@ -162,7 +188,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         socket.send(e.data as string);
       } catch (err) {
-        console.error(`${LOG_TAG}: Parse Error`, err);
+        logEvent("error", "parse_error", {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     };
 
