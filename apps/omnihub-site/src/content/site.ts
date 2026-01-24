@@ -45,7 +45,7 @@ export const siteConfig = {
       buildLink('Demo', '/demo.html'),
       buildLink('Tech Specs', '/tech-specs.html'),
       buildLink('Request Access', '/request-access.html'),
-      buildLink('Login', '/login'),
+      buildLink('Login', '/login.html'),
     ],
     primaryCta: buildLink('Get Started', '/request-access.html'),
   },
@@ -155,12 +155,12 @@ export const proofConfig = {
  * Tech Specs page content - evidence-first headings
  */
 const techSpecSections = [
-  spec('single-port', 'Single-Port Protocol', 'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.', 'One ingress/egress point for all adapter traffic', 'Protocol-agnostic envelope format', 'Built-in rate limiting and throttling', 'Automatic TLS termination'),
-  spec('modular-adapters', 'Modular Adapters', 'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.', 'Hot-swappable adapter architecture', 'Typed contracts for each adapter', 'Isolated failure domains', 'Community and enterprise adapter ecosystem'),
-  spec('man-mode', 'MAN Mode (Manual Authorization Needed)', 'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.', 'Configurable risk thresholds', 'Async approval queue with notifications', 'Audit trail for all approval decisions', 'Timeout policies with safe defaults'),
-  spec('receipts-idempotency', 'Receipts & Idempotency', 'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.', 'Unique operation IDs for every request', 'Cryptographic receipts for audit', 'Automatic deduplication', 'Replay capability for debugging'),
-  spec('security-posture', 'Security Posture', 'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.', 'mTLS for service-to-service communication', 'RBAC with attribute-based extensions', 'Comprehensive security headers', 'Regular third-party security audits'),
-  spec('rollback-portability', 'Rollback & Portability', 'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.', 'Database-agnostic data layer', 'Configuration as code', 'Compensation transactions for rollback', 'Documented migration runbooks'),
+  buildTechSpecSection('single-port', 'Single-Port Protocol', 'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.', ['One ingress/egress point for all adapter traffic', 'Protocol-agnostic envelope format', 'Built-in rate limiting and throttling', 'Automatic TLS termination']),
+  buildTechSpecSection('modular-adapters', 'Modular Adapters', 'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.', ['Hot-swappable adapter architecture', 'Typed contracts for each adapter', 'Isolated failure domains', 'Community and enterprise adapter ecosystem']),
+  buildTechSpecSection('man-mode', 'MAN Mode (Manual Authorization Needed)', 'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.', ['Configurable risk thresholds', 'Async approval queue with notifications', 'Audit trail for all approval decisions', 'Timeout policies with safe defaults']),
+  buildTechSpecSection('receipts-idempotency', 'Receipts & Idempotency', 'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.', ['Unique operation IDs for every request', 'Cryptographic receipts for audit', 'Automatic deduplication', 'Replay capability for debugging']),
+  buildTechSpecSection('security-posture', 'Security Posture', 'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.', ['mTLS for service-to-service communication', 'RBAC with attribute-based extensions', 'Comprehensive security headers', 'Regular third-party security audits']),
+  buildTechSpecSection('rollback-portability', 'Rollback & Portability', 'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.', ['Database-agnostic data layer', 'Configuration as code', 'Compensation transactions for rollback', 'Documented migration runbooks']),
 ] as const;
 
 export const techSpecsConfig = {

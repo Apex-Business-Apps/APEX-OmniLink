@@ -37,6 +37,19 @@ serve(async (req) => {
     // Parse request
     const { query, traceId } = await req.json();
 
+    // Update agent_runs status to 'running' and set workflow_id
+    const { error: updateError } = await supabase
+      .from('agent_runs')
+      .update({
+        status: 'running',
+        start_time: new Date().toISOString()
+      })
+      .eq('id', traceId);
+
+    if (updateError) {
+      console.error('Failed to update agent_run status:', updateError);
+    }
+
     // Handoff to orchestrator
     const orchestratorUrl = Deno.env.get('ORCHESTRATOR_URL');
     if (!orchestratorUrl) {
@@ -53,8 +66,19 @@ serve(async (req) => {
       })
     });
 
-    // Return orchestrator response directly
     const data = await response.json();
+
+    // If orchestrator returned workflowId, update it
+    if (data.workflowId) {
+      await supabase
+        .from('agent_runs')
+        .update({
+          workflow_id: data.workflowId
+        })
+        .eq('id', traceId);
+    }
+
+    // Return orchestrator response directly
     return new Response(JSON.stringify(data), {
       headers: {
         ...buildCorsHeaders(origin),

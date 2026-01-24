@@ -2,6 +2,7 @@ import { encodeBase64Url } from 'https://deno.land/std@0.177.0/encoding/base64ur
 import { buildCorsHeaders, corsErrorResponse, handlePreflight, isOriginAllowed } from '../_shared/cors.ts';
 import { allowAdapter, allowWorkflow, enforceEnvAllowlist, enforcePermission, type OmniLinkScopes } from '../_shared/omnilinkScopes.ts';
 import { createAnonClient, createServiceClient } from '../_shared/supabaseClient.ts';
+import { normalizeOmniPortIntent, type OmniPortInput } from '../../src/integrations/omniport/normalize.ts';
 
 const OMNILINK_ENABLED = (Deno.env.get('OMNILINK_ENABLED') ?? '').toLowerCase() === 'true';
 const MAX_SINGLE_PAYLOAD_BYTES = 256 * 1024;
@@ -329,6 +330,32 @@ async function processRequestItem(
   return { status: data.status, record_id: data.record_id, index, retry_after_seconds: data.retry_after_seconds };
 }
 
+function omniPortEnvelope(input: OmniPortInput): Record<string, unknown> {
+  const canonical = normalizeOmniPortIntent(input);
+  const source = `omniport/${canonical.channel}`;
+  const base = {
+    specversion: '1.0',
+    id: canonical.traceId,
+    source,
+    type: canonical.type,
+    time: canonical.createdAt,
+    data: {
+      payload: canonical.payload,
+      channel: canonical.channel,
+      requires_approval: canonical.requiresApproval,
+      notify: canonical.notify,
+      user_id: canonical.userId ?? null,
+      raw: canonical.raw,
+    },
+  } as Record<string, unknown>;
+
+  if (canonical.requiresApproval) {
+    base.policy = { ...(base.policy as Record<string, unknown>), require_approval: true };
+  }
+
+  return base;
+}
+
 function determineStatusCode(results: Record<string, unknown>[]): number {
   const hasQueued = results.some((result) => result.status === 'queued');
   const hasRateLimited = results.some((result) => result.status === 'rate_limited');
@@ -416,6 +443,8 @@ Deno.serve(async (req) => {
   }
 
   const route = parseRoute(new URL(req.url).pathname);
+  const isOmniPort = route === 'omniport';
+  const targetRoute = isOmniPort ? 'events' : route;
 
   if (req.method === 'GET' && route === 'health') {
     return jsonResponse({ status: 'ok', checked_at: new Date().toISOString() }, 200, corsHeaders);
@@ -425,7 +454,7 @@ Deno.serve(async (req) => {
     return handleKeyCreation(req, corsHeaders);
   }
 
-  if (!['events', 'commands', 'workflows'].includes(route)) {
+  if (!['events', 'commands', 'workflows', 'omniport'].includes(route)) {
     return jsonResponse({ error: 'not_found' }, 404, corsHeaders);
   }
 
@@ -453,9 +482,13 @@ Deno.serve(async (req) => {
   try {
     const results = [];
 
-    for (const [index, item] of items.entries()) {
+    const normalizedItems = isOmniPort
+      ? items.map((item) => omniPortEnvelope(item as OmniPortInput))
+      : items;
+
+    for (const [index, item] of normalizedItems.entries()) {
       const result = await processRequestItem(item, index, {
-        route,
+        route: targetRoute,
         apiKey,
         constraints,
         idempotencyHeader,

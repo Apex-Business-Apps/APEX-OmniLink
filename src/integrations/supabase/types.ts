@@ -857,6 +857,55 @@ export type Database = {
           }
         ]
       }
+      wallet_identities: {
+        Row: {
+          id: string
+          user_id: string
+          wallet_address: string
+          chain_id: number
+          signature: string
+          message: string
+          verified_at: string
+          last_used_at: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          wallet_address: string
+          chain_id: number
+          signature: string
+          message: string
+          verified_at?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          wallet_address?: string
+          chain_id?: number
+          signature?: string
+          message?: string
+          verified_at?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_identities_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

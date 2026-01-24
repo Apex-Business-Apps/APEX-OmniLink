@@ -199,8 +199,14 @@ function ManModeSection() {
               {/* SVG for desktop (min-width: 769px) */}
               <img
                 src="/manmode-icon.svg"
-                alt="MAN Mode Icon"
+                alt=""
                 className="manmode__icon-img"
+                style={{
+                  maxWidth: 'min(560px, 100%)',
+                  maxHeight: 'min(60vh, 520px)',
+                  width: 'auto',
+                  height: 'auto',
+                }}
               />
             </picture>
           </div>

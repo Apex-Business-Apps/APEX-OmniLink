@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +28,6 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -225,7 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [session]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     stopBackgroundDeviceSync();
     if (session?.user) {
@@ -237,12 +237,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     }
     navigate('/auth');
-  };
+  }, [navigate, session?.user]);
 
-  // useMemo MUST come before any early returns (Rules of Hooks)
-  const contextValue = React.useMemo(
-    () => ({ user, session, signOut, loading }),
-    [user, session, loading]
+  const authValue = useMemo(
+    () => ({
+      user,
+      session,
+      signOut,
+      loading,
+    }),
+    [loading, session, signOut, user],
   );
 
   // Show setup message if Cloud is not configured
@@ -251,7 +255,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );
