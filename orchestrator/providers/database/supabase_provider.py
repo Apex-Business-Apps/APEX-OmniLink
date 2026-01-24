@@ -31,6 +31,12 @@ ALLOWED_TABLES = frozenset(
         # MAN Mode tables
         "man_tasks",
         "man_notifications",
+        # Agent telemetry tables
+        "agent_runs",
+        "skill_matches",
+        "tool_invocations",
+        "eval_cases",
+        "eval_results",
     ]
 )
 

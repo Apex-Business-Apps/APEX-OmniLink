@@ -31,9 +31,28 @@ function buildField(label: string, placeholder: string, maxLength: number) {
   return { label, placeholder, maxLength };
 }
 
-/** Build a tech spec section */
-function buildTechSpecSection(id: string, title: string, description: string, details: string[]) {
-  return { id, title, description, details };
+type TechSpecSectionTuple = readonly [
+  id: string,
+  title: string,
+  description: string,
+  details: readonly string[],
+];
+
+type TechSpecSection = {
+  id: string;
+  title: string;
+  description: string;
+  details: readonly string[];
+};
+
+/** Convert tuple-based tech spec data into structured sections */
+function buildTechSpecSections(data: readonly TechSpecSectionTuple[]): readonly TechSpecSection[] {
+  return data.map(([id, title, description, details]) => ({
+    id,
+    title,
+    description,
+    details,
+  }));
 }
 
 export const siteConfig = {
@@ -46,7 +65,7 @@ export const siteConfig = {
       { label: 'Demo', href: '/demo.html' },
       { label: 'Tech Specs', href: '/tech-specs.html' },
       { label: 'Request Access', href: '/request-access.html' },
-      { label: 'Login', href: '/login' },
+      { label: 'Login', href: '/login.html' },
     ],
     login: buildLink('Log In', '/restricted.html'),
     primaryCta: buildLink('Get Started', '/request-access.html'),
@@ -159,8 +178,8 @@ export const proofConfig = {
 export const techSpecsConfig = {
   title: 'Technical Specifications',
   subtitle: 'Evidence-first architecture and security posture',
-  sections: [
-    buildTechSpecSection(
+  sections: buildTechSpecSections([
+    [
       'single-port',
       'Single-Port Protocol',
       'All communication flows through a single controlled port. This simplifies firewall configuration, reduces attack surface, and enables comprehensive audit logging of all data in transit.',
@@ -169,9 +188,9 @@ export const techSpecsConfig = {
         'Protocol-agnostic envelope format',
         'Built-in rate limiting and throttling',
         'Automatic TLS termination',
-      ]
-    ),
-    buildTechSpecSection(
+      ],
+    ],
+    [
       'modular-adapters',
       'Modular Adapters',
       'No vendor lock-in by design. Adapters are standalone modules that translate between external systems and the canonical event format.',
@@ -180,9 +199,9 @@ export const techSpecsConfig = {
         'Typed contracts for each adapter',
         'Isolated failure domains',
         'Community and enterprise adapter ecosystem',
-      ]
-    ),
-    buildTechSpecSection(
+      ],
+    ],
+    [
       'man-mode',
       'MAN Mode (Manual Authorization Needed)',
       'High-risk operations pause for human approval without blocking the entire workflow. Items requiring authorization are skipped, queued, and the user is notified.',
@@ -191,9 +210,9 @@ export const techSpecsConfig = {
         'Async approval queue with notifications',
         'Audit trail for all approval decisions',
         'Timeout policies with safe defaults',
-      ]
-    ),
-    buildTechSpecSection(
+      ],
+    ],
+    [
       'receipts-idempotency',
       'Receipts & Idempotency',
       'Every operation generates a receipt. Idempotency keys ensure safe retries and deterministic replay.',
@@ -202,9 +221,9 @@ export const techSpecsConfig = {
         'Cryptographic receipts for audit',
         'Automatic deduplication',
         'Replay capability for debugging',
-      ]
-    ),
-    buildTechSpecSection(
+      ],
+    ],
+    [
       'security-posture',
       'Security Posture',
       'Defense-in-depth with zero-trust principles. Every request is authenticated, authorized, and logged.',
@@ -213,9 +232,9 @@ export const techSpecsConfig = {
         'RBAC with attribute-based extensions',
         'Comprehensive security headers',
         'Regular third-party security audits',
-      ]
-    ),
-    buildTechSpecSection(
+      ],
+    ],
+    [
       'rollback-portability',
       'Rollback & Portability',
       'Migrate between hosts and vendors with confidence. All state is exportable, all operations are reversible.',
@@ -224,9 +243,9 @@ export const techSpecsConfig = {
         'Configuration as code',
         'Compensation transactions for rollback',
         'Documented migration runbooks',
-      ]
-    ),
-  ],
+      ],
+    ],
+  ]),
 } as const;
 
 /**

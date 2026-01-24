@@ -21,10 +21,7 @@ serve(async (req) => {
     // Validate UUID format to prevent injection
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(automationId)) {
-      return new Response(JSON.stringify({ error: 'Invalid automationId format' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return corsJsonResponse({ error: 'Invalid automationId format' }, 400);
     }
 
     // Fetch automation

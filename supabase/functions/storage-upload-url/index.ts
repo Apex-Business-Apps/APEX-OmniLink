@@ -67,6 +67,9 @@ serve(async (req) => {
 
     // Parse request body
     const { filename, mime, size } = await req.json();
+    const contentType = typeof mime === "string" && mime.trim().length > 0
+      ? mime.trim()
+      : "application/octet-stream";
 
     if (!filename) {
       return new Response(JSON.stringify({ error: "Filename is required" }), {
@@ -100,7 +103,7 @@ serve(async (req) => {
     }
 
     const path = `${user.id}/${Date.now()}-${safe}`;
-    console.log(`Creating signed upload URL for path: ${path}`);
+    console.log(`Creating signed upload URL for path: ${path} (type: ${contentType})`);
 
     // Create signed upload URL (valid for ~2 hours)
     const { data, error } = await supabase
@@ -120,7 +123,7 @@ serve(async (req) => {
     console.log(`[${requestId}] Successfully created signed upload URL for: ${path} (${duration}ms)`);
 
     return new Response(
-      JSON.stringify({ path, token: data.token, signedUrl: data.signedUrl }),
+      JSON.stringify({ path, token: data.token, signedUrl: data.signedUrl, contentType }),
       {
         headers: addRateLimitHeaders(
           {

@@ -555,6 +555,71 @@ async def search_youtube(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+@activity.defn(name="update_agent_run_completion")
+async def update_agent_run_completion(params: dict[str, Any]) -> dict[str, Any]:
+    """
+    Update agent_runs table with workflow completion status and response.
+
+    Called when workflow completes successfully to notify UI via realtime subscription.
+
+    Args:
+        params: {
+            "trace_id": "uuid-of-agent-run",
+            "status": "completed" | "failed",
+            "agent_response": {...}  # Final workflow result or error details
+        }
+
+    Returns:
+        Update result
+    """
+    trace_id = params.get("trace_id")
+    status = params.get("status")
+    agent_response = params.get("agent_response", {})
+
+    activity.logger.info(f"Updating agent_run completion: {trace_id} -> {status}")
+
+    try:
+        # Get database provider instance
+        db = get_database_provider()
+
+        # Prepare update data
+        update_data = {
+            "status": status,
+            "end_time": "now()",  # Use database function for current timestamp
+        }
+
+        if status == "completed":
+            update_data["agent_response"] = json.dumps(agent_response)
+        elif status == "failed":
+            update_data["error_message"] = str(agent_response.get("error", "Unknown error"))
+
+        # Update the agent_run record
+        updated = await db.update(
+            table="agent_runs",
+            updates=update_data,
+            filters={"id": trace_id}
+        )
+
+        activity.logger.info(f"✓ Updated agent_run {trace_id} with status {status}")
+
+        return {
+            "success": True,
+            "updated_id": trace_id,
+            "status": status,
+        }
+
+    except Exception as e:
+        error_msg = str(e)
+        activity.logger.error(f"Failed to update agent_run completion: {error_msg}")
+
+        # Don't raise - this is best-effort notification to UI
+        return {
+            "success": False,
+            "error": error_msg,
+            "trace_id": trace_id,
+        }
+
+
 # ============================================================================
 # DISTRIBUTED RELIABILITY - Using Temporal's Built-in Mechanisms
 # ============================================================================

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { siteConfig } from '@/content/site';
 import { ReferenceOverlay } from './ReferenceOverlay';
 
@@ -31,198 +31,183 @@ function ThemeToggle() {
   };
 
   return (
-    <div className="theme-toggle-segmented" aria-label="Theme selection">
-      <label
-        className={`theme-toggle-segmented__option ${isLight ? 'theme-toggle-segmented__option--active' : ''
-          }`}
-      >
-        <input
-          className="theme-toggle-segmented__input"
-          type="radio"
-          name="theme"
-          value="light"
-          checked={isLight}
-          onChange={() => setTheme(false)}
-        />
-        WHITE FORTRESS
-      </label>
-      <label
-        className={`theme-toggle-segmented__option ${isDark ? 'theme-toggle-segmented__option--active' : ''
-          }`}
-      >
-        <input
-          className="theme-toggle-segmented__input"
-          type="radio"
-          name="theme"
-          value="dark"
-          checked={isDark}
-          onChange={() => setTheme(true)}
-        />
-        NIGHT WATCH
-      </label>
-    </div>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-type MobileDrawerProps = Readonly<{
-  isOpen: boolean;
-  onClose: () => void;
-  isAuthenticated: boolean;
-  onAuthClick: () => void;
-}>;
-
-function MobileDrawer({
-  isOpen,
-  onClose,
-  isAuthenticated,
-  onAuthClick,
-}: MobileDrawerProps) {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
     <>
+      <div className="theme-toggle-segmented" aria-label="Theme selection">
+        <label
+          className={`theme-toggle-segmented__option ${
+            isLight ? 'theme-toggle-segmented__option--active' : ''
+          }`}
+        >
+          <input
+            className="theme-toggle-segmented__input"
+            type="radio"
+            name="theme"
+            value="light"
+            checked={isLight}
+            onChange={() => setTheme(false)}
+          />
+          WHITE FORTRESS
+        </label>
+        <label
+          className={`theme-toggle-segmented__option ${
+            isDark ? 'theme-toggle-segmented__option--active' : ''
+          }`}
+        >
+          <input
+            className="theme-toggle-segmented__input"
+            type="radio"
+            name="theme"
+            value="dark"
+            checked={isDark}
+            onChange={() => setTheme(true)}
+          />
+          NIGHT WATCH
+        </label>
+      </div>
+
       <button
         type="button"
-        className="drawer-backdrop"
-        onClick={onClose}
-        aria-label="Close menu"
-      />
-      <dialog
-        className="drawer"
-        aria-label="Navigation menu"
-        open
-        onCancel={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
+        className="theme-toggle theme-toggle--icon"
+        aria-label={isDark ? 'Switch to White Fortress theme' : 'Switch to Night Watch theme'}
+        onClick={() => setTheme(!isDark)}
       >
-        <div className="drawer__header">
-          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
-            <img
-              src="/apex-header-logo.png"
-              alt="APEX OmniHub"
-              className="h-10 w-auto object-contain"
-            />
-          </a>
-          <button
-            type="button"
-            className="drawer__close"
-            onClick={onClose}
-            aria-label="Close menu"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-        <nav className="drawer__nav" aria-label="Main navigation">
-          {siteConfig.nav.links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="drawer__link"
-              onClick={onClose}
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-        <div className="drawer__footer">
-          <ThemeToggle />
-          <button
-            type="button"
-            className="nav__link nav__link--action nav__auth-btn"
-            onClick={() => {
-              onAuthClick();
-              onClose();
-            }}
-          >
-            {isAuthenticated ? 'Log out' : 'Log in'}
-          </button>
-        </div>
-      </dialog>
+        <span className="theme-toggle__icon" aria-hidden="true">
+          {isDark ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+          )}
+        </span>
+      </button>
     </>
   );
-}
-
-function getInitialAuthState(): boolean {
-  if (globalThis.window === undefined) return false;
-  return Boolean(globalThis.localStorage.getItem('omnihub_session'));
 }
 
 function Nav() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(getInitialAuthState);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const handleAuthClick = () => {
-    if (isAuthenticated) {
-      globalThis.localStorage.removeItem('omnihub_session');
-      setIsAuthenticated(false);
-      globalThis.window.location.href = '/';
-    } else {
-      globalThis.window.location.href = '/login.html';
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    };
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(event.target as Node)) return;
+      setMenuOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, []);
 
   return (
-    <>
-      <nav className="nav">
-        <div className="container nav__inner">
-          <a href="/" className="nav__logo h-[95%] flex items-center" aria-label="APEX OmniHub">
+    <nav className="nav">
+      <div className="container nav__inner">
+        <div className="nav__left">
+          <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <img
-              src="/apex-header-logo.png"
+              src="/apex-badge.png"
+              alt=""
+              aria-hidden="true"
+              className="nav__logo-badge"
+              width="32"
+              height="32"
+              style={{ maxHeight: 32, height: 'auto', width: 'auto' }}
+            />
+            <img
+              src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
-              className="h-full w-auto object-contain py-0.5 transition-transform duration-300 hover:scale-[1.02]"
+              className="nav__logo-wordmark"
+              width="320"
+              height="20"
+              style={{
+                maxHeight: 24,
+                maxWidth: 'min(42vw, 360px)',
+                height: 'auto',
+                width: 'auto',
+              }}
             />
           </a>
-          <ul className="nav__links">
-            {siteConfig.nav.links.map((link) => (
-              <li key={link.href}>
-                <a href={link.href} className="nav__link">
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <div className="nav__actions">
-            <ThemeToggle />
+        </div>
+
+        <ul className="nav__links" aria-label="Primary navigation">
+          {siteConfig.nav.links.map((link) => (
+            <li key={link.href}>
+              <a href={link.href} className="nav__link">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <div className="nav__actions">
+          <ThemeToggle />
+
+          <div className="nav__burger" ref={menuRef}>
+            <button
+              type="button"
+              className="nav__burger-btn"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span
+                className={
+                  menuOpen
+                    ? 'nav__burger-icon nav__burger-icon--open'
+                    : 'nav__burger-icon'
+                }
+              >
+                <span />
+                <span />
+                <span />
+              </span>
+            </button>
+
+            {menuOpen && (
+              <div className="nav__mobile-menu" role="dialog" aria-label="Mobile navigation">
+                <ul className="nav__mobile-links">
+                  {siteConfig.nav.links.map((link) => (
+                    <li key={link.href}>
+                      <a
+                        href={link.href}
+                        className="nav__mobile-link"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
-      </nav>
-      <MobileDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        isAuthenticated={isAuthenticated}
-        onAuthClick={handleAuthClick}
-      />
-    </>
+      </div>
+    </nav>
   );
 }
 
