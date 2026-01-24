@@ -371,15 +371,11 @@ async function validatePayload(
   constraints: Required<NonNullable<OmniLinkScopes['constraints']>>,
   corsHeaders: HeadersInit
 ): Promise<{ items: unknown[]; requestSize: number } | Response> {
-  let raw = '';
-  let body: unknown = null;
-  try {
-    const parsed = await parseJsonBody(req);
-    raw = parsed.raw;
-    body = parsed.body;
-  } catch {
+  const parsedBody = await parseJsonBody(req).catch(() => null);
+  if (!parsedBody) {
     return jsonResponse({ error: 'invalid_json' }, 400, corsHeaders);
   }
+  const { raw, body } = parsedBody;
 
   const payloadSize = getRequestSize(raw);
 
