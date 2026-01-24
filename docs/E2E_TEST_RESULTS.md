@@ -1,9 +1,9 @@
 # OmniLink-APEX E2E Test Results Report
 
-**Date:** December 31, 2025
-**Branch:** `claude/omnilink-e2e-testing-ZhGFm`
-**Commit:** `66cec31`
-**Test Framework:** Vitest 4.0.16
+**Date:** January 23, 2026 (Updated)
+**Branch:** `claude/setup-dev-testing-infra-C70aY`
+**Commit:** `ba13559`
+**Test Framework:** Vitest 4.0.17
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 72 |
-| **Passed** | 69 |
+| **Total Tests** | 99 |
+| **Passed** | 96 |
 | **Skipped** | 3 |
 | **Failed** | 0 |
-| **Pass Rate** | 95.8% |
+| **Pass Rate** | 96.9% |
 | **TypeScript Errors** | 0 |
 | **Build Status** | Success |
 | **Build Time** | 13.15s |
@@ -27,6 +27,7 @@
 
 | Test Suite | Tests | Passed | Skipped | Duration |
 |------------|-------|--------|---------|----------|
+| **`tests/omniconnect/omniport.spec.ts`** | **27** | **27** | **0** | **35ms** |
 | `tests/stress/battery.spec.ts` | 21 | 21 | 0 | 3035ms |
 | `tests/e2e/security.spec.ts` | 13 | 13 | 0 | 177ms |
 | `tests/stress/integration-stress.spec.ts` | 9 | 9 | 0 | 2289ms |
@@ -41,7 +42,7 @@
 | `tests/components/voiceBackoff.spec.tsx` | 1 | 0 | 1 | - |
 | `tests/omnidash/route.spec.tsx` | 1 | 0 | 1 | - |
 
-**Total Duration:** 8.55s
+**Total Duration:** 8.59s
 
 ---
 
@@ -138,6 +139,49 @@
 | returns healthy status | PASS | - |
 | provides diagnostics | PASS | - |
 
+### OmniPort Ingress Engine (`tests/omniconnect/omniport.spec.ts`) - NEW
+
+**The Armageddon Test Suite** - Comprehensive testing for the proprietary ingress engine.
+
+| Test Case | Status | Duration |
+|-----------|--------|----------|
+| **The Speed Run - Performance** | | |
+| should complete e2e ingestion in under 50ms | PASS | <1ms |
+| should process voice input within performance threshold | PASS | <1ms |
+| should process webhook input within performance threshold | PASS | <1ms |
+| **The Moat - MAN Mode Governance** | | |
+| should flag "delete" command with RED risk lane and requires_man_approval | PASS | <1ms |
+| should flag "transfer" command with RED risk lane and requires_man_approval | PASS | <1ms |
+| should flag "grant_access" command with RED risk lane and requires_man_approval | PASS | <1ms |
+| should flag multiple high-risk intents in voice transcription | PASS | <1ms |
+| should allow normal commands with GREEN risk lane | PASS | <1ms |
+| **The Shield - Zero-Trust Gate** | | |
+| should throw SecurityError for blocked devices | PASS | <1ms |
+| should set RED risk lane for suspect devices | PASS | <1ms |
+| should allow trusted devices with GREEN risk lane | PASS | <1ms |
+| should allow unknown devices but flag them | PASS | <1ms |
+| should handle voice input without userId gracefully | PASS | <1ms |
+| **The Safety Net - Circuit Breaker / DLQ** | | |
+| should write to DLQ on delivery failure and return buffered status | PASS | <1ms |
+| should calculate higher risk score for RED lane failures | PASS | <1ms |
+| should calculate higher risk score for webhook failures | PASS | <1ms |
+| should continue even if DLQ write fails | PASS | <1ms |
+| should include user_id in DLQ entry when available | PASS | <1ms |
+| **Singleton Pattern** | | |
+| should return same instance on multiple getInstance calls | PASS | <1ms |
+| should reset singleton correctly | PASS | <1ms |
+| should be idempotent on initialize | PASS | <1ms |
+| **Input Type Coverage** | | |
+| should process TextSource input correctly | PASS | <1ms |
+| should process VoiceSource input correctly | PASS | <1ms |
+| should process WebhookSource input correctly | PASS | <1ms |
+| should detect high-risk intents in webhook payload | PASS | <1ms |
+| **Correlation ID Propagation** | | |
+| should generate unique correlation IDs for each request | PASS | <1ms |
+| should pass correlation ID to delivery service | PASS | <1ms |
+
+**Total: 27 tests, 0 skipped, 0 failed, 35ms duration**
+
 ### OmniDash Redaction (`tests/omnidash/redaction.spec.ts`)
 
 | Test Case | Status | Duration |
@@ -208,16 +252,16 @@ dist/assets/js/types-*.js              52.92 kB │ gzip: 11.95 kB
 
 | Vulnerability | Test Coverage | Status |
 |---------------|---------------|--------|
-| A01: Broken Access Control | Account lockout, CSRF | PASS |
-| A02: Cryptographic Failures | CSRF token generation | PASS |
-| A03: Injection | Prompt injection defense | PASS |
-| A04: Insecure Design | N/A | - |
+| A01: Broken Access Control | Account lockout, CSRF, OmniPort Zero-Trust gate | PASS |
+| A02: Cryptographic Failures | CSRF token generation, FNV-1a idempotency hashing | PASS |
+| A03: Injection | Prompt injection defense, OmniPort input validation (Zod) | PASS |
+| A04: Insecure Design | OmniPort MAN Mode governance for high-risk intents | PASS |
 | A05: Security Misconfiguration | Open redirect prevention | PASS |
 | A06: Vulnerable Components | npm audit (0 vulns) | PASS |
-| A07: Auth Failures | Lockout mechanism | PASS |
-| A08: Data Integrity | Request validation | PASS |
-| A09: Security Logging | Audit log queue | PASS |
-| A10: SSRF | URL validation | PASS |
+| A07: Auth Failures | Lockout mechanism, OmniPort device status validation | PASS |
+| A08: Data Integrity | Request validation, OmniPort idempotency wrapper | PASS |
+| A09: Security Logging | Audit log queue, OmniPort structured logging | PASS |
+| A10: SSRF | URL validation, OmniPort webhook signature verification | PASS |
 
 ---
 

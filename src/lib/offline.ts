@@ -20,12 +20,12 @@ export function setupOfflineListeners(
     onOffline?.();
   };
 
-  window.addEventListener('online', handleOnline);
-  window.addEventListener('offline', handleOffline);
+  globalThis.addEventListener('online', handleOnline);
+  globalThis.addEventListener('offline', handleOffline);
 
   return () => {
-    window.removeEventListener('online', handleOnline);
-    window.removeEventListener('offline', handleOffline);
+    globalThis.removeEventListener('online', handleOnline);
+    globalThis.removeEventListener('offline', handleOffline);
   };
 }
 
@@ -94,7 +94,7 @@ export async function processQueuedRequests(): Promise<void> {
 
   // Process requests with concurrency limit for better performance
   const CONCURRENCY_LIMIT = 3;
-  
+
   for (let i = 0; i < requests.length; i += CONCURRENCY_LIMIT) {
     const batch = requests.slice(i, i + CONCURRENCY_LIMIT);
     const results = await Promise.allSettled(
@@ -107,7 +107,7 @@ export async function processQueuedRequests(): Promise<void> {
         console.log(`✅ Successfully processed queued request ${item.id}`);
       } else {
         console.error(`❌ Failed to process request ${item.id}:`, result.reason);
-        
+
         if (item.retries < MAX_RETRIES) {
           item.retries++;
           requestQueue.push(item);
@@ -152,7 +152,7 @@ export function loadFromLocalStorage<T>(key: string, maxAge?: number): T | null 
     if (!item) return null;
 
     const { data, timestamp } = JSON.parse(item);
-    
+
     if (maxAge && Date.now() - timestamp > maxAge) {
       localStorage.removeItem(key);
       return null;

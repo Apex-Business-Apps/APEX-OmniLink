@@ -11,8 +11,8 @@
  * - Empathy and clarity
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // ============================================================================
 // CLIENT PROFILE & SCENARIOS
@@ -486,7 +486,7 @@ class Simulator {
     console.log(`   Description: ${CLIENT_PROFILE.description}`);
 
     // Run all scenarios
-    for (const [key, scenario] of Object.entries(SCENARIOS)) {
+    for (const scenario of Object.values(SCENARIOS)) {
       await this.runScenario(scenario);
       await this.sleep(100); // Small delay between scenarios
     }
@@ -513,7 +513,7 @@ class Simulator {
     console.log(`   Total Scenarios: ${this.results.length}`);
     console.log(`   Average Response Time: ${Math.round(avgResponseTime)}ms`);
     console.log(`   Total Skills Invoked: ${totalSkills}`);
-    console.log(`   Security Blocks: ${blockedCount}/${this.results.length} (${(blockedCount/this.results.length*100).toFixed(0)}%)`);
+    console.log(`   Security Blocks: ${blockedCount}/${this.results.length} (${(blockedCount / this.results.length * 100).toFixed(0)}%)`);
 
     console.log('\n📈 AVERAGE SCORES:');
     console.log(`   User Experience: ${avgUX.toFixed(1)}/10 ${this.getEmoji(avgUX)}`);
@@ -565,7 +565,7 @@ class Simulator {
 
   getVerdict(score) {
     if (score >= 8.5) return '🌟 EXCELLENT - Production Ready!';
-    if (score >= 7.0) return '👍 GOOD - Minor improvements recommended';
+    if (score >= 7) return '👍 GOOD - Minor improvements recommended';
     if (score >= 5.5) return '😐 FAIR - Needs work before production';
     return '⚠️  POOR - Significant improvements required';
   }

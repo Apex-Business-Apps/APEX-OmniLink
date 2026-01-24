@@ -228,6 +228,51 @@ interface ProcessItemContext {
   serviceClient: ReturnType<typeof createServiceClient>;
 }
 
+function getRequiredFields(route: string): string[] {
+  if (route === 'events') {
+    return ['specversion', 'id', 'source', 'type', 'time', 'data'];
+  } else if (route === 'commands') {
+    return ['specversion', 'id', 'source', 'type', 'time', 'params'];
+  }
+  return ['specversion', 'id', 'source', 'type', 'time', 'workflow', 'input'];
+}
+
+function validatePermissions(
+  route: string,
+  payload: Record<string, unknown>,
+  apiKey: ApiKeyRecord,
+  constraints: Required<NonNullable<OmniLinkScopes['constraints']>>
+): { valid: boolean; error?: string; permission?: string; requestType?: string } {
+  let permissionRequired = 'events:write';
+  let requestType = 'event';
+
+  if (route === 'commands') {
+    requestType = 'command';
+    permissionRequired = `commands:${payload.type}`;
+    if (!allowAdapter(payload.target as { system?: string }, constraints.allowed_adapters)) {
+      return { valid: false, error: 'adapter_not_allowed' };
+    }
+    if (!enforcePermission(apiKey.scopes ?? {}, 'orchestrations:request')) {
+      return { valid: false, error: 'permission_denied' };
+    }
+  }
+
+  if (route === 'workflows') {
+    requestType = 'workflow';
+    permissionRequired = 'orchestrations:request';
+    const workflow = payload.workflow as { name?: string; version?: string };
+    if (!allowWorkflow(workflow, constraints.allowed_workflows)) {
+      return { valid: false, error: 'workflow_not_allowed' };
+    }
+  }
+
+  if (!enforcePermission(apiKey.scopes ?? {}, permissionRequired)) {
+    return { valid: false, error: 'permission_denied' };
+  }
+
+  return { valid: true, permission: permissionRequired, requestType };
+}
+
 async function processRequestItem(
   item: unknown,
   index: number,
@@ -240,15 +285,7 @@ async function processRequestItem(
     return { status: 'invalid', index, error: 'invalid_payload' };
   }
 
-  let requiredFields: string[];
-  if (route === 'events') {
-    requiredFields = ['specversion', 'id', 'source', 'type', 'time', 'data'];
-  } else if (route === 'commands') {
-    requiredFields = ['specversion', 'id', 'source', 'type', 'time', 'params'];
-  } else {
-    requiredFields = ['specversion', 'id', 'source', 'type', 'time', 'workflow', 'input'];
-  }
-
+  const requiredFields = getRequiredFields(route);
   const missingField = validateEnvelope(payload, requiredFields);
   if (missingField) {
     return { status: 'invalid', index, error: `missing_${missingField}` };
@@ -258,36 +295,17 @@ async function processRequestItem(
     return { status: 'denied', index, error: 'env_not_allowed' };
   }
 
-  let permissionRequired = 'events:write';
-  let requestType = 'event';
-
-  if (route === 'commands') {
-    requestType = 'command';
-    permissionRequired = `commands:${payload.type}`;
-    if (!allowAdapter(payload.target as { system?: string }, constraints.allowed_adapters)) {
-      return { status: 'denied', index, error: 'adapter_not_allowed' };
-    }
-    if (!enforcePermission(apiKey.scopes ?? {}, 'orchestrations:request')) {
-      return { status: 'denied', index, error: 'permission_denied' };
-    }
+  const permissionResult = validatePermissions(route, payload, apiKey, constraints);
+  if (!permissionResult.valid) {
+    return { status: 'denied', index, error: permissionResult.error };
   }
 
-  if (route === 'workflows') {
-    requestType = 'workflow';
-    permissionRequired = 'orchestrations:request';
-    const workflow = payload.workflow as { name?: string; version?: string };
-    if (!allowWorkflow(workflow, constraints.allowed_workflows)) {
-      return { status: 'denied', index, error: 'workflow_not_allowed' };
-    }
-    if (payload.input && !payload.params) {
-      payload.params = payload.input;
-    }
+  // Normalize workflow params
+  if (route === 'workflows' && payload.input && !payload.params) {
+    payload.params = payload.input;
   }
 
-  if (!enforcePermission(apiKey.scopes ?? {}, permissionRequired)) {
-    return { status: 'denied', index, error: 'permission_denied' };
-  }
-
+  // Apply approval policy if needed
   if (constraints.approvals_required_for.includes(payload.type as string)) {
     payload.policy = { ...(payload.policy as Record<string, unknown>), require_approval: true };
   }
@@ -298,7 +316,7 @@ async function processRequestItem(
     p_api_key_id: apiKey.id,
     p_integration_id: apiKey.integration_id,
     p_tenant_id: apiKey.tenant_id,
-    p_request_type: requestType,
+    p_request_type: permissionResult.requestType ?? 'event',
     p_envelope: payload,
     p_idempotency_key: idempotencyKey,
     p_max_rpm: constraints.max_rpm,
@@ -353,6 +371,65 @@ function determineStatusCode(results: Record<string, unknown>[]): number {
   return statusCode;
 }
 
+async function authenticateRequest(
+  req: Request,
+  corsHeaders: HeadersInit
+): Promise<{ apiKey: ApiKeyRecord; idempotencyHeader: string } | Response> {
+  const token = parseBearerToken(req);
+  if (!token) {
+    return jsonResponse({ error: 'unauthorized' }, 401, corsHeaders);
+  }
+
+  const apiKey = await loadApiKey(token);
+  if (!apiKey) {
+    return jsonResponse({ error: 'invalid_key' }, 401, corsHeaders);
+  }
+
+  const idempotencyHeader = req.headers.get('X-Idempotency-Key');
+  if (!idempotencyHeader) {
+    return jsonResponse({ error: 'missing_idempotency_key' }, 400, corsHeaders);
+  }
+
+  return { apiKey, idempotencyHeader };
+}
+
+async function validatePayload(
+  req: Request,
+  constraints: Required<NonNullable<OmniLinkScopes['constraints']>>,
+  corsHeaders: HeadersInit
+): Promise<{ items: unknown[]; requestSize: number } | Response> {
+  let raw = '';
+  let body: unknown = null;
+  try {
+    const parsed = await parseJsonBody(req);
+    raw = parsed.raw;
+    body = parsed.body;
+  } catch {
+    return jsonResponse({ error: 'invalid_json' }, 400, corsHeaders);
+  }
+
+  const payloadSize = getRequestSize(raw);
+
+  if (payloadSize > constraints.max_payload_kb * 1024) {
+    return jsonResponse({ error: 'payload_too_large' }, 413, corsHeaders);
+  }
+
+  if (!Array.isArray(body) && payloadSize > MAX_SINGLE_PAYLOAD_BYTES) {
+    return jsonResponse({ error: 'payload_too_large', max_bytes: MAX_SINGLE_PAYLOAD_BYTES }, 413, corsHeaders);
+  }
+
+  if (payloadSize > MAX_BATCH_PAYLOAD_BYTES) {
+    return jsonResponse({ error: 'batch_too_large' }, 413, corsHeaders);
+  }
+
+  const items = Array.isArray(body) ? body : [body];
+  if (items.length > MAX_BATCH_ITEMS) {
+    return jsonResponse({ error: 'batch_too_large', max_items: MAX_BATCH_ITEMS }, 413, corsHeaders);
+  }
+
+  return { items, requestSize: payloadSize };
+}
+
 Deno.serve(async (req) => {
   const requestOrigin = req.headers.get('origin')?.replace(/\/$/, '') ?? null;
   const corsHeaders = buildCorsHeaders(requestOrigin);
@@ -389,57 +466,22 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'method_not_allowed' }, 405, corsHeaders);
   }
 
-  const token = parseBearerToken(req);
-  if (!token) {
-    return jsonResponse({ error: 'unauthorized' }, 401, corsHeaders);
-  }
+  const authResult = await authenticateRequest(req, corsHeaders);
+  if ('status' in authResult) return authResult;
+  const { apiKey, idempotencyHeader } = authResult;
 
-  const apiKey = await loadApiKey(token);
-  if (!apiKey) {
-    return jsonResponse({ error: 'invalid_key' }, 401, corsHeaders);
-  }
-
-  const idempotencyHeader = req.headers.get('X-Idempotency-Key');
-  if (!idempotencyHeader) {
-    return jsonResponse({ error: 'missing_idempotency_key' }, 400, corsHeaders);
-  }
-
-  let raw = '';
-  let body: unknown = null;
-  try {
-    const parsed = await parseJsonBody(req);
-    raw = parsed.raw;
-    body = parsed.body;
-  } catch {
-    return jsonResponse({ error: 'invalid_json' }, 400, corsHeaders);
-  }
-  const payloadSize = getRequestSize(raw);
   const constraints = getConstraints(apiKey.scopes ?? {});
-
-  if (payloadSize > constraints.max_payload_kb * 1024) {
-    return jsonResponse({ error: 'payload_too_large' }, 413, corsHeaders);
-  }
-
-  if (!Array.isArray(body) && payloadSize > MAX_SINGLE_PAYLOAD_BYTES) {
-    return jsonResponse({ error: 'payload_too_large', max_bytes: MAX_SINGLE_PAYLOAD_BYTES }, 413, corsHeaders);
-  }
-
-  if (payloadSize > MAX_BATCH_PAYLOAD_BYTES) {
-    return jsonResponse({ error: 'batch_too_large' }, 413, corsHeaders);
-  }
-
-  const requestId = crypto.randomUUID();
-  const serviceClient = createServiceClient();
-
-  const items = Array.isArray(body) ? body : [body];
-  if (items.length > MAX_BATCH_ITEMS) {
-    return jsonResponse({ error: 'batch_too_large', max_items: MAX_BATCH_ITEMS }, 413, corsHeaders);
-  }
+  const payloadResult = await validatePayload(req, constraints, corsHeaders);
+  if ('status' in payloadResult) return payloadResult;
+  const { items } = payloadResult;
 
   const concurrencyOk = await enforceConcurrency(apiKey.id, constraints.max_concurrency);
   if (!concurrencyOk) {
     return jsonResponse({ error: 'concurrency_limit_exceeded' }, 429, corsHeaders);
   }
+
+  const requestId = crypto.randomUUID();
+  const serviceClient = createServiceClient();
 
   try {
     const results = [];

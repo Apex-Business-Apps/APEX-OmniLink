@@ -35,8 +35,8 @@ const connectors = [
           metadata: {
             name: 'OmniLink APEX',
             description: 'Web3 Verification for OmniLink',
-            url: window.location.origin,
-            icons: [`${window.location.origin}/favicon.ico`],
+            url: globalThis.location.origin,
+            icons: [`${globalThis.location.origin}/favicon.ico`],
           },
         }),
       ]

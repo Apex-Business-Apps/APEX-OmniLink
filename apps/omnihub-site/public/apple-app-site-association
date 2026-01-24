@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "9U59353982.icu.apexomnihub.omnilink",
+        "paths": [ "/verify/*", "/approve/*", "/login/*", "/dash/approvals/*" ]
+      }
+    ]
+  }
+}

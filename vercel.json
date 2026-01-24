@@ -4,10 +4,18 @@
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/demo", "destination": "/demo.html" },
+    { "source": "/demo/", "destination": "/demo.html" },
+    { "source": "/tech-specs", "destination": "/tech-specs.html" },
+    { "source": "/tech-specs/", "destination": "/tech-specs.html" },
+    { "source": "/request-access", "destination": "/request-access.html" },
+    { "source": "/request-access/", "destination": "/request-access.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/login/", "destination": "/login.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/privacy/", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/terms/", "destination": "/terms.html" }
   ],
   "headers": [
     {

@@ -310,6 +310,7 @@ export const IconAnalytics: React.FC<IconProps> = ({
   </svg>
 );
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const Icons = {
   TriForceProtocol: IconTriForceProtocol,
   Connect: IconConnect,

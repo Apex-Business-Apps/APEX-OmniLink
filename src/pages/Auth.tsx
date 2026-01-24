@@ -63,7 +63,7 @@ const Auth = () => {
         email: validated.email,
         password: validated.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${globalThis.location.origin}/dashboard`,
           data: {
             full_name: validated.fullName,
           },

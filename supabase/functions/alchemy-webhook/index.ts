@@ -71,7 +71,7 @@ async function verifyAlchemySignature(
     }
 
     return timingSafeEqual(signatureBuffer, expectedBuffer);
-  } catch (error) {
+  } catch {
     console.error('Signature verification error');
     return false;
   }

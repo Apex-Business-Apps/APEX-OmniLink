@@ -21,7 +21,7 @@ const Index = () => {
   };
 
   const handleOpenUrl = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    globalThis.open(url, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
@@ -31,8 +31,8 @@ const Index = () => {
         navigate('/auth');
       }
     };
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    globalThis.addEventListener('keydown', handleKeyPress);
+    return () => globalThis.removeEventListener('keydown', handleKeyPress);
   }, [navigate]);
 
   const scrollToApps = () => {

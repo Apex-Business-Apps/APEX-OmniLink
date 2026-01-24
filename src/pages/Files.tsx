@@ -27,7 +27,7 @@ const Files = () => {
       const { data, error } = await listUserFiles(uid);
       if (error) throw error;
       setItems(data ?? []);
-    } catch (error) {
+    } catch {
       // Error logged via toast
       toast({
         title: "Error",
@@ -39,6 +39,7 @@ const Files = () => {
 
   useEffect(() => {
     if (uid) refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -78,7 +79,7 @@ const Files = () => {
       
       if (error) throw error;
       if (data?.signedUrl) {
-        window.open(data.signedUrl, "_blank");
+        globalThis.open(data.signedUrl, "_blank");
       }
     } catch (error: unknown) {
       // Error logged via toast

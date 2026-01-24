@@ -30,7 +30,7 @@ const ApexAssistant = () => {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [, setIsSpeaking] = useState(false);
   const [threadId] = useState(() => crypto.randomUUID()); // Stable per UI session
   const { toast } = useToast();
 
@@ -59,6 +59,7 @@ const ApexAssistant = () => {
 
       // Insert into agent_runs with status='queued'
       const { error: insertError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('agent_runs' as any)
         .insert({
           id: traceId,
@@ -105,7 +106,7 @@ const ApexAssistant = () => {
                   title: 'APEX Response',
                   description: 'Successfully retrieved knowledge',
                 });
-              } catch (parseError) {
+              } catch {
                 // If not JSON, treat as plain text
                 const assistantMessage: Message = {
                   role: 'assistant',

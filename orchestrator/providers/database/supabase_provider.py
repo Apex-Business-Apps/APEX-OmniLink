@@ -41,7 +41,7 @@ ALLOWED_TABLES = frozenset(
 )
 
 # Valid column name pattern (alphanumeric and underscore only)
-VALID_COLUMN_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+VALID_COLUMN_PATTERN = re.compile(r"^[a-zA-Z_]\w*$")
 
 
 def validate_table_name(table: str) -> str:

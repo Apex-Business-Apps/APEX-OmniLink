@@ -35,7 +35,7 @@
 import { createPublicClient, http } from 'https://esm.sh/viem@2.43.4';
 import { polygon, mainnet } from 'https://esm.sh/viem@2.43.4/chains';
 import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
-import { checkRateLimit, RATE_LIMITS } from '../_shared/rate-limiting.ts';
+import { checkRateLimit, RATE_LIMIT_CONFIGS } from '../_shared/rate-limit.ts';
 import { createSupabaseClient, authenticateUser, createAuthErrorResponse, createMethodNotAllowedResponse } from '../_shared/auth.ts';
 
 // Cache configuration
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     const { user } = authResult;
 
     // Check rate limit
-    const rateLimit = checkRateLimit(user!.id, RATE_LIMITS.NFT_VERIFY);
+    const rateLimit = await checkRateLimit(user!.id, RATE_LIMIT_CONFIGS.verifyNft);
     if (!rateLimit.allowed) {
       // For NFT verification, we don't return rate limit errors to avoid exposing rate limiting
       // Instead, return a cached-like response to maintain privacy

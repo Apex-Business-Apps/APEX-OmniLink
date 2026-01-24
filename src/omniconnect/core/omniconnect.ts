@@ -3,8 +3,7 @@
  * Main orchestration layer for all connector operations
  */
 
-import { Connector, SessionToken } from '../types/connector';
-import { CanonicalEvent } from '../types/canonical';
+import { SessionToken } from '../types/connector';
 import { getConnector } from './registry';
 import { generateCorrelationId } from '../utils/correlation';
 import { EncryptedTokenStorage } from '../storage/encrypted-storage';

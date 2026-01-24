@@ -282,7 +282,7 @@ DECLARE
   v_time timestamptz := (p_envelope->>'time')::timestamptz;
   v_dataschema text := p_envelope->>'dataschema';
 
-  -- Constants
+  -- Constants for status keys and values
   c_status constant text := 'status';
   c_queued constant text := 'queued';
   c_denied constant text := 'denied';

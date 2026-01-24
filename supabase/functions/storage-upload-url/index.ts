@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { buildCorsHeaders, handlePreflight, isOriginAllowed } from "../_shared/cors.ts";
-import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_PROFILES, addRateLimitHeaders } from "../_shared/ratelimit.ts";
+import { checkRateLimit, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from "../_shared/rate-limit.ts";
 import { createServiceClient } from "../_shared/supabaseClient.ts";
 
 // Maximum request body size (1MB for upload metadata)
@@ -8,6 +8,34 @@ const MAX_REQUEST_SIZE = 1024 * 1024;
 
 function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Build standardized error response
+ * @param error - Error message or object
+ * @param status - HTTP status code
+ * @param headers - Additional headers (corsHeaders will be merged)
+ * @param corsHeaders - CORS headers to include
+ * @returns Response object
+ */
+function errorResponse(
+  error: string | Record<string, unknown>,
+  status: number,
+  corsHeaders: Record<string, string>,
+  additionalHeaders?: Record<string, string>
+): Response {
+  const body = typeof error === 'string' ? { error } : error;
+  return new Response(
+    JSON.stringify(body),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        ...additionalHeaders,
+      }
+    }
+  );
 }
 
 serve(async (req) => {
@@ -25,18 +53,16 @@ serve(async (req) => {
 
   // Validate origin
   if (!isOriginAllowed(requestOrigin)) {
-    return new Response(
-      JSON.stringify({ error: 'Origin not allowed' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return errorResponse('Origin not allowed', 403, corsHeaders);
   }
 
   // Check request size limit
   const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
   if (contentLength > MAX_REQUEST_SIZE) {
-    return new Response(
-      JSON.stringify({ error: 'Request body too large', max_size: MAX_REQUEST_SIZE }),
-      { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return errorResponse(
+      { error: 'Request body too large', max_size: MAX_REQUEST_SIZE },
+      413,
+      corsHeaders
     );
   }
 
@@ -52,30 +78,21 @@ serve(async (req) => {
 
     if (authErr || !user) {
       console.error("Authentication error:", authErr);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return errorResponse("Unauthorized", 401, corsHeaders);
     }
 
     // Distributed rate limiting check
-    const rateCheck = await checkRateLimit(user.id, RATE_LIMIT_PROFILES.upload);
+    const rateCheck = await checkRateLimit(user.id, RATE_LIMIT_CONFIGS.storageUploadUrl);
     if (!rateCheck.allowed) {
       console.warn(`[${requestId}] Rate limit exceeded for user ${user.id}`);
-      return rateLimitExceededResponse(rateCheck, RATE_LIMIT_PROFILES.upload, corsHeaders);
+      return rateLimitExceededResponse(requestOrigin, rateCheck);
     }
 
     // Parse request body
-    const { filename, mime, size } = await req.json();
-    const contentType = typeof mime === "string" && mime.trim().length > 0
-      ? mime.trim()
-      : "application/octet-stream";
+    const { filename, mime: _mime, size } = await req.json();
 
     if (!filename) {
-      return new Response(JSON.stringify({ error: "Filename is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return errorResponse("Filename is required", 400, corsHeaders);
     }
 
     // Enhanced filename sanitization (path traversal prevention)
@@ -88,22 +105,16 @@ serve(async (req) => {
 
     // Validate sanitized filename is not empty
     if (!safe || safe.length === 0) {
-      return new Response(JSON.stringify({ error: "Invalid filename" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return errorResponse("Invalid filename", 400, corsHeaders);
     }
 
     // Validate file size (10MB limit)
     if (size && size > 10 * 1024 * 1024) {
-      return new Response(JSON.stringify({ error: "File size exceeds 10MB limit" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return errorResponse("File size exceeds 10MB limit", 400, corsHeaders);
     }
 
     const path = `${user.id}/${Date.now()}-${safe}`;
-    console.log(`Creating signed upload URL for path: ${path} (type: ${contentType})`);
+    console.log(`Creating signed upload URL for path: ${path}`);
 
     // Create signed upload URL (valid for ~2 hours)
     const { data, error } = await supabase
@@ -113,27 +124,21 @@ serve(async (req) => {
 
     if (error) {
       console.error("Error creating signed upload URL:", error);
-      return new Response(JSON.stringify({ error: "Failed to create upload URL" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return errorResponse("Failed to create upload URL", 500, corsHeaders);
     }
 
     const duration = Date.now() - startTime;
     console.log(`[${requestId}] Successfully created signed upload URL for: ${path} (${duration}ms)`);
 
     return new Response(
-      JSON.stringify({ path, token: data.token, signedUrl: data.signedUrl, contentType }),
+      JSON.stringify({ path, token: data.token, signedUrl: data.signedUrl }),
       {
-        headers: addRateLimitHeaders(
-          {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "X-Request-ID": requestId,
-          },
-          rateCheck,
-          RATE_LIMIT_PROFILES.upload
-        ),
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "X-Request-ID": requestId,
+          ...Object.fromEntries(rateCheck.headers.entries())
+        },
         status: 200
       }
     );
@@ -141,19 +146,11 @@ serve(async (req) => {
     const duration = Date.now() - startTime;
     console.error(`[${requestId}] Unexpected error (${duration}ms):`, error);
 
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        requestId
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "X-Request-ID": requestId
-        }
-      }
+    return errorResponse(
+      { error: "Internal server error", requestId },
+      500,
+      corsHeaders,
+      { "X-Request-ID": requestId }
     );
   }
 });

@@ -172,7 +172,7 @@ class MockDatabase implements IDatabase {
     return `https://example.com/${path}`
   }
 
-  async subscribe<T>(): Promise<() => void> {
+  async subscribe<_T>(): Promise<() => void> {
     return () => {}
   }
 

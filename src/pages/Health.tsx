@@ -25,7 +25,7 @@ export default function Health() {
 
   useEffect(() => {
     async function checkHealth() {
-      const startTime = Date.now();
+      const _startTime = Date.now();
       const checks: HealthStatus['checks'] = {
         supabase: { status: 'error', message: 'Not checked' },
         database: { status: 'error', message: 'Not checked' },
@@ -35,7 +35,7 @@ export default function Health() {
       // Check Supabase connection
       try {
         const supabaseStart = Date.now();
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session: _session }, error: sessionError } = await supabase.auth.getSession();
         const supabaseLatency = Date.now() - supabaseStart;
         
         if (sessionError) {

@@ -21,32 +21,13 @@ const ASSETS_JS_DIR = resolve(DIST_DIR, 'assets/js');
 
 // Page expectations
 const PAGE_CHECKS = [
-  {
-    file: 'index.html',
-    name: 'Home (/)',
-    // Check that HTML exists and has the right structure
-    htmlContains: ['<div id="root">', '<script'],
-  },
-  {
-    file: 'demo.html',
-    name: 'Demo (/demo)',
-    htmlContains: ['<div id="root">', '<script'],
-  },
-  {
-    file: 'tech-specs.html',
-    name: 'Tech Specs (/tech-specs)',
-    htmlContains: ['<div id="root">', '<script'],
-  },
-  {
-    file: 'request-access.html',
-    name: 'Request Access (/request-access)',
-    htmlContains: ['<div id="root">', '<script'],
-  },
-  {
-    file: 'restricted.html',
-    name: 'Restricted (/restricted)',
-    htmlContains: ['<div id="root">', '<script'],
-  },
+  { file: 'index.html', name: 'Home (/)', htmlContains: ['<div id="root">', '<script'] },
+  { file: 'demo.html', name: 'Demo (/demo)', htmlContains: ['<div id="root">', '<script'] },
+  { file: 'tech-specs.html', name: 'Tech Specs (/tech-specs)', htmlContains: ['<div id="root">', '<script'] },
+  { file: 'request-access.html', name: 'Request Access (/request-access)', htmlContains: ['<div id="root">', '<script'] },
+  { file: 'login.html', name: 'Login (/login)', htmlContains: ['<div id="root">', '<script'] },
+  { file: 'privacy.html', name: 'Privacy (/privacy)', htmlContains: ['<div id="root">', '<script'] },
+  { file: 'terms.html', name: 'Terms (/terms)', htmlContains: ['<div id="root">', '<script'] },
 ];
 
 // Content that must exist somewhere in the JS bundles
@@ -61,9 +42,30 @@ const CONTENT_CHECKS = [
   { content: 'Single-Port Protocol', description: 'Tech spec section' },
   { content: 'Technical Specifications', description: 'Tech specs page title' },
   { content: 'Request Access', description: 'Request access page' },
+  { content: 'Welcome Back', description: 'Login page title' },
+  { content: 'Privacy', description: 'Privacy page' },
+  { content: 'Terms', description: 'Terms page' },
 ];
 
-let exitCode = 0;
+/**
+ * Generic test runner that validates checks and logs results
+ * @param {Array} checks - Array of check objects
+ * @param {Function} validator - Function that validates each check (returns {passed, passMessage, failMessage})
+ * @returns {number} Exit code (0 = all passed, 1 = some failed)
+ */
+function runChecks(checks, validator) {
+  let exitCode = 0;
+  for (const check of checks) {
+    const result = validator(check);
+    if (result.passed) {
+      console.log(`✅ PASS: ${result.passMessage}`);
+    } else {
+      console.error(`❌ FAIL: ${result.failMessage}`);
+      exitCode = 1;
+    }
+  }
+  return exitCode;
+}
 
 console.log('🔍 APEX OmniHub Marketing Site - Smoke Test\n');
 
@@ -75,26 +77,25 @@ if (!existsSync(DIST_DIR)) {
 
 // Check HTML files
 console.log('📄 Checking HTML entry points...\n');
-
-for (const check of PAGE_CHECKS) {
+const htmlExitCode = runChecks(PAGE_CHECKS, (check) => {
   const filePath = resolve(DIST_DIR, check.file);
 
   if (!existsSync(filePath)) {
-    console.error(`❌ FAIL: ${check.name} - File not found: ${check.file}`);
-    exitCode = 1;
-    continue;
+    return {
+      passed: false,
+      failMessage: `${check.name} - File not found: ${check.file}`,
+    };
   }
 
   const content = readFileSync(filePath, 'utf-8');
   const missing = check.htmlContains.filter(s => !content.includes(s));
 
-  if (missing.length > 0) {
-    console.error(`❌ FAIL: ${check.name} - Missing HTML structure`);
-    exitCode = 1;
-  } else {
-    console.log(`✅ PASS: ${check.name}`);
-  }
-}
+  return {
+    passed: missing.length === 0,
+    passMessage: check.name,
+    failMessage: `${check.name} - Missing HTML structure`,
+  };
+});
 
 // Check JS bundles for content
 console.log('\n📦 Checking JS bundles for content...\n');
@@ -104,29 +105,21 @@ if (!existsSync(ASSETS_JS_DIR)) {
   process.exit(1);
 }
 
-// Read all JS files
+// Read all JS files once
 const jsFiles = readdirSync(ASSETS_JS_DIR).filter(f => f.endsWith('.js'));
-let allJsContent = '';
+const allJsContent = jsFiles
+  .map(f => readFileSync(join(ASSETS_JS_DIR, f), 'utf-8'))
+  .join('');
 
-for (const jsFile of jsFiles) {
-  allJsContent += readFileSync(join(ASSETS_JS_DIR, jsFile), 'utf-8');
-}
+const contentExitCode = runChecks(CONTENT_CHECKS, (check) => ({
+  passed: allJsContent.includes(check.content),
+  passMessage: `${check.description} ("${check.content}")`,
+  failMessage: `${check.description} - Missing: "${check.content}"`,
+}));
 
-for (const check of CONTENT_CHECKS) {
-  if (allJsContent.includes(check.content)) {
-    console.log(`✅ PASS: ${check.description} ("${check.content}")`);
-  } else {
-    console.error(`❌ FAIL: ${check.description} - Missing: "${check.content}"`);
-    exitCode = 1;
-  }
-}
-
+// Final summary
+const exitCode = htmlExitCode | contentExitCode;
 console.log('');
-
-if (exitCode === 0) {
-  console.log('✅ All smoke tests passed!\n');
-} else {
-  console.error('❌ Some smoke tests failed.\n');
-}
+console.log(exitCode === 0 ? '✅ All smoke tests passed!\n' : '❌ Some smoke tests failed.\n');
 
 process.exit(exitCode);

@@ -149,7 +149,7 @@ class AudioQueue {
       
       source.onended = () => this.playNext();
       source.start(0);
-    } catch (error) {
+    } catch {
       // Silently continue to next audio chunk on playback error
       this.playNext();
     }

@@ -42,6 +42,7 @@ check_var() {
     else
         echo -e "${GREEN}✓${NC} $var_name is set"
     fi
+    return 0
 }
 
 # Function to validate Ethereum address format
@@ -57,6 +58,7 @@ validate_address() {
             ((ERRORS++))
         fi
     fi
+    return 0
 }
 
 # Function to validate private key format
@@ -79,6 +81,7 @@ validate_private_key() {
             ((WARNINGS++))
         fi
     fi
+    return 0
 }
 
 echo "Required Variables:"
@@ -109,7 +112,7 @@ if [ -z "$ALCHEMY_API_KEY_ETH" ] && [ -z "$ALCHEMY_API_KEY_POLYGON" ]; then
         echo -e "${YELLOW}⚠${NC} Demo mode: RPC API keys are optional"
         ((WARNINGS++))
     else
-        echo -e "${RED}✗${NC} ERROR: At least one RPC API key (ETH or Polygon) must be set"
+        echo -e "${RED}✗${NC} ERROR: At least one RPC API key (ETH or Polygon) must be set" >&2
         ((ERRORS++))
     fi
 fi
@@ -161,9 +164,9 @@ elif [ $ERRORS -eq 0 ]; then
     echo -e "${YELLOW}⚠ $WARNINGS warning(s) found.${NC} Review warnings before deploying to production."
     exit 0
 else
-    echo -e "${RED}✗ $ERRORS error(s) found.${NC} Fix errors before deploying."
+    echo -e "${RED}✗ $ERRORS error(s) found.${NC} Fix errors before deploying." >&2
     if [ $WARNINGS -gt 0 ]; then
-        echo -e "${YELLOW}⚠ $WARNINGS warning(s) also found.${NC}"
+        echo -e "${YELLOW}⚠ $WARNINGS warning(s) also found.${NC}" >&2
     fi
     exit 1
 fi

@@ -524,17 +524,15 @@ class AgentWorkflow:
             ),
         )
 
-    async def _execute_plan(self) -> None:
+    def _build_dag_structure(
+        self,
+    ) -> tuple[dict[str, dict], dict[str, list[str]], dict[str, list[str]], dict[str, int]]:
         """
-        Execute plan steps in dependency order (DAG traversal with parallel execution).
+        Build DAG dependency graph from plan steps.
 
-        DAG Execution Algorithm:
-        1. Build dependency graph from step.depends_on fields
-        2. Topological sort to find execution levels
-        3. Execute steps at same level in parallel via asyncio.gather
-        4. Pass results to dependent steps
+        Returns:
+            Tuple of (step_lookup, dependencies, dependents, in_degree)
         """
-        # Build step lookup and dependency graph
         step_lookup = {}
         dependencies: dict[str, list[str]] = defaultdict(list)
         dependents: dict[str, list[str]] = defaultdict(list)
@@ -552,6 +550,80 @@ class AgentWorkflow:
         # Calculate in-degrees for topological sort
         in_degree = {step_id: len(deps) for step_id, deps in dependencies.items()}
 
+        return step_lookup, dependencies, dependents, in_degree
+
+    async def _execute_dag_level(
+        self, ready_queue: list[str], step_lookup: dict[str, dict], level: int
+    ) -> list[tuple[str, Any]]:
+        """
+        Execute all steps at a given DAG level in parallel.
+
+        Returns:
+            List of (step_id, result) tuples
+        """
+        # Log execution level
+        if len(ready_queue) > 1:
+            workflow.logger.info(
+                f"▶ Level {level}: Executing {len(ready_queue)} steps in PARALLEL: {ready_queue}"
+            )
+        else:
+            workflow.logger.info(f"▶ Level {level}: Executing step: {ready_queue[0]}")
+
+        # Create coroutines for parallel execution
+        parallel_tasks = [
+            self._execute_single_step(step_lookup[step_id], step_id) for step_id in ready_queue
+        ]
+
+        # Execute in parallel and collect results
+        results = await asyncio.gather(*parallel_tasks, return_exceptions=True)
+
+        return list(zip(ready_queue, results, strict=True))
+
+    def _process_dag_results(
+        self,
+        step_results: list[tuple[str, Any]],
+        executed: set[str],
+        dependents: dict[str, list[str]],
+        in_degree: dict[str, int],
+    ) -> list[str]:
+        """
+        Process DAG execution results and determine next ready steps.
+
+        Returns:
+            List of step IDs ready for next execution level
+        """
+        next_ready = []
+        for step_id, result in step_results:
+            if isinstance(result, Exception):
+                # Step failed - trigger rollback
+                self.failed_step_id = step_id
+                raise result
+
+            # Mark as executed and update dependents
+            executed.add(step_id)
+            self.step_results[step_id] = result
+
+            # Check if any dependents are now ready
+            for dependent_id in dependents[step_id]:
+                in_degree[dependent_id] -= 1
+                if in_degree[dependent_id] == 0 and dependent_id not in executed:
+                    next_ready.append(dependent_id)
+
+        return next_ready
+
+    async def _execute_plan(self) -> None:
+        """
+        Execute plan steps in dependency order (DAG traversal with parallel execution).
+
+        DAG Execution Algorithm:
+        1. Build dependency graph from step.depends_on fields
+        2. Topological sort to find execution levels
+        3. Execute steps at same level in parallel via asyncio.gather
+        4. Pass results to dependent steps
+        """
+        # Build DAG structure
+        step_lookup, _, dependents, in_degree = self._build_dag_structure()
+
         # Find all steps with no dependencies (ready to execute)
         ready_queue = [step_id for step_id, degree in in_degree.items() if degree == 0]
         executed = set()
@@ -563,42 +635,11 @@ class AgentWorkflow:
         )
 
         while ready_queue:
-            # Execute all ready steps in parallel
-            if len(ready_queue) > 1:
-                workflow.logger.info(
-                    f"▶ Level {level}: Executing {len(ready_queue)} steps in PARALLEL: "
-                    f"{ready_queue}"
-                )
-            else:
-                workflow.logger.info(f"▶ Level {level}: Executing step: {ready_queue[0]}")
+            # Execute current level in parallel
+            level_results = await self._execute_dag_level(ready_queue, step_lookup, level)
 
-            # Create coroutines for parallel execution
-            parallel_tasks = [
-                self._execute_single_step(step_lookup[step_id], step_id) for step_id in ready_queue
-            ]
-
-            # Execute in parallel and collect results
-            results = await asyncio.gather(*parallel_tasks, return_exceptions=True)
-
-            # Process results and handle failures
-            next_ready = []
-            for step_id, result in zip(ready_queue, results, strict=True):
-                if isinstance(result, Exception):
-                    # Step failed - trigger rollback
-                    self.failed_step_id = step_id
-                    raise result
-
-                # Mark as executed and update dependents
-                executed.add(step_id)
-                self.step_results[step_id] = result
-
-                # Check if any dependents are now ready
-                for dependent_id in dependents[step_id]:
-                    in_degree[dependent_id] -= 1
-                    if in_degree[dependent_id] == 0 and dependent_id not in executed:
-                        next_ready.append(dependent_id)
-
-            ready_queue = next_ready
+            # Process results and get next ready steps
+            ready_queue = self._process_dag_results(level_results, executed, dependents, in_degree)
             level += 1
 
         # Verify all steps executed (detect cycles)
@@ -839,7 +880,13 @@ class AgentWorkflow:
             )
         )
 
-        return result
+        return {
+            "status": "success",
+            "goal": self.goal,
+            "plan_id": self.plan_id,
+            "steps_executed": len(self.step_results),
+            "results": self.step_results,
+        }
 
     async def _handle_failure(self, error_message: str) -> dict[str, Any]:
         """Handle workflow failure with Saga rollback."""

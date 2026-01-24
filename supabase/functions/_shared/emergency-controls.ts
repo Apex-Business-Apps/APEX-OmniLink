@@ -259,7 +259,7 @@ export async function getEmergencyControlsStatus(): Promise<{
       status: 'ok',
       last_updated: controls.updated_at
     }
-  } catch (error) {
+  } catch {
     // Fail closed
     return {
       omnihub_enabled: false,

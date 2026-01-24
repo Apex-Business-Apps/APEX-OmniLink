@@ -61,10 +61,14 @@ def load_tools_module():
     code = code.replace(CACHE_IMPORT, CACHE_MOCK)
 
     print("Executing module with safe loader...")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp_path = Path(tmpdir) / "tools_sandbox.py"
-        tmp_path.write_text(code, encoding="utf-8")
+    # Use NamedTemporaryFile to avoid path injection vulnerability (S2083)
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", prefix="tools_sandbox_", encoding="utf-8", delete=False
+    ) as tmp_file:
+        tmp_file.write(code)
+        tmp_path = tmp_file.name
 
+    try:
         spec = importlib.util.spec_from_file_location("tools_sandbox", tmp_path)
         if spec is None or spec.loader is None:
             raise RuntimeError("Failed to create module spec for tools_sandbox")
@@ -73,6 +77,9 @@ def load_tools_module():
         sys.modules["tools_sandbox"] = tools_mod
         spec.loader.exec_module(tools_mod)
         return tools_mod
+    finally:
+        # Clean up temporary file
+        Path(tmp_path).unlink(missing_ok=True)
 
 
 # Load the module

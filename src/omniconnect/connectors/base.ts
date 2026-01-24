@@ -5,7 +5,6 @@
 
 import { Connector, ConnectorConfig, SessionToken, RawEvent } from '../types/connector';
 import { CanonicalEvent } from '../types/canonical';
-import { generateCorrelationId } from '../utils/correlation';
 
 export abstract class BaseConnector implements Connector {
   readonly provider: string;

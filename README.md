@@ -32,7 +32,7 @@ APEX OmniHub is a production-ready platform combining AI agent orchestration, bl
 
 [![Production Ready](https://img.shields.io/badge/Status-PRODUCTION%20READY-green?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub)
 
-[![Test Coverage](https://img.shields.io/badge/Coverage-82.4%25-blue?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub/tree/main/tests)
+[![Test Coverage](https://img.shields.io/badge/Tests-450%20passing%20(87%25)-brightgreen?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub/tree/main/tests)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=for-the-badge)](https://www.typescriptlang.org/)
 
@@ -517,13 +517,13 @@ APEX-OmniHub/
 
 |--------|-------|
 
-| Build Time | 12.97s |
+| Build Time | 42.20s |
 
-| Bundle Size | 366 KB (107 KB gzip) |
+| Bundle Size | 506 KB (144 KB gzip) |
 
 | Lighthouse Score | 95+ |
 
-| Test Coverage | 96.8% |
+| Test Pass Rate | 87.0% (517 tests) |
 
 | Cache Hit Rate | 70% |
 
@@ -577,15 +577,21 @@ cd orchestrator && pytest
 
 ### Test Coverage
 
- 
 
-- **91/94 tests passing** (96.8%)
+
+- **517 tests total** (87.0% pass rate, 450 passing)
+
+- 59 test files (48 TypeScript + 11 Python)
+
+- 43 test suites (37 passing, 6 skipped)
 
 - 22 prompt injection patterns validated
 
-- Web3 wallet integration tests
+- MAESTRO security tests (55 tests)
 
-- OmniDash UI accessibility tests
+- E2E tests (security, stress, integration)
+
+- Web3 wallet integration tests
 
 - Chaos simulation and recovery tests
 

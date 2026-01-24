@@ -85,7 +85,7 @@ function upsertQueueEntry(record: DeviceRecord, queue: QueuedUpsert[]): QueuedUp
   return queue;
 }
 
-function toDeviceInfo(record: DeviceRecord): DeviceInfo {
+function _toDeviceInfo(record: DeviceRecord): DeviceInfo {
   return {
     device_id: record.deviceId,
     user_id: record.userId,

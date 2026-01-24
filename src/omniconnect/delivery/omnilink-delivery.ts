@@ -61,7 +61,7 @@ export class OmniLinkDelivery {
     });
   }
 
-  async getDeliveryStatus(eventId: string): Promise<DeliveryResult | null> {
+  async getDeliveryStatus(_eventId: string): Promise<DeliveryResult | null> {
     // TODO: Implement delivery status tracking
     return null;
   }

@@ -47,7 +47,7 @@ export class PolicyEngine {
     this.profiles.set(profile.appId, profile);
   }
 
-  async validateEvent(event: CanonicalEvent, appId: string): Promise<boolean> {
+  async validateEvent(_event: CanonicalEvent, _appId: string): Promise<boolean> {
     // TODO: Implement validation logic
     return true;
   }
