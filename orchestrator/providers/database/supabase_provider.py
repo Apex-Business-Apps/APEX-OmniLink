@@ -22,6 +22,7 @@ ALLOWED_TABLES = frozenset(
         "notifications",
         "audit_logs",
         "rate_limits",
+        "omni_policies",
         "sessions",
         "user_data",
         "settings",
