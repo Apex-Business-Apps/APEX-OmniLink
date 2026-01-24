@@ -65,6 +65,17 @@ export function sanitizeInput(input: string): string {
  */
 export function isValidRedirectUrl(url: string): boolean {
   try {
+    // Handle relative URLs (starting with /)
+    if (url.startsWith('/')) {
+      return true;
+    }
+
+    // Handle protocol-relative URLs (starting with //) - these should be blocked
+    if (url.startsWith('//')) {
+      return false;
+    }
+
+    // Handle absolute URLs
     const parsed = new URL(url, globalThis.location.origin);
     return parsed.origin === globalThis.location.origin;
   } catch {
