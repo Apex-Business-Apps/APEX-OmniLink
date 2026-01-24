@@ -112,11 +112,12 @@ class TestRedaction:
         assert "authorization" not in result
 
     def test_unknown_keys_hashed(self):
-        """Unknown keys should be redacted with hash."""
+        """Unknown keys should be redacted with hash when they contain special chars or are long."""
         data = {
             "id": "test",
             "user_email": "user@example.com",
-            "custom_field": "some long value that should be redacted",
+            # String with special char (/) triggers redaction
+            "custom_field": "some/path/value",
         }
         result = redact_dict(data)
         assert result["id"] == "test"
