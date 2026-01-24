@@ -219,9 +219,18 @@ class TestRedactionAllowlist:
     def test_essential_keys_in_allowlist(self):
         """Essential keys should be in allowlist."""
         essential = [
-            "id", "workflow_id", "trace_id", "step_id",
-            "status", "success", "error", "kind", "name",
-            "latency_ms", "count", "event_count",
+            "id",
+            "workflow_id",
+            "trace_id",
+            "step_id",
+            "status",
+            "success",
+            "error",
+            "kind",
+            "name",
+            "latency_ms",
+            "count",
+            "event_count",
         ]
         for key in essential:
             assert key in REDACTION_ALLOWLIST, f"{key} should be in allowlist"
@@ -229,8 +238,13 @@ class TestRedactionAllowlist:
     def test_sensitive_keys_in_droplist(self):
         """Sensitive keys should be in droplist."""
         sensitive = [
-            "password", "secret", "token", "api_key",
-            "authorization", "credential", "private_key",
+            "password",
+            "secret",
+            "token",
+            "api_key",
+            "authorization",
+            "credential",
+            "private_key",
         ]
         for key in sensitive:
             assert key in REDACTION_DROPLIST, f"{key} should be in droplist"

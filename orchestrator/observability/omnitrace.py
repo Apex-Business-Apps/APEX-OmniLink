@@ -40,27 +40,69 @@ _DEFAULT_MAX_EVENTS_PER_RUN = 200
 _DEFAULT_MAX_EVENT_BYTES = 8192  # 8KB
 
 # Allowlisted keys for redaction (these are preserved, others hashed/dropped)
-REDACTION_ALLOWLIST = frozenset({
-    # Identifiers (safe to log)
-    "id", "workflow_id", "trace_id", "step_id", "plan_id", "run_id",
-    "event_key", "correlation_id", "request_id", "task_id",
-    # Status/metadata
-    "status", "success", "error", "kind", "type", "name", "tool",
-    "lane", "reason", "action", "method",
-    # Timing
-    "latency_ms", "duration_ms", "timestamp", "created_at", "updated_at",
-    # Counts (safe integers)
-    "count", "total_steps", "event_count", "attempt", "retry_count",
-    # Classification
-    "cache_hit", "template_id", "irreversible",
-})
+REDACTION_ALLOWLIST = frozenset(
+    {
+        # Identifiers (safe to log)
+        "id",
+        "workflow_id",
+        "trace_id",
+        "step_id",
+        "plan_id",
+        "run_id",
+        "event_key",
+        "correlation_id",
+        "request_id",
+        "task_id",
+        # Status/metadata
+        "status",
+        "success",
+        "error",
+        "kind",
+        "type",
+        "name",
+        "tool",
+        "lane",
+        "reason",
+        "action",
+        "method",
+        # Timing
+        "latency_ms",
+        "duration_ms",
+        "timestamp",
+        "created_at",
+        "updated_at",
+        # Counts (safe integers)
+        "count",
+        "total_steps",
+        "event_count",
+        "attempt",
+        "retry_count",
+        # Classification
+        "cache_hit",
+        "template_id",
+        "irreversible",
+    }
+)
 
 # Keys that should be completely dropped (never logged even as hash)
-REDACTION_DROPLIST = frozenset({
-    "password", "secret", "token", "api_key", "apikey", "auth",
-    "authorization", "credential", "private_key", "privatekey",
-    "access_token", "refresh_token", "session", "cookie",
-})
+REDACTION_DROPLIST = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "auth",
+        "authorization",
+        "credential",
+        "private_key",
+        "privatekey",
+        "access_token",
+        "refresh_token",
+        "session",
+        "cookie",
+    }
+)
 
 
 # =============================================================================
@@ -296,6 +338,7 @@ class OmniTraceRecorder:
         if self._db_provider is None:
             try:
                 from providers.database.factory import get_database_provider
+
                 self._db_provider = get_database_provider()
             except Exception as e:
                 self._handle_error("db_init", e)
@@ -551,6 +594,7 @@ def trace_tool_execution(step_id: str, tool_name: str, attempt: int = 1):
         async with trace_tool_execution("step1", "search_database", attempt=2):
             result = await execute_tool(...)
     """
+
     class TraceContext:
         def __init__(self, workflow_id: str, trace_id: str):
             self.workflow_id = workflow_id

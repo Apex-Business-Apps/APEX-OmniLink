@@ -443,11 +443,13 @@ class AgentWorkflow:
             )
 
             # 1b. OmniTrace: Record run start (best-effort)
-            await self._omnitrace_record_run_start({
-                "goal": goal,
-                "user_id": user_id,
-                "context": context or {},
-            })
+            await self._omnitrace_record_run_start(
+                {
+                    "goal": goal,
+                    "user_id": user_id,
+                    "context": context or {},
+                }
+            )
 
             # 2. Try semantic cache lookup
             cached_plan = await self._check_semantic_cache(goal)
@@ -504,13 +506,15 @@ class AgentWorkflow:
         try:
             result = await workflow.execute_activity(
                 "omnitrace_record_run_start",
-                args=[{
-                    "workflow_id": workflow.info().workflow_id,
-                    "trace_id": workflow.info().workflow_id,  # Use workflow_id as trace_id
-                    "user_id": self.user_id,
-                    "input_data": input_data,
-                    "status": "running",
-                }],
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "trace_id": workflow.info().workflow_id,  # Use workflow_id as trace_id
+                        "user_id": self.user_id,
+                        "input_data": input_data,
+                        "status": "running",
+                    }
+                ],
                 start_to_close_timeout=timedelta(seconds=5),
                 retry_policy=RetryPolicy(maximum_attempts=1),  # No retries for telemetry
             )
@@ -527,12 +531,14 @@ class AgentWorkflow:
         try:
             await workflow.execute_activity(
                 "omnitrace_record_run_complete",
-                args=[{
-                    "workflow_id": workflow.info().workflow_id,
-                    "trace_id": workflow.info().workflow_id,
-                    "output_data": output_data,
-                    "status": status,
-                }],
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "trace_id": workflow.info().workflow_id,
+                        "output_data": output_data,
+                        "status": status,
+                    }
+                ],
                 start_to_close_timeout=timedelta(seconds=5),
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
@@ -553,15 +559,17 @@ class AgentWorkflow:
         try:
             await workflow.execute_activity(
                 "omnitrace_record_event",
-                args=[{
-                    "workflow_id": workflow.info().workflow_id,
-                    "trace_id": workflow.info().workflow_id,
-                    "event_key": event_key,
-                    "kind": kind,
-                    "name": name,
-                    "latency_ms": latency_ms,
-                    "data": data,
-                }],
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "trace_id": workflow.info().workflow_id,
+                        "event_key": event_key,
+                        "kind": kind,
+                        "name": name,
+                        "latency_ms": latency_ms,
+                        "data": data,
+                    }
+                ],
                 start_to_close_timeout=timedelta(seconds=3),
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
