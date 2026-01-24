@@ -9,16 +9,7 @@ from typing import Any
 
 from temporalio import activity
 
-from observability.omnitrace import (
-    compute_hash,
-    get_max_event_bytes,
-    get_max_events_per_run,
-    get_omnitrace_recorder,
-    get_sample_rate,
-    is_omnitrace_enabled,
-    redact_dict,
-    truncate_payload,
-)
+from observability.omnitrace import get_omnitrace_recorder
 
 
 @activity.defn(name="omnitrace_record_run_start")

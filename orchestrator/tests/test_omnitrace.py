@@ -9,14 +9,14 @@ Tests cover:
 """
 
 import pytest
+
 from observability.omnitrace import (
+    REDACTION_ALLOWLIST,
+    REDACTION_DROPLIST,
     canonical_json,
     compute_hash,
     redact_dict,
-    redact_value,
     truncate_payload,
-    REDACTION_ALLOWLIST,
-    REDACTION_DROPLIST,
 )
 
 

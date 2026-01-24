@@ -277,7 +277,8 @@ class OmniTraceRecorder:
 
         if not self._sample_decision_made:
             sample_rate = get_sample_rate()
-            self._sampled = random.random() < sample_rate
+            # S311: random.random() is fine for sampling - not cryptographic
+            self._sampled = random.random() < sample_rate  # noqa: S311
             self._sample_decision_made = True
             logger.debug(
                 f"OmniTrace sample decision: {self._sampled} "
