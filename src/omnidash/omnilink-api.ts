@@ -7,6 +7,8 @@ import type {
   OmniLinkIntegration,
   OmniLinkOrchestrationRequest,
   OmniLinkRun,
+  OmniTraceRunsListResponse,
+  OmniTraceRunDetailResponse,
 } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -183,4 +185,65 @@ export async function decideOmniLinkApproval(
     logError(error, { action: 'omnilink_set_approval' });
     throw error;
   }
+}
+
+// =============================================================================
+// OmniTrace API - Workflow Run Observability
+// =============================================================================
+
+/**
+ * Fetch OmniTrace runs for the current user via Edge function.
+ * Uses authenticated session token for RLS-enforced access.
+ */
+export async function fetchOmniTraceRuns(limit: number = 50): Promise<OmniTraceRunsListResponse> {
+  const { data: session } = await supabase.auth.getSession();
+  const token = session.session?.access_token;
+  if (!token) {
+    throw new Error('No authenticated session found');
+  }
+
+  const url = `${requireSupabaseUrl()}/functions/v1/omni-runs?limit=${limit}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    logError(new Error(`Failed to fetch runs: ${text}`), { action: 'omnitrace_fetch_runs' });
+    throw new Error(`Failed to fetch runs (${response.status}): ${text}`);
+  }
+
+  return (await response.json()) as OmniTraceRunsListResponse;
+}
+
+/**
+ * Fetch OmniTrace run detail with events via Edge function.
+ */
+export async function fetchOmniTraceRunDetail(workflowId: string): Promise<OmniTraceRunDetailResponse> {
+  const { data: session } = await supabase.auth.getSession();
+  const token = session.session?.access_token;
+  if (!token) {
+    throw new Error('No authenticated session found');
+  }
+
+  const url = `${requireSupabaseUrl()}/functions/v1/omni-runs/${encodeURIComponent(workflowId)}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    logError(new Error(`Failed to fetch run detail: ${text}`), { action: 'omnitrace_fetch_run_detail' });
+    throw new Error(`Failed to fetch run detail (${response.status}): ${text}`);
+  }
+
+  return (await response.json()) as OmniTraceRunDetailResponse;
 }
