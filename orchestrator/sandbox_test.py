@@ -52,7 +52,7 @@ CACHE_MOCK = "SemanticCacheService = MagicMock"
 def load_tools_module():
     """Load tools.py with mocked dependencies."""
     print("Reading activities/tools.py...")
-    tools_path = Path("activities/tools.py")
+    tools_path = Path(__file__).resolve().parent / "activities" / "tools.py"
     code = tools_path.read_text(encoding="utf-8")
 
     print("Mocking imports...")
