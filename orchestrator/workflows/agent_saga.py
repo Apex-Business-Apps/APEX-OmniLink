@@ -833,9 +833,7 @@ class AgentWorkflow:
             )
 
         if decision == "DEFER":
-            workflow.logger.warning(
-                f"  🛑 Policy DEFER: {step['tool']} - awaiting MAN approval"
-            )
+            workflow.logger.warning(f"  🛑 Policy DEFER: {step['tool']} - awaiting MAN approval")
 
             idempotency_key = create_idempotency_key(
                 workflow.info().workflow_id,

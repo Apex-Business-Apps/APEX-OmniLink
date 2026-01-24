@@ -13,14 +13,18 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import time
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Iterable
+from typing import Any
 
 from models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
 from models.man_mode import ManLane
 from providers.database.factory import get_database_provider
+
+logger = logging.getLogger(__name__)
 
 PolicyLoader = Callable[[], Awaitable[list[dict[str, Any]]]]
 
@@ -176,6 +180,6 @@ async def evaluate_policy(ctx: dict[str, Any]) -> dict[str, Any]:
         )
     except Exception:
         # Audit logging must never block policy enforcement; best-effort only.
-        pass
+        logger.debug("Audit log failed for policy evaluation", exc_info=True)
 
     return decision
