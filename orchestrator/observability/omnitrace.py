@@ -157,6 +157,42 @@ def _redact_value(value: Any) -> str:
     return f"<redacted:{compute_hash(value)}>"
 
 
+def _process_list_item(item: Any, depth: int, max_depth: int) -> Any:
+    """Process a single list item for redaction."""
+    if isinstance(item, dict):
+        return redact_dict(item, depth, max_depth)
+    if _should_redact_value(item):
+        return _redact_value(item)
+    return item
+
+
+def _process_value(key: str, value: Any, depth: int, max_depth: int) -> Any:
+    """Process a single key-value pair and return the redacted value."""
+    # Always preserve allowlisted keys (recurse into dicts)
+    if _is_allowlisted_key(key):
+        if isinstance(value, dict):
+            return redact_dict(value, depth + 1, max_depth)
+        return value
+
+    # Always redact sensitive keys
+    if _is_sensitive_key(key):
+        return _redact_value(value)
+
+    # Process nested dictionaries
+    if isinstance(value, dict):
+        return redact_dict(value, depth + 1, max_depth)
+
+    # Process lists
+    if isinstance(value, list):
+        return [_process_list_item(item, depth + 1, max_depth) for item in value]
+
+    # For unknown keys, check if the value should be redacted
+    if _should_redact_value(value):
+        return _redact_value(value)
+
+    return value
+
+
 def redact_dict(
     data: dict[str, Any],
     depth: int = 0,
@@ -183,48 +219,7 @@ def redact_dict(
     if depth >= max_depth:
         return {"<truncated>": "max depth exceeded"}
 
-    result: dict[str, Any] = {}
-
-    for key, value in data.items():
-        # Always preserve allowlisted keys
-        if _is_allowlisted_key(key):
-            if isinstance(value, dict):
-                result[key] = redact_dict(value, depth + 1, max_depth)
-            else:
-                result[key] = value
-            continue
-
-        # Always redact sensitive keys
-        if _is_sensitive_key(key):
-            result[key] = _redact_value(value)
-            continue
-
-        # Process nested dictionaries
-        if isinstance(value, dict):
-            result[key] = redact_dict(value, depth + 1, max_depth)
-            continue
-
-        # Process lists
-        if isinstance(value, list):
-            result[key] = [
-                redact_dict(item, depth + 1, max_depth)
-                if isinstance(item, dict)
-                else (
-                    _redact_value(item)
-                    if _should_redact_value(item)
-                    else item
-                )
-                for item in value
-            ]
-            continue
-
-        # For unknown keys, check if the value should be redacted
-        if _should_redact_value(value):
-            result[key] = _redact_value(value)
-        else:
-            result[key] = value
-
-    return result
+    return {key: _process_value(key, value, depth, max_depth) for key, value in data.items()}
 
 
 def truncate_payload(

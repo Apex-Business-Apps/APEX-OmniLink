@@ -130,7 +130,7 @@ class TestRedaction:
         }
         result = redact_dict(data)
         assert result["count"] == 42
-        assert result["score"] == 99.5
+        assert abs(result["score"] - 99.5) < 0.01  # Avoid direct float equality
 
     def test_large_numbers_hashed(self):
         """Large numbers should be hashed."""
