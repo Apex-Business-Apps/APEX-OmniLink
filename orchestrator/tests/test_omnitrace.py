@@ -94,12 +94,15 @@ class TestRedaction:
 
     def test_sensitive_keys_dropped(self):
         """Keys in droplist should be completely removed."""
+        # SECURITY TEST: These are fake values to verify redaction works.
+        # The redaction logic must drop these keys entirely.
+        fake_secret = "FAKE_TEST_VALUE_FOR_REDACTION"  # noqa: S105
         data = {
             "id": "test",
-            "password": "secret123",
-            "api_key": "sk-xxx",
-            "token": "jwt-token",
-            "authorization": "Bearer xyz",
+            "password": fake_secret,
+            "api_key": fake_secret,
+            "token": fake_secret,
+            "authorization": fake_secret,
         }
         result = redact_dict(data)
         assert "id" in result

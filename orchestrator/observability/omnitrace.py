@@ -277,7 +277,11 @@ class OmniTraceRecorder:
 
         if not self._sample_decision_made:
             sample_rate = get_sample_rate()
-            # S311: random.random() is fine for sampling - not cryptographic
+            # SECURITY REVIEW: random.random() is intentionally used here.
+            # This is for telemetry sampling (e.g., "record 10% of runs"), NOT for:
+            # - Authentication tokens, encryption keys, or session IDs
+            # - Any security-sensitive randomness
+            # Predictability of sampling decisions has no security impact.
             self._sampled = random.random() < sample_rate  # noqa: S311
             self._sample_decision_made = True
             logger.debug(
