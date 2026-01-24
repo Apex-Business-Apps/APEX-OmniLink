@@ -11,12 +11,14 @@ Responsibilities:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import json
 import os
 import time
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Iterable
+from typing import Any
 
 from models.audit import AuditAction, AuditResourceType, AuditStatus, log_audit_event
 from models.man_mode import ManLane
@@ -164,7 +166,8 @@ async def evaluate_policy(ctx: dict[str, Any]) -> dict[str, Any]:
     """
     decision = await _evaluator.evaluate(ctx)
 
-    try:
+    # Audit logging must never block policy enforcement; best-effort only.
+    with contextlib.suppress(Exception):
         await log_audit_event(
             actor_id=ctx.get("user_id", "unknown"),
             action=AuditAction.CONFIG_CHANGE,
@@ -174,8 +177,5 @@ async def evaluate_policy(ctx: dict[str, Any]) -> dict[str, Any]:
             metadata=None,
             custom_fields={"ctx_hash": _hash_ctx(ctx), "policy_decision": decision["decision"]},
         )
-    except Exception:
-        # Audit logging must never block policy enforcement; best-effort only.
-        pass
 
     return decision

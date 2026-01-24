@@ -15,4 +15,3 @@ async def evaluate_policy_activity(ctx: dict[str, Any]) -> dict[str, Any]:
     This is the single choke point before any tool execution.
     """
     return await evaluate_policy(ctx)
-
