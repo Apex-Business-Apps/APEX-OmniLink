@@ -24,45 +24,49 @@ MAX_SAFE_STRING_LENGTH = 20
 LARGE_NUMBER_THRESHOLD = 10000
 
 # Keys that are always preserved (essential for tracing)
-ALLOWLIST_KEYS: frozenset[str] = frozenset({
-    "id",
-    "workflow_id",
-    "run_id",
-    "step",
-    "step_id",
-    "event_type",
-    "timestamp",
-    "status",
-    "retry_count",
-    "attempt",
-    "version",
-    "type",
-    "name",
-    "action",
-    "lane",
-    "result",
-    "success",
-    "error_code",
-    "duration_ms",
-})
+ALLOWLIST_KEYS: frozenset[str] = frozenset(
+    {
+        "id",
+        "workflow_id",
+        "run_id",
+        "step",
+        "step_id",
+        "event_type",
+        "timestamp",
+        "status",
+        "retry_count",
+        "attempt",
+        "version",
+        "type",
+        "name",
+        "action",
+        "lane",
+        "result",
+        "success",
+        "error_code",
+        "duration_ms",
+    }
+)
 
 # Keys that are always dropped (sensitive data)
-DROPLIST_KEYS: frozenset[str] = frozenset({
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "auth",
-    "authorization",
-    "credential",
-    "private_key",
-    "privatekey",
-    "access_token",
-    "refresh_token",
-    "session",
-    "cookie",
-})
+DROPLIST_KEYS: frozenset[str] = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "auth",
+        "authorization",
+        "credential",
+        "private_key",
+        "privatekey",
+        "access_token",
+        "refresh_token",
+        "session",
+        "cookie",
+    }
+)
 
 # Patterns in key names that indicate sensitive data
 SENSITIVE_PATTERNS: tuple[str, ...] = (
@@ -244,9 +248,7 @@ def truncate_payload(
 
     # Preserve essential fields
     essential_keys = {"workflow_id", "id", "event_type", "timestamp", "status"}
-    truncated: dict[str, Any] = {
-        k: v for k, v in payload.items() if k in essential_keys
-    }
+    truncated: dict[str, Any] = {k: v for k, v in payload.items() if k in essential_keys}
     truncated["<truncated>"] = True
     truncated["original_size"] = len(serialized)
 

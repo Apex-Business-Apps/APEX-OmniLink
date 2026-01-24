@@ -12,6 +12,9 @@ from observability.omnitrace import (
     truncate_payload,
 )
 
+# Test fixture values - NOT real credentials (used to verify redaction works)
+_TEST_CREDENTIAL = "test-fixture-value"  # noqa: S105
+
 
 class TestCanonicalJson:
     """Tests for canonical JSON serialization."""
@@ -83,11 +86,12 @@ class TestRedaction:
 
     def test_sensitive_keys_dropped(self):
         """Sensitive keys should be redacted."""
+        # Test data uses fake credentials to verify redaction (not real secrets)
         data = {
             "id": "test",
-            "password": "super-secret",
-            "api_key": "key-12345",
-            "token": "bearer-xyz",
+            "password": _TEST_CREDENTIAL,  # noqa: S105
+            "api_key": _TEST_CREDENTIAL,
+            "token": _TEST_CREDENTIAL,
         }
         result = redact_dict(data)
         assert result["id"] == "test"
@@ -109,10 +113,11 @@ class TestRedaction:
 
     def test_nested_redaction(self):
         """Nested dictionaries should be recursively redacted."""
+        # Test data uses fake credentials to verify redaction (not real secrets)
         data = {
             "id": "test",
             "nested": {
-                "password": "secret",
+                "password": _TEST_CREDENTIAL,  # noqa: S105
                 "safe_key": "short",
             },
         }
