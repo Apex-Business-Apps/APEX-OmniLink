@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from observability.omnitrace import (
     ALLOWLIST_KEYS,
     DROPLIST_KEYS,

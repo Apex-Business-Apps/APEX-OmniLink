@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from typing import Any
 
 # Maximum payload size before truncation (32KB)
@@ -128,11 +127,7 @@ def _is_sensitive_key(key: str) -> bool:
         return True
 
     # Check sensitive patterns
-    for pattern in SENSITIVE_PATTERNS:
-        if pattern in key_lower:
-            return True
-
-    return False
+    return any(pattern in key_lower for pattern in SENSITIVE_PATTERNS)
 
 
 def _is_allowlisted_key(key: str) -> bool:
@@ -146,8 +141,8 @@ def _should_redact_value(value: Any) -> bool:
         # Redact long strings (potential PII)
         if len(value) > MAX_SAFE_STRING_LENGTH:
             return True
-        # Check for email patterns
-        if re.search(r"[^@\s]+@[^@\s]+\.[^@\s]+", value):
+        # Check for email patterns (simple check to avoid regex backtracking)
+        if "@" in value and "." in value.split("@")[-1]:
             return True
     elif isinstance(value, (int, float)):
         # Redact large numbers (potential account numbers, etc.)
