@@ -711,14 +711,21 @@ docker compose -f docker-compose.prod.yml up -d
 | [GDPR Compliance](docs/GDPR_COMPLIANCE.md) | Data protection |
 | [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling |
 
+### Observability & Security Modules
+
+| Document | Description |
+|----------|-------------|
+| [OmniTrace](docs/OMNITRACE.md) | Workflow observability & replay |
+| [OmniPolicy](docs/OMNIPOLICY.md) | Deterministic policy evaluation |
+| [OmniEval](docs/OMNIEVAL.md) | Security evaluation & CI gate |
+| [OmniPort](docs/OMNIPORT_API_REFERENCE.md) | Ingress engine API reference |
+
 ### Testing & Simulation
 
 | Document | Description |
 |----------|-------------|
 | [Chaos Simulation](docs/sim/CHAOS_SIMULATION_DELIVERY.md) | Chaos testing framework |
 | [E2E Test Results](docs/E2E_TEST_RESULTS.md) | End-to-end test status |
-
- 
 
 ---
 
