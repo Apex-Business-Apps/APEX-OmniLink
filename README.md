@@ -156,7 +156,14 @@ Production-grade workflow orchestration with enterprise reliability patterns:
 
 - **MAN Mode**: Human-in-the-loop safety gate for high-risk operations
 
- 
+### Observability & Policy (NEW)
+
+Enterprise observability with privacy-first design:
+
+- **OmniTrace**: Zero-impact workflow telemetry with privacy redaction
+- **OmniPolicy**: Cached policy evaluation with deterministic decisions
+- **Audit Integration**: Every decision logged with context hashing
+- **Sampling Control**: Configurable sampling rates for cost control
 
 ### Web3 Integration
 
@@ -667,27 +674,42 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## Documentation
 
- 
+**[Full Documentation Index](docs/README.md)** - Complete documentation with 80+ documents organized by category.
+
+### Platform Modules
+
+| Module | Description |
+|--------|-------------|
+| [OmniTrace](docs/platform/OMNITRACE.md) | Workflow observability & replay |
+| [OmniPolicy](docs/platform/OMNIPOLICY.md) | Deterministic policy evaluation |
+| [OmniEval](docs/platform/OMNIEVAL.md) | Security evaluation & CI gate |
+| [OmniPort](docs/platform/OMNIPORT_API_REFERENCE.md) | Ingress engine API |
+| [OmniDash](docs/platform/OMNIDASH.md) | Executive dashboard |
+
+### Architecture & Infrastructure
 
 | Document | Description |
-
 |----------|-------------|
-
-| [Technical Architecture](docs/TECH_SPEC_ARCHITECTURE.md) | System design deep-dive |
-
-| [Production Status](docs/PRODUCTION_STATUS.md) | Current deployment state |
-
+| [Technical Architecture](docs/architecture/TECH_SPEC_ARCHITECTURE.md) | System design |
+| [Production Status](docs/architecture/PRODUCTION_STATUS.md) | Deployment state |
+| [Deployment Guide](docs/infrastructure/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production setup |
 | [Orchestrator Guide](orchestrator/README.md) | Temporal.io setup |
 
-| [OmniDash Guide](OMNIDASH.md) | Dashboard documentation |
+### Operations & Security
 
-| [Web3 Setup](BLOCKCHAIN_CONFIG.md) | Blockchain configuration |
+| Document | Description |
+|----------|-------------|
+| [Operations Runbook](docs/ops/OPS_RUNBOOK.md) | Master runbook v2.0 |
+| [Security Advisories](SECURITY_ADVISORIES.md) | Security notices |
+| [SOC2 Readiness](docs/compliance/SOC2_READINESS.md) | Compliance |
+| [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling |
 
-| [Security Policies](docs/SOC2_READINESS.md) | Compliance documentation |
+### Testing
 
-| [Operations Runbook](OPS_RUNBOOK.md) | Incident response |
-
- 
+| Document | Description |
+|----------|-------------|
+| [Chaos Simulation](docs/sim/CHAOS_SIMULATION_DELIVERY.md) | Chaos testing |
+| [E2E Test Results](docs/testing/E2E_TEST_RESULTS.md) | Test status |
 
 ---
 

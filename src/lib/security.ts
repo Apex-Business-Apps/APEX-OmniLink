@@ -64,16 +64,18 @@ export function sanitizeInput(input: string): string {
  * Validate URL to prevent open redirect attacks
  */
 export function isValidRedirectUrl(url: string): boolean {
-  // Block protocol-relative URLs (e.g., //evil.com/path) - open redirect risk
-  if (url.startsWith('//')) {
+  // Block protocol-relative URLs (e.g., //evil.com/path)
+  // These redirect to external sites using the current protocol
+  if (/^\/\/[^/]/.test(url)) {
     return false;
   }
 
+  // Allow relative URLs (starting with single /)
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return true;
+  }
+
   try {
-    // Block protocol-relative URLs (e.g., //evil.com)
-    if (url.startsWith('//')) {
-      return false;
-    }
     const parsed = new URL(url, globalThis.location.origin);
     return parsed.origin === globalThis.location.origin;
   } catch {

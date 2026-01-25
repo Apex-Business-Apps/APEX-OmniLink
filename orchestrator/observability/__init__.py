@@ -1,17 +1,5 @@
-"""Observability utilities for tracing and auditing."""
+"""OmniTrace observability module."""
 
-from observability.omnitrace import (
-    canonical_json,
-    compute_hash,
-    event_key,
-    redact_dict,
-    truncate_payload,
-)
+from .omnitrace import OmniTraceRecorder, get_omnitrace_recorder
 
-__all__ = [
-    "canonical_json",
-    "compute_hash",
-    "event_key",
-    "redact_dict",
-    "truncate_payload",
-]
+__all__ = ["OmniTraceRecorder", "get_omnitrace_recorder"]

@@ -37,6 +37,7 @@ from activities.man_mode import (
 )
 from activities.notify_man_task import notify_man_task
 from activities.omni_policy import evaluate_policy_activity
+from activities.omnitrace_activities import get_omnitrace_activities
 from activities.tools import (
     acquire_distributed_lock,
     call_webhook,
@@ -173,6 +174,8 @@ async def start_worker() -> None:
             get_man_task,
             check_man_decision,
             notify_man_task,
+            # OmniTrace activities
+            *get_omnitrace_activities(),
         ],
         max_concurrent_workflow_tasks=10,
         max_concurrent_activities=20,
