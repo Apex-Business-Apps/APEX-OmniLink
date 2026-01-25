@@ -129,15 +129,6 @@ function Nav() {
         <div className="nav__left">
           <a href="/" className="nav__logo" aria-label="APEX OmniHub home">
             <img
-              src="/apex-badge.png"
-              alt=""
-              aria-hidden="true"
-              className="nav__logo-badge"
-              width="32"
-              height="32"
-              style={{ maxHeight: 32, height: 'auto', width: 'auto' }}
-            />
-            <img
               src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
               className="nav__logo-wordmark"

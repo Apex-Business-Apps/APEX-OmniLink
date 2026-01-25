@@ -1267,12 +1267,20 @@
 .fortress__grid {
   margin-top: var(--space-10);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 300px));
   gap: var(--space-4);
   max-width: 960px;
   margin-left: auto;
   margin-right: auto;
   justify-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 1024px) {
+  /* Center any lone item on the last row (3-column layout) */
+  .fortress__grid > :last-child:nth-child(3n + 1) {
+    grid-column: 2;
+  }
 }
 
 .fortress__item {
@@ -1380,10 +1388,23 @@
 /* === CAPABILITY SHOWCASE === */
 .capability-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
   gap: var(--space-6);
   max-width: 1100px;
   margin: 0 auto;
+  justify-content: center;
+  justify-items: center;
+}
+
+@media (min-width: 1024px) {
+  /* Keep three columns on wide screens and center an orphaned last item */
+  .capability-grid {
+    grid-template-columns: repeat(3, minmax(260px, 320px));
+  }
+
+  .capability-grid > :last-child:nth-child(3n + 1) {
+    grid-column: 2;
+  }
 }
 
 .capability-card {
