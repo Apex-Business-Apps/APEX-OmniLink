@@ -72,7 +72,7 @@ function assertSimMode(): void {
 interface GenericBatteryConfig {
     batteryId: number;
     config: Level7Config;
-    logGenerator: (i: number) => string;
+    attackVectors: string[];
     escapeChance: number;
     successMessage: string;
 }
@@ -81,7 +81,7 @@ interface GenericBatteryConfig {
  * Shared runner for all battery simulations to eliminate code duplication
  */
 async function runGenericBattery(params: GenericBatteryConfig): Promise<BatteryResult> {
-    const { batteryId, config, logGenerator, escapeChance, successMessage } = params;
+    const { batteryId, config, attackVectors, escapeChance, successMessage } = params;
 
     assertSimMode();
     const startTime = Date.now();
@@ -90,6 +90,7 @@ async function runGenericBattery(params: GenericBatteryConfig): Promise<BatteryR
     const logs: string[] = [];
     let escapes = 0;
     const eventBatch: ArmageddonEvent[] = [];
+    const vectorCount = attackVectors.length;
 
     for (let i = 0; i < config.iterations; i++) {
         // Heartbeat every 100 iterations
@@ -97,11 +98,13 @@ async function runGenericBattery(params: GenericBatteryConfig): Promise<BatteryR
             Context.current().heartbeat({ batteryId, iteration: i, escapes });
         }
 
-        const attackVector = random();
-        const attackLog = logGenerator(i);
+        const attackValue = random();
+        const vectorIndex = i % vectorCount;
+        const logDetail = attackVectors[vectorIndex];
+        const attackLog = `[B${batteryId}:${i}] ${logDetail}`;
 
         // Probabilistic escape check
-        if (attackVector < escapeChance) {
+        if (attackValue < escapeChance) {
             escapes++;
             eventBatch.push({
                 run_id: config.runId,
@@ -157,18 +160,13 @@ export async function runBattery10GoalHijack(config: Level7Config): Promise<Batt
         config,
         escapeChance: BASE_ESCAPE_PROBABILITY * (1 - 0.9), // 90% defense
         successMessage: 'Goal hijack succeeded',
-        logGenerator: (i) => {
-            const attackType = i % 5;
-            let log = '';
-            switch (attackType) {
-                case 0: log = `[B10:${i}] Attempting role-play injection`; break;
-                case 1: log = `[B10:${i}] Attempting goal-swap`; break;
-                case 2: log = `[B10:${i}] Attempting context-override`; break;
-                case 3: log = `[B10:${i}] Attempting multi-turn refinement`; break;
-                case 4: log = `[B10:${i}] Attempting authority-exploit`; break;
-            }
-            return log;
-        }
+        attackVectors: [
+            'Attempting role-play injection',
+            'Attempting goal-swap',
+            'Attempting context-override',
+            'Attempting multi-turn refinement',
+            'Attempting authority-exploit',
+        ],
     });
 }
 
@@ -182,19 +180,14 @@ export async function runBattery11ToolMisuse(config: Level7Config): Promise<Batt
         config,
         escapeChance: BASE_ESCAPE_PROBABILITY * (1 - 0.95), // 95% defense
         successMessage: 'Tool misuse succeeded',
-        logGenerator: (i) => {
-            const attackType = i % 6;
-            let log = '';
-            switch (attackType) {
-                case 0: log = `[B11:${i}] SQL injection`; break;
-                case 1: log = `[B11:${i}] API escalation`; break;
-                case 2: log = `[B11:${i}] RLS bypass`; break;
-                case 3: log = `[B11:${i}] Tool chain abuse`; break;
-                case 4: log = `[B11:${i}] Parameter pollution`; break;
-                case 5: log = `[B11:${i}] Privilege escalation`; break;
-            }
-            return log;
-        }
+        attackVectors: [
+            'SQL injection',
+            'API escalation',
+            'RLS bypass',
+            'Tool chain abuse',
+            'Parameter pollution',
+            'Privilege escalation',
+        ],
     });
 }
 
@@ -208,18 +201,13 @@ export async function runBattery12MemoryPoison(config: Level7Config): Promise<Ba
         config,
         escapeChance: BASE_ESCAPE_PROBABILITY * (1 - 0.85), // 85% defense
         successMessage: 'Memory poison succeeded',
-        logGenerator: (i) => {
-            const attackType = i % 5;
-            let log = '';
-            switch (attackType) {
-                case 0: log = `[B12:${i}] Embedding injection`; break;
-                case 1: log = `[B12:${i}] Context drift`; break;
-                case 2: log = `[B12:${i}] Retrieval manipulation`; break;
-                case 3: log = `[B12:${i}] History rewrite`; break;
-                case 4: log = `[B12:${i}] Semantic anchor attack`; break;
-            }
-            return log;
-        }
+        attackVectors: [
+            'Embedding injection',
+            'Context drift',
+            'Retrieval manipulation',
+            'History rewrite',
+            'Semantic anchor attack',
+        ],
     });
 }
 
@@ -233,18 +221,13 @@ export async function runBattery13SupplyChain(config: Level7Config): Promise<Bat
         config,
         escapeChance: BASE_ESCAPE_PROBABILITY * (1 - 0.92), // 92% defense
         successMessage: 'Supply chain attack succeeded',
-        logGenerator: (i) => {
-            const attackType = i % 6;
-            let log = '';
-            switch (attackType) {
-                case 0: log = `[B13:${i}] Typosquat`; break;
-                case 1: log = `[B13:${i}] Dependency confusion`; break;
-                case 2: log = `[B13:${i}] Malicious postinstall`; break;
-                case 3: log = `[B13:${i}] Hijacked maintainer`; break;
-                case 4: log = `[B13:${i}] Protestware`; break;
-                case 5: log = `[B13:${i}] Phantom dependency`; break;
-            }
-            return log;
-        }
+        attackVectors: [
+            'Typosquat',
+            'Dependency confusion',
+            'Malicious postinstall',
+            'Hijacked maintainer',
+            'Protestware',
+            'Phantom dependency',
+        ],
     });
 }

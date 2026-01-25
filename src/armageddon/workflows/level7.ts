@@ -123,11 +123,4 @@ export async function ArmageddonLevel7Workflow(config: Level7Config): Promise<Ar
     return result;
 }
 
-/**
- * Activity for updating armageddon_runs table
- * This is executed as a child activity after workflow completion
- */
-export async function updateArmageddonRunsActivity(_: ArmageddonLevel7Result): Promise<void> {
-    // This activity would be registered separately to update Supabase
-    // The workflow completes and Temporal ensures this runs
-}
+
