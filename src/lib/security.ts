@@ -69,11 +69,12 @@ export function isValidRedirectUrl(url: string): boolean {
     return false;
   }
 
+  // Allow relative URLs (starting with single /)
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return true;
+  }
+
   try {
-    // Block protocol-relative URLs (e.g., //evil.com)
-    if (url.startsWith('//')) {
-      return false;
-    }
     const parsed = new URL(url, globalThis.location.origin);
     return parsed.origin === globalThis.location.origin;
   } catch {
