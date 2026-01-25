@@ -235,13 +235,18 @@ async function executeWebhook(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000); // 30s timeout
 
+  // Build headers with optional custom headers
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (config.headers) {
+    Object.assign(requestHeaders, config.headers);
+  }
+
   try {
     const response = await fetch(config.url, {
       method: config.method ?? 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(config.headers ?? {}),
-      },
+      headers: requestHeaders,
       body: config.data ? JSON.stringify(config.data) : undefined,
       signal: controller.signal,
     });

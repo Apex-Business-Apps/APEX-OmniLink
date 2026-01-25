@@ -99,8 +99,47 @@ async function computeRequestHash(
   return hashHex;
 }
 
+/** UUID regex pattern for idempotency key validation */
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Check if a value is a non-empty string.
+ */
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+/**
+ * Check if a value is a valid UUID.
+ */
+function isValidUuid(value: string): boolean {
+  return UUID_REGEX.test(value);
+}
+
+/**
+ * Validate a single history message entry.
+ */
+function isValidHistoryMessage(msg: unknown): boolean {
+  if (!msg || typeof msg !== 'object') return false;
+  const m = msg as Record<string, unknown>;
+  const hasValidRole = m.role === 'user' || m.role === 'assistant';
+  const hasValidContent = typeof m.content === 'string';
+  return hasValidRole && hasValidContent;
+}
+
+/**
+ * Validate the history array if present.
+ */
+function isValidHistory(history: unknown): boolean {
+  if (history === undefined) return true;
+  if (!Array.isArray(history)) return false;
+  return history.every(isValidHistoryMessage);
+}
+
 /**
  * Validate the request payload structure.
+ * Extracted sub-validations reduce cognitive complexity.
  */
 function validatePayload(
   body: unknown
@@ -109,43 +148,22 @@ function validatePayload(
 
   const payload = body as Record<string, unknown>;
 
-  if (typeof payload.query !== 'string' || payload.query.trim() === '') {
+  // Validate required string fields
+  const hasValidQuery = isNonEmptyString(payload.query);
+  const hasValidSessionId = isNonEmptyString(payload.session_id);
+  const hasValidIdempotencyKey = isNonEmptyString(payload.idempotency_key);
+
+  if (!hasValidQuery || !hasValidSessionId || !hasValidIdempotencyKey) {
     return false;
   }
 
-  if (
-    typeof payload.session_id !== 'string' ||
-    payload.session_id.trim() === ''
-  ) {
+  // Validate UUID format for idempotency_key
+  if (!isValidUuid(payload.idempotency_key as string)) {
     return false;
   }
 
-  if (
-    typeof payload.idempotency_key !== 'string' ||
-    payload.idempotency_key.trim() === ''
-  ) {
-    return false;
-  }
-
-  // UUID format validation for idempotency_key
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(payload.idempotency_key as string)) {
-    return false;
-  }
-
-  // Validate history array if present
-  if (payload.history !== undefined) {
-    if (!Array.isArray(payload.history)) return false;
-    for (const msg of payload.history as unknown[]) {
-      if (!msg || typeof msg !== 'object') return false;
-      const m = msg as Record<string, unknown>;
-      if (m.role !== 'user' && m.role !== 'assistant') return false;
-      if (typeof m.content !== 'string') return false;
-    }
-  }
-
-  return true;
+  // Validate optional history array
+  return isValidHistory(payload.history);
 }
 
 serve(

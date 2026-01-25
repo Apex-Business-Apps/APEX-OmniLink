@@ -20,6 +20,147 @@ import type {
 } from '@/lib/types/omniverse';
 import { isApexStructuredResponse } from '@/lib/types/omniverse';
 
+// ============================================================================
+// Helper Functions (extracted to reduce nesting depth)
+// ============================================================================
+
+/**
+ * Generate a stable key from a string for React list rendering.
+ * Uses a simple hash to avoid array index keys.
+ */
+function generateStableKey(value: string, index: number): string {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    const char = value.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `${Math.abs(hash)}-${index}`;
+}
+
+/**
+ * Filter out "Thinking..." messages from the message list.
+ */
+function filterThinkingMessages(
+  messages: ConversationMessage[]
+): ConversationMessage[] {
+  return messages.filter(
+    (m) => !(m.role === 'assistant' && m.content === 'Thinking...')
+  );
+}
+
+/**
+ * Parse agent response and create assistant message.
+ */
+function createAssistantMessage(
+  responseContent: string
+): ConversationMessage {
+  let structured: ApexStructuredResponse | undefined;
+
+  try {
+    const parsed = JSON.parse(responseContent);
+    if (isApexStructuredResponse(parsed)) {
+      structured = parsed;
+    }
+  } catch {
+    // Not JSON, use as plain text
+  }
+
+  return {
+    role: 'assistant',
+    content: responseContent,
+    structured,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Remove an idempotency key from the pending set.
+ */
+function removeFromPendingKeys(
+  setPendingKeys: React.Dispatch<React.SetStateAction<Set<string>>>,
+  key: string
+): void {
+  setPendingKeys((prev) => {
+    const next = new Set(prev);
+    next.delete(key);
+    return next;
+  });
+}
+
+// ============================================================================
+// Sub-Components (extracted to reduce complexity)
+// ============================================================================
+
+/**
+ * Renders the content of a message based on its type.
+ */
+function MessageContent({
+  message,
+  renderStructuredResponse,
+}: {
+  message: ConversationMessage;
+  renderStructuredResponse: (response: ApexStructuredResponse) => JSX.Element;
+}) {
+  if (message.role === 'user') {
+    return <p className="text-sm">{message.content}</p>;
+  }
+
+  if (message.structured) {
+    return renderStructuredResponse(message.structured);
+  }
+
+  if (message.content === 'Thinking...') {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Thinking...</span>
+      </div>
+    );
+  }
+
+  return (
+    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+  );
+}
+
+/**
+ * Renders a summary list item.
+ */
+function SummaryItem({ item, index }: { item: string; index: number }) {
+  return (
+    <li key={generateStableKey(item, index)} className="text-sm">
+      {item}
+    </li>
+  );
+}
+
+/**
+ * Renders an action list item.
+ */
+function ActionItem({ action, index }: { action: string; index: number }) {
+  return (
+    <li key={generateStableKey(action, index)} className="text-sm">
+      {action}
+    </li>
+  );
+}
+
+/**
+ * Renders a source badge.
+ */
+function SourceBadge({ source, index }: { source: string; index: number }) {
+  return (
+    <Badge key={generateStableKey(source, index)} variant="secondary">
+      {source}
+    </Badge>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 /**
  * ApexAssistant Page - Enterprise-Grade AI Assistant
  *
@@ -50,7 +191,6 @@ const ApexAssistant = () => {
 
   /**
    * Process agent events into displayable content.
-   * Shows completion events as assistant messages.
    * Prefixed with _ as it's prepared for future streaming UI integration.
    */
   const _processedEvents = useMemo(() => {
@@ -84,7 +224,6 @@ const ApexAssistant = () => {
 
   /**
    * Generate a unique idempotency key for the request.
-   * Prevents double-billing on retry.
    */
   const generateIdempotencyKey = useCallback((): string => {
     return crypto.randomUUID();
@@ -104,17 +243,65 @@ const ApexAssistant = () => {
   }, [messages]);
 
   /**
+   * Handle successful agent run completion.
+   */
+  const handleRunCompleted = useCallback(
+    (
+      agentResponse: string,
+      idempotencyKey: string,
+      unsubscribe: () => void
+    ) => {
+      setMessages((prev) => {
+        const filtered = filterThinkingMessages(prev);
+        const assistantMessage = createAssistantMessage(agentResponse);
+        return [...filtered, assistantMessage];
+      });
+
+      toast({
+        title: 'APEX Response',
+        description: 'Successfully retrieved knowledge',
+      });
+
+      setLoading(false);
+      removeFromPendingKeys(setPendingKeys, idempotencyKey);
+      unsubscribe();
+    },
+    [toast]
+  );
+
+  /**
+   * Handle failed agent run.
+   */
+  const handleRunFailed = useCallback(
+    (
+      errorMessage: string | undefined,
+      idempotencyKey: string,
+      unsubscribe: () => void
+    ) => {
+      setMessages((prev) => filterThinkingMessages(prev));
+
+      toast({
+        title: 'Error',
+        description: errorMessage ?? 'Agent execution failed',
+        variant: 'destructive',
+      });
+
+      setLoading(false);
+      removeFromPendingKeys(setPendingKeys, idempotencyKey);
+      unsubscribe();
+    },
+    [toast]
+  );
+
+  /**
    * Send query via the hardened trigger-workflow edge function.
-   * Implements idempotent, signed workflow triggering.
    */
   const sendQuery = async () => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return;
 
-    // Generate idempotency key BEFORE the call
     const idempotencyKey = generateIdempotencyKey();
 
-    // Check for duplicate submission
     if (pendingKeys.has(idempotencyKey)) {
       toast({
         title: 'Request In Progress',
@@ -123,7 +310,7 @@ const ApexAssistant = () => {
       return;
     }
 
-    // Add user message (optimistic)
+    // Optimistic UI updates
     const userMessage: ConversationMessage = {
       role: 'user',
       content: trimmedQuery,
@@ -131,7 +318,6 @@ const ApexAssistant = () => {
     };
     setMessages((prev) => [...prev, userMessage]);
 
-    // Add optimistic "Thinking..." message
     const thinkingMessage: ConversationMessage = {
       role: 'assistant',
       content: 'Thinking...',
@@ -144,10 +330,9 @@ const ApexAssistant = () => {
     setPendingKeys((prev) => new Set(prev).add(idempotencyKey));
 
     try {
-      // Generate traceId for agent_runs correlation
       const traceId = crypto.randomUUID();
 
-      // Insert into agent_runs with status='queued'
+      // Insert agent_run record
       const { error: insertError } = await supabase
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('agent_runs' as any)
@@ -160,242 +345,199 @@ const ApexAssistant = () => {
 
       if (insertError) throw insertError;
 
-      // Try new trigger-workflow first, fallback to omnilink-agent
-      let workflowError: Error | null = null;
+      // Try trigger-workflow, fallback to omnilink-agent
+      await invokeWorkflow(trimmedQuery, idempotencyKey);
 
-      try {
-        // Call trigger-workflow edge function with idempotency
-        const { error: triggerError } = await supabase.functions.invoke(
-          'trigger-workflow',
-          {
-            body: {
-              query: trimmedQuery,
-              history: buildHistory(),
-              session_id: sessionId,
-              idempotency_key: idempotencyKey,
-            },
-          }
-        );
-
-        if (triggerError) {
-          workflowError = triggerError;
-        }
-      } catch (err) {
-        // Fallback: trigger-workflow might not exist yet
-        workflowError =
-          err instanceof Error ? err : new Error('Workflow trigger failed');
-      }
-
-      // Fallback to legacy omnilink-agent if trigger-workflow fails
-      if (workflowError) {
-        console.warn(
-          '[ApexAssistant] Falling back to omnilink-agent:',
-          workflowError.message
-        );
-
-        const { error: invokeError } = await supabase.functions.invoke(
-          'omnilink-agent',
-          {
-            body: { query: trimmedQuery, traceId },
-          }
-        );
-
-        if (invokeError) throw invokeError;
-      }
-
-      // Subscribe to realtime updates on this agent_run
-      const channel = supabase
-        .channel(`agent_run_${traceId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'agent_runs',
-            filter: `id=eq.${traceId}`,
-          },
-          (payload) => {
-            const updatedRun = payload.new as Record<string, unknown>;
-
-            if (
-              updatedRun.status === 'completed' &&
-              updatedRun.agent_response
-            ) {
-              // Remove "Thinking..." and add real response
-              setMessages((prev) => {
-                const filtered = prev.filter(
-                  (m) => !(m.role === 'assistant' && m.content === 'Thinking...')
-                );
-
-                const content = String(updatedRun.agent_response);
-                let structured: ApexStructuredResponse | undefined;
-
-                try {
-                  const parsed = JSON.parse(content);
-                  if (isApexStructuredResponse(parsed)) {
-                    structured = parsed;
-                  }
-                } catch {
-                  // Not JSON, use as plain text
-                }
-
-                const assistantMessage: ConversationMessage = {
-                  role: 'assistant',
-                  content,
-                  structured,
-                  timestamp: new Date().toISOString(),
-                };
-
-                return [...filtered, assistantMessage];
-              });
-
-              toast({
-                title: 'APEX Response',
-                description: 'Successfully retrieved knowledge',
-              });
-
-              setLoading(false);
-              setPendingKeys((prev) => {
-                const next = new Set(prev);
-                next.delete(idempotencyKey);
-                return next;
-              });
-              channel.unsubscribe();
-            } else if (updatedRun.status === 'failed') {
-              // Remove "Thinking..." on failure
-              setMessages((prev) =>
-                prev.filter(
-                  (m) => !(m.role === 'assistant' && m.content === 'Thinking...')
-                )
-              );
-
-              const errorMsg =
-                (updatedRun.error_message as string) ||
-                'Agent execution failed';
-              toast({
-                title: 'Error',
-                description: errorMsg,
-                variant: 'destructive',
-              });
-
-              setLoading(false);
-              setPendingKeys((prev) => {
-                const next = new Set(prev);
-                next.delete(idempotencyKey);
-                return next;
-              });
-              channel.unsubscribe();
-            }
-          }
-        )
-        .subscribe();
+      // Subscribe to updates
+      subscribeToRunUpdates(traceId, idempotencyKey);
     } catch (error: unknown) {
-      // Remove "Thinking..." on error
-      setMessages((prev) =>
-        prev.filter(
-          (m) => !(m.role === 'assistant' && m.content === 'Thinking...')
-        )
+      handleQueryError(error, idempotencyKey);
+    }
+  };
+
+  /**
+   * Invoke the workflow edge function with fallback.
+   */
+  const invokeWorkflow = async (
+    trimmedQuery: string,
+    idempotencyKey: string
+  ) => {
+    let workflowError: Error | null = null;
+
+    try {
+      const { error: triggerError } = await supabase.functions.invoke(
+        'trigger-workflow',
+        {
+          body: {
+            query: trimmedQuery,
+            history: buildHistory(),
+            session_id: sessionId,
+            idempotency_key: idempotencyKey,
+          },
+        }
       );
 
-      const errorMsg =
-        error instanceof Error
-          ? error.message
-          : 'Failed to get response from APEX';
-
-      toast({
-        title: 'Error',
-        description: errorMsg,
-        variant: 'destructive',
-      });
-
-      setLoading(false);
-      setPendingKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(idempotencyKey);
-        return next;
-      });
+      if (triggerError) {
+        workflowError = triggerError;
+      }
+    } catch (err) {
+      workflowError =
+        err instanceof Error ? err : new Error('Workflow trigger failed');
     }
+
+    if (workflowError) {
+      console.warn(
+        '[ApexAssistant] Falling back to omnilink-agent:',
+        workflowError.message
+      );
+
+      const { error: invokeError } = await supabase.functions.invoke(
+        'omnilink-agent',
+        {
+          body: { query: trimmedQuery, traceId: crypto.randomUUID() },
+        }
+      );
+
+      if (invokeError) throw invokeError;
+    }
+  };
+
+  /**
+   * Subscribe to realtime updates on agent_run.
+   */
+  const subscribeToRunUpdates = (traceId: string, idempotencyKey: string) => {
+    const channel = supabase
+      .channel(`agent_run_${traceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agent_runs',
+          filter: `id=eq.${traceId}`,
+        },
+        (payload) => {
+          const updatedRun = payload.new as Record<string, unknown>;
+          const unsubscribe = () => channel.unsubscribe();
+
+          if (
+            updatedRun.status === 'completed' &&
+            updatedRun.agent_response
+          ) {
+            handleRunCompleted(
+              String(updatedRun.agent_response),
+              idempotencyKey,
+              unsubscribe
+            );
+          } else if (updatedRun.status === 'failed') {
+            handleRunFailed(
+              updatedRun.error_message as string | undefined,
+              idempotencyKey,
+              unsubscribe
+            );
+          }
+        }
+      )
+      .subscribe();
+  };
+
+  /**
+   * Handle query errors.
+   */
+  const handleQueryError = (error: unknown, idempotencyKey: string) => {
+    setMessages((prev) => filterThinkingMessages(prev));
+
+    const errorMsg =
+      error instanceof Error
+        ? error.message
+        : 'Failed to get response from APEX';
+
+    toast({
+      title: 'Error',
+      description: errorMsg,
+      variant: 'destructive',
+    });
+
+    setLoading(false);
+    removeFromPendingKeys(setPendingKeys, idempotencyKey);
   };
 
   /**
    * Render a structured APEX response with sections.
    */
-  const renderStructuredResponse = (response: ApexStructuredResponse) => {
-    return (
-      <div className="space-y-4">
-        {response.summary.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-2">Summary</h4>
-            <ul className="list-disc list-inside space-y-1">
-              {response.summary.map((item, i) => (
-                <li key={i} className="text-sm">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {response.details.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-2">Details</h4>
-            <div className="space-y-2">
-              {response.details.map((detail) => (
-                <Card key={detail.n}>
-                  <CardContent className="pt-4">
-                    <p className="text-sm mb-2">{detail.finding}</p>
-                    {detail.source_url && (
-                      <a
-                        href={detail.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
-                      >
-                        Source <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+  const renderStructuredResponse = useCallback(
+    (response: ApexStructuredResponse) => {
+      return (
+        <div className="space-y-4">
+          {response.summary.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Summary</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {response.summary.map((item, i) => (
+                  <SummaryItem key={generateStableKey(item, i)} item={item} index={i} />
+                ))}
+              </ul>
             </div>
-          </div>
-        )}
+          )}
 
-        {response.next_actions.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-2">Next Actions</h4>
-            <ul className="list-disc list-inside space-y-1">
-              {response.next_actions.map((action, i) => (
-                <li key={i} className="text-sm">
-                  {action}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {response.sources_used.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-2">Sources Used</h4>
-            <div className="flex flex-wrap gap-2">
-              {response.sources_used.map((source, i) => (
-                <Badge key={i} variant="secondary">
-                  {source}
-                </Badge>
-              ))}
+          {response.details.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Details</h4>
+              <div className="space-y-2">
+                {response.details.map((detail) => (
+                  <Card key={`detail-${detail.n}`}>
+                    <CardContent className="pt-4">
+                      <p className="text-sm mb-2">{detail.finding}</p>
+                      {detail.source_url && (
+                        <a
+                          href={detail.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          Source <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {response.notes && (
-          <div>
-            <h4 className="font-semibold mb-2">Notes</h4>
-            <p className="text-sm text-muted-foreground">{response.notes}</p>
-          </div>
-        )}
-      </div>
-    );
-  };
+          {response.next_actions.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Next Actions</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {response.next_actions.map((action, i) => (
+                  <ActionItem key={generateStableKey(action, i)} action={action} index={i} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {response.sources_used.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Sources Used</h4>
+              <div className="flex flex-wrap gap-2">
+                {response.sources_used.map((source, i) => (
+                  <SourceBadge key={generateStableKey(source, i)} source={source} index={i} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {response.notes && (
+            <div>
+              <h4 className="font-semibold mb-2">Notes</h4>
+              <p className="text-sm text-muted-foreground">{response.notes}</p>
+            </div>
+          )}
+        </div>
+      );
+    },
+    []
+  );
 
   /**
    * Render an agent event as inline notification.
@@ -431,7 +573,6 @@ const ApexAssistant = () => {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {/* Connection status indicator */}
           <div
             className="flex items-center gap-1 text-sm"
             title={isConnected ? 'Connected' : 'Disconnected'}
@@ -449,7 +590,6 @@ const ApexAssistant = () => {
         </div>
       </div>
 
-      {/* Event stream indicators */}
       {events.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {events.slice(-5).map(renderEventBadge)}
@@ -475,27 +615,17 @@ const ApexAssistant = () => {
         ) : (
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {messages.map((message, i) => (
-              <Card key={`${message.timestamp}-${i}`}>
+              <Card key={`msg-${message.timestamp}-${i}`}>
                 <CardHeader>
                   <CardTitle className="text-sm">
                     {message.role === 'user' ? 'You' : 'APEX'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {message.role === 'user' ? (
-                    <p className="text-sm">{message.content}</p>
-                  ) : message.structured ? (
-                    renderStructuredResponse(message.structured)
-                  ) : message.content === 'Thinking...' ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Thinking...</span>
-                    </div>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-                  )}
+                  <MessageContent
+                    message={message}
+                    renderStructuredResponse={renderStructuredResponse}
+                  />
                 </CardContent>
               </Card>
             ))}
