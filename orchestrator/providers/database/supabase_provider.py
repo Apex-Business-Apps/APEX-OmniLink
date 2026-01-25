@@ -32,12 +32,9 @@ ALLOWED_TABLES = frozenset(
         # MAN Mode tables
         "man_tasks",
         "man_notifications",
-        # Agent telemetry tables
-        "agent_runs",
-        "skill_matches",
-        "tool_invocations",
-        "eval_cases",
-        "eval_results",
+        # OmniTrace tables
+        "omni_runs",
+        "omni_run_events",
     ]
 )
 
@@ -262,6 +259,26 @@ class SupabaseDatabaseProvider(DatabaseProvider):
         except Exception as e:
             # Catch-all for database errors, including DatabaseError
             raise DatabaseError(f"Database delete failed: {str(e)}") from e
+
+    async def rpc(self, function_name: str, params: dict[str, Any]) -> Any:
+        """
+        Call a Supabase RPC function.
+
+        Args:
+            function_name: Name of the RPC function to call
+            params: Parameters to pass to the function
+
+        Returns:
+            Function result
+
+        Raises:
+            DatabaseError: For RPC call failures
+        """
+        try:
+            response = self.client.rpc(function_name, params).execute()
+            return response.data
+        except Exception as e:
+            raise DatabaseError(f"RPC call to {function_name} failed: {str(e)}") from e
 
 
 # Backwards compatibility alias

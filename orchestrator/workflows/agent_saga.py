@@ -38,6 +38,7 @@ Architecture:
 """
 
 import asyncio
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -302,6 +303,9 @@ class AgentWorkflow:
         self.start_time: float | None = None
         self.workflow_context: dict[str, Any] = {}
 
+        # OmniTrace: track whether recording is enabled for this run
+        self._omnitrace_enabled: bool = False
+
     # =========================================================================
     # OPERATOR SUPREMACY SIGNALS (MAN Mode 2.0)
     # =========================================================================
@@ -441,6 +445,15 @@ class AgentWorkflow:
                 )
             )
 
+            # 1b. OmniTrace: Record run start (best-effort)
+            await self._omnitrace_record_run_start(
+                {
+                    "goal": goal,
+                    "user_id": user_id,
+                    "context": context or {},
+                }
+            )
+
             # 2. Try semantic cache lookup
             cached_plan = await self._check_semantic_cache(goal)
 
@@ -486,6 +499,85 @@ class AgentWorkflow:
                 non_retryable=True,
                 details=workflow_result,
             ) from e
+
+    # =========================================================================
+    # OMNITRACE HELPERS (Best-effort telemetry - never breaks workflow)
+    # =========================================================================
+
+    async def _omnitrace_record_run_start(self, input_data: dict[str, Any]) -> None:
+        """Record workflow run start via OmniTrace (best-effort)."""
+        try:
+            result = await workflow.execute_activity(
+                "omnitrace_record_run_start",
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "trace_id": workflow.info().workflow_id,  # Use workflow_id as trace_id
+                        "user_id": self.user_id,
+                        "input_data": input_data,
+                        "status": "running",
+                    }
+                ],
+                start_to_close_timeout=timedelta(seconds=5),
+                retry_policy=RetryPolicy(maximum_attempts=1),  # No retries for telemetry
+            )
+            self._omnitrace_enabled = result.get("sampled", False)
+        except Exception as e:
+            workflow.logger.warning(f"OmniTrace run start failed (ignored): {e}")
+
+    async def _omnitrace_record_run_complete(
+        self, output_data: dict[str, Any] | None, status: str
+    ) -> None:
+        """Record workflow run completion via OmniTrace (best-effort)."""
+        if not self._omnitrace_enabled:
+            return
+        try:
+            await workflow.execute_activity(
+                "omnitrace_record_run_complete",
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "trace_id": workflow.info().workflow_id,
+                        "output_data": output_data,
+                        "status": status,
+                    }
+                ],
+                start_to_close_timeout=timedelta(seconds=5),
+                retry_policy=RetryPolicy(maximum_attempts=1),
+            )
+        except Exception as e:
+            workflow.logger.warning(f"OmniTrace run complete failed (ignored): {e}")
+
+    async def _omnitrace_record_event(
+        self,
+        event_key: str,
+        kind: str,
+        name: str,
+        latency_ms: int | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        """Record workflow event via OmniTrace (best-effort)."""
+        if not self._omnitrace_enabled:
+            return
+        try:
+            await workflow.execute_activity(
+                "omnitrace_record_event",
+                args=[
+                    {
+                        "workflow_id": workflow.info().workflow_id,
+                        "trace_id": workflow.info().workflow_id,
+                        "event_key": event_key,
+                        "kind": kind,
+                        "name": name,
+                        "latency_ms": latency_ms,
+                        "data": data,
+                    }
+                ],
+                start_to_close_timeout=timedelta(seconds=3),
+                retry_policy=RetryPolicy(maximum_attempts=1),
+            )
+        except Exception as e:
+            workflow.logger.warning(f"OmniTrace event recording failed (ignored): {e}")
 
     async def _check_semantic_cache(self, goal: str) -> dict[str, Any] | None:
         """
@@ -904,6 +996,10 @@ class AgentWorkflow:
             )
         )
 
+        # Track execution time for OmniTrace
+        tool_start_time = time.time()
+        attempt = 1  # Could be incremented on retry if needed
+
         try:
             result = await self.saga.execute_with_compensation(
                 activity_name=step["tool"],
@@ -912,6 +1008,9 @@ class AgentWorkflow:
                 compensation_input=step.get("compensation_input"),
                 step_id=step_id,
             )
+
+            # Calculate latency
+            latency_ms = int((time.time() - tool_start_time) * 1000)
 
             # Record success
             await self._append_event(
@@ -924,10 +1023,27 @@ class AgentWorkflow:
                 )
             )
 
+            # OmniTrace: Record tool event (best-effort)
+            await self._omnitrace_record_event(
+                event_key=f"tool:{step_id}:{step['tool']}:{attempt}",
+                kind="tool",
+                name=step["tool"],
+                latency_ms=latency_ms,
+                data={
+                    "step_id": step_id,
+                    "tool": step["tool"],
+                    "success": True,
+                    "lane": lane,
+                },
+            )
+
             workflow.logger.info(f"  ✓ Completed step: {step_name}")
             return result
 
         except ActivityError as e:
+            # Calculate latency
+            latency_ms = int((time.time() - tool_start_time) * 1000)
+
             # Record failure
             await self._append_event(
                 ToolResultReceived(
@@ -938,6 +1054,22 @@ class AgentWorkflow:
                     error=str(e),
                 )
             )
+
+            # OmniTrace: Record tool failure event (best-effort)
+            await self._omnitrace_record_event(
+                event_key=f"tool:{step_id}:{step['tool']}:{attempt}",
+                kind="tool",
+                name=step["tool"],
+                latency_ms=latency_ms,
+                data={
+                    "step_id": step_id,
+                    "tool": step["tool"],
+                    "success": False,
+                    "error": str(e)[:200],  # Truncate error message
+                    "lane": lane,
+                },
+            )
+
             workflow.logger.error(f"  ✗ Failed step: {step_name} - {str(e)}")
             raise
 
@@ -982,13 +1114,18 @@ class AgentWorkflow:
             )
         )
 
-        return {
+        result = {
             "status": "success",
             "goal": self.goal,
             "plan_id": self.plan_id,
             "steps_executed": len(self.step_results),
             "results": self.step_results,
         }
+
+        # OmniTrace: Record run completion (best-effort)
+        await self._omnitrace_record_run_complete(result, "completed")
+
+        return result
 
     async def _handle_failure(self, error_message: str) -> dict[str, Any]:
         """Handle workflow failure with Saga rollback."""
@@ -1016,6 +1153,9 @@ class AgentWorkflow:
                 compensation_results=compensation_results,
             )
         )
+
+        # OmniTrace: Record run failure (best-effort)
+        await self._omnitrace_record_run_complete(result, "failed")
 
         return result
 

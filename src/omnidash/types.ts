@@ -204,3 +204,52 @@ export const OMNIDASH_NAV_ITEMS = [
 
 export const OMNIDASH_SAFE_ENABLE_NOTE =
   'Enable OMNIDASH_ENABLED only for internal admins until stability is confirmed.';
+
+// =============================================================================
+// OmniTrace Types
+// =============================================================================
+
+export interface OmniTraceRun {
+  id: string;
+  workflow_id: string;
+  trace_id: string;
+  user_id: string | null;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  input_redacted: Record<string, unknown>;
+  output_redacted: Record<string, unknown> | null;
+  input_hash: string;
+  output_hash: string | null;
+  event_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OmniTraceEvent {
+  id: string;
+  workflow_id: string;
+  event_key: string;
+  kind: 'tool' | 'model' | 'policy' | 'cache' | 'system';
+  name: string;
+  latency_ms: number | null;
+  data_redacted: Record<string, unknown>;
+  data_hash: string;
+  created_at: string;
+}
+
+export interface OmniTraceRunsListResponse {
+  runs: OmniTraceRun[];
+  total: number;
+  limit: number;
+}
+
+export interface OmniTraceRunDetailResponse {
+  run: OmniTraceRun;
+  events: OmniTraceEvent[];
+  replay_bundle: {
+    workflow_id: string;
+    input_hash: string;
+    output_hash: string | null;
+    event_count: number;
+    events_truncated: boolean;
+  };
+}
