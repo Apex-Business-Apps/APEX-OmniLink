@@ -27,11 +27,12 @@ import { isApexStructuredResponse } from '@/lib/types/omniverse';
 /**
  * Generate a stable key from a string for React list rendering.
  * Uses a simple hash to avoid array index keys.
+ * Uses codePointAt for proper Unicode support (including emojis).
  */
 function generateStableKey(value: string, index: number): string {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
-    const char = value.charCodeAt(i);
+    const char = value.codePointAt(i) ?? 0;
     hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
@@ -92,16 +93,19 @@ function removeFromPendingKeys(
 // Sub-Components (extracted to reduce complexity)
 // ============================================================================
 
+/** Props for MessageContent component */
+interface MessageContentProps {
+  readonly message: ConversationMessage;
+  readonly renderStructuredResponse: (response: ApexStructuredResponse) => JSX.Element;
+}
+
 /**
  * Renders the content of a message based on its type.
  */
 function MessageContent({
   message,
   renderStructuredResponse,
-}: {
-  message: ConversationMessage;
-  renderStructuredResponse: (response: ApexStructuredResponse) => JSX.Element;
-}) {
+}: Readonly<MessageContentProps>) {
   if (message.role === 'user') {
     return <p className="text-sm">{message.content}</p>;
   }
@@ -124,10 +128,16 @@ function MessageContent({
   );
 }
 
+/** Props for SummaryItem component */
+interface SummaryItemProps {
+  readonly item: string;
+  readonly index: number;
+}
+
 /**
  * Renders a summary list item.
  */
-function SummaryItem({ item, index }: { item: string; index: number }) {
+function SummaryItem({ item, index }: Readonly<SummaryItemProps>) {
   return (
     <li key={generateStableKey(item, index)} className="text-sm">
       {item}
@@ -135,10 +145,16 @@ function SummaryItem({ item, index }: { item: string; index: number }) {
   );
 }
 
+/** Props for ActionItem component */
+interface ActionItemProps {
+  readonly action: string;
+  readonly index: number;
+}
+
 /**
  * Renders an action list item.
  */
-function ActionItem({ action, index }: { action: string; index: number }) {
+function ActionItem({ action, index }: Readonly<ActionItemProps>) {
   return (
     <li key={generateStableKey(action, index)} className="text-sm">
       {action}
@@ -146,10 +162,16 @@ function ActionItem({ action, index }: { action: string; index: number }) {
   );
 }
 
+/** Props for SourceBadge component */
+interface SourceBadgeProps {
+  readonly source: string;
+  readonly index: number;
+}
+
 /**
  * Renders a source badge.
  */
-function SourceBadge({ source, index }: { source: string; index: number }) {
+function SourceBadge({ source, index }: Readonly<SourceBadgeProps>) {
   return (
     <Badge key={generateStableKey(source, index)} variant="secondary">
       {source}
@@ -424,8 +446,15 @@ const ApexAssistant = () => {
             updatedRun.status === 'completed' &&
             updatedRun.agent_response
           ) {
+            // Safely convert response to string, handling objects properly
+            const responseValue = updatedRun.agent_response;
+            const responseString =
+              typeof responseValue === 'string'
+                ? responseValue
+                : JSON.stringify(responseValue);
+
             handleRunCompleted(
-              String(updatedRun.agent_response),
+              responseString,
               idempotencyKey,
               unsubscribe
             );
