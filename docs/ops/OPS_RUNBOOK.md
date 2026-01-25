@@ -1,8 +1,8 @@
 # OMNILINK-APEX OPS RUNBOOK
 
-**Version:** 1.0
-**Last Updated:** December 21, 2025
-**System:** OmniLink Agentic RAG with Ops Pack
+**Version:** 2.0
+**Last Updated:** January 25, 2026
+**System:** OmniLink Agentic RAG with Ops Pack, OmniTrace & OmniPolicy
 
 ## Overview
 
@@ -13,6 +13,8 @@ This runbook provides operational procedures for the OmniLink Agentic RAG system
 ### Core Components
 - **omnilink-agent**: Main agent runtime with dynamic skill loading
 - **omnilink-eval**: Automated evaluation system
+- **OmniTrace**: Workflow observability and replay support
+- **OmniPolicy**: Deterministic policy evaluation for tool execution
 - **Database**: PostgreSQL with pgvector and telemetry tables
 - **Telemetry**: Comprehensive observability and performance tracking
 
@@ -21,6 +23,10 @@ This runbook provides operational procedures for the OmniLink Agentic RAG system
 - **Evaluation System**: eval_cases, eval_results with automated scoring
 - **Governance**: Version control, activation flags, tenant scoping
 - **Performance Tuning**: HNSW ef_search parameter support
+
+### New Modules (v2.0)
+- **OmniTrace**: Zero-impact telemetry with privacy-first redaction
+- **OmniPolicy**: Cached policy evaluation with MAN Mode integration
 
 ## Deployment Procedures
 
@@ -333,6 +339,152 @@ WHERE created_at > NOW() - INTERVAL '1 hour';
 - Increase telemetry retention based on usage
 - Implement data archiving for old records
 - Consider separate analytics database for reporting
+
+---
+
+## OmniTrace Operations
+
+### Configuration
+
+```bash
+# Environment variables for OmniTrace
+OMNITRACE_ENABLED=true
+OMNITRACE_SAMPLE_RATE=0.1  # 10% sampling in production
+OMNITRACE_MAX_EVENTS_PER_RUN=200
+OMNITRACE_MAX_EVENT_BYTES=8192
+```
+
+### Monitoring OmniTrace
+
+```sql
+-- Recent workflow runs
+SELECT workflow_id, status, event_count, created_at
+FROM omnitrace_runs
+WHERE created_at > NOW() - INTERVAL '1 hour'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Event volume by workflow
+SELECT workflow_id, COUNT(*) as event_count
+FROM omnitrace_events
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY workflow_id
+ORDER BY event_count DESC;
+```
+
+### Troubleshooting OmniTrace
+
+```sql
+-- Check for telemetry errors
+SELECT workflow_id, kind, name, data_redacted
+FROM omnitrace_events
+WHERE name = 'omnitrace_errors'
+ORDER BY created_at DESC
+LIMIT 10;
+```
+
+### Data Retention
+
+```sql
+-- Purge old trace data (> 30 days)
+DELETE FROM omnitrace_events
+WHERE created_at < NOW() - INTERVAL '30 days';
+
+DELETE FROM omnitrace_runs
+WHERE created_at < NOW() - INTERVAL '30 days';
+```
+
+---
+
+## OmniPolicy Operations
+
+### Configuration
+
+```bash
+# Policy cache TTL
+OMNIPOLICY_CACHE_TTL_SECONDS=60
+```
+
+### Managing Policies
+
+```sql
+-- List active policies
+SELECT name, version, priority, decision, lane, enabled
+FROM omni_policies
+WHERE enabled = true
+ORDER BY priority ASC;
+
+-- Add new policy
+INSERT INTO omni_policies (name, version, priority, match, decision, lane, reason, enabled)
+VALUES (
+  'block_sensitive_ops',
+  1,
+  10,
+  '{"tool_in": ["delete_account", "export_all_data"], "data_class_in": ["pii"]}'::jsonb,
+  'DENY',
+  'BLOCKED',
+  'Sensitive operations require admin approval',
+  true
+);
+
+-- Disable policy
+UPDATE omni_policies
+SET enabled = false
+WHERE name = 'policy_name' AND version = 1;
+```
+
+### Policy Decision Audit
+
+```sql
+-- Recent policy decisions
+SELECT
+  resource_id as policy,
+  custom_fields->>'policy_decision' as decision,
+  created_at
+FROM audit_events
+WHERE resource_type = 'SECURITY_POLICY'
+ORDER BY created_at DESC
+LIMIT 20;
+```
+
+### Emergency Policy Override
+
+```sql
+-- Disable all DENY policies temporarily
+UPDATE omni_policies
+SET enabled = false
+WHERE decision = 'DENY';
+
+-- Re-enable after resolution
+UPDATE omni_policies
+SET enabled = true
+WHERE decision = 'DENY';
+```
+
+---
+
+## Deployment Checklist
+
+### Pre-Deployment
+
+1. Run all tests: `npm test && cd orchestrator && pytest`
+2. Check lint: `npm run lint && npm run lint:py`
+3. Verify type safety: `npm run typecheck`
+4. Review security: `npm run eval:ci`
+
+### Deployment Steps
+
+1. Database migrations: `supabase db push`
+2. Deploy edge functions: `supabase functions deploy`
+3. Deploy frontend: `vercel --prod`
+4. Start orchestrator: `docker compose up -d`
+
+### Post-Deployment Verification
+
+1. Health check endpoints
+2. Verify OmniTrace sampling
+3. Confirm policy cache refresh
+4. Check monitoring dashboards
 
 ---
 
