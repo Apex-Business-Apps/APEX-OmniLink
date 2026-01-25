@@ -156,7 +156,14 @@ Production-grade workflow orchestration with enterprise reliability patterns:
 
 - **MAN Mode**: Human-in-the-loop safety gate for high-risk operations
 
- 
+### Observability & Policy (NEW)
+
+Enterprise observability with privacy-first design:
+
+- **OmniTrace**: Zero-impact workflow telemetry with privacy redaction
+- **OmniPolicy**: Cached policy evaluation with deterministic decisions
+- **Audit Integration**: Every decision logged with context hashing
+- **Sampling Control**: Configurable sampling rates for cost control
 
 ### Web3 Integration
 
@@ -667,25 +674,49 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## Documentation
 
- 
+
+
+### Core Documentation
 
 | Document | Description |
-
 |----------|-------------|
-
 | [Technical Architecture](docs/TECH_SPEC_ARCHITECTURE.md) | System design deep-dive |
-
 | [Production Status](docs/PRODUCTION_STATUS.md) | Current deployment state |
-
 | [Orchestrator Guide](orchestrator/README.md) | Temporal.io setup |
+| [OmniDash Guide](docs/OMNIDASH.md) | Dashboard documentation |
+| [Launch Readiness](docs/LAUNCH_READINESS.md) | Launch checklist |
 
-| [OmniDash Guide](OMNIDASH.md) | Dashboard documentation |
+### Infrastructure
 
-| [Web3 Setup](BLOCKCHAIN_CONFIG.md) | Blockchain configuration |
+| Document | Description |
+|----------|-------------|
+| [Architecture Summary](docs/infrastructure/ARCHITECTURE_SUMMARY.md) | Infrastructure overview |
+| [Blockchain Config](docs/infrastructure/BLOCKCHAIN_CONFIG.md) | Web3 configuration |
+| [Deployment Guide](docs/infrastructure/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production deployment |
+| [Disaster Recovery](docs/infrastructure/DISASTER_RECOVERY_PLAN.md) | DR procedures |
 
-| [Security Policies](docs/SOC2_READINESS.md) | Compliance documentation |
+### Operations
 
-| [Operations Runbook](OPS_RUNBOOK.md) | Incident response |
+| Document | Description |
+|----------|-------------|
+| [Operations Runbook](docs/ops/OPS_RUNBOOK.md) | Incident response |
+| [DR Runbook](docs/DR_RUNBOOK.md) | Disaster recovery procedures |
+
+### Security & Compliance
+
+| Document | Description |
+|----------|-------------|
+| [Security Advisories](SECURITY_ADVISORIES.md) | Security notices |
+| [SOC2 Readiness](docs/SOC2_READINESS.md) | Compliance documentation |
+| [GDPR Compliance](docs/GDPR_COMPLIANCE.md) | Data protection |
+| [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling |
+
+### Testing & Simulation
+
+| Document | Description |
+|----------|-------------|
+| [Chaos Simulation](docs/sim/CHAOS_SIMULATION_DELIVERY.md) | Chaos testing framework |
+| [E2E Test Results](docs/E2E_TEST_RESULTS.md) | End-to-end test status |
 
  
 
