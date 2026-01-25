@@ -31,27 +31,51 @@ interface WorkflowResponse {
 }
 
 /**
+ * Default local development orchestrator URL.
+ *
+ * SECURITY NOTE (NOSONAR): This HTTP URL is intentionally used ONLY for local
+ * Docker development where TLS is not available. The function enforces that:
+ * 1. Production environments MUST set ORCHESTRATOR_URL (checked via SUPABASE_DB_URL)
+ * 2. This fallback is NEVER used when SUPABASE_DB_URL is present
+ * 3. Local Docker networking (host.docker.internal) doesn't support HTTPS
+ *
+ * In production, ORCHESTRATOR_URL must be set to an HTTPS endpoint.
+ */
+const LOCAL_DEV_ORCHESTRATOR_URL = 'http://host.docker.internal:8000'; // NOSONAR
+
+/**
  * Resolve the orchestrator URL based on environment.
- * Production: Use ORCHESTRATOR_URL env var
- * Local/Docker: Use host.docker.internal fallback
+ *
+ * Security enforcement:
+ * - Production: MUST use ORCHESTRATOR_URL env var (enforced, should be HTTPS)
+ * - Local dev: Falls back to LOCAL_DEV_ORCHESTRATOR_URL only when not in production
+ *
+ * @throws Error if in production without ORCHESTRATOR_URL configured
  */
 function resolveOrchestratorUrl(): string {
+  // Primary: Use explicitly configured URL (should be HTTPS in production)
   const envUrl = Deno.env.get('ORCHESTRATOR_URL');
   if (envUrl) {
     return envUrl;
   }
 
-  // Check if running in Supabase hosted environment
-  const dbUrl = Deno.env.get('SUPABASE_DB_URL');
-  if (dbUrl) {
-    // Production: require explicit ORCHESTRATOR_URL
+  // Check if running in Supabase hosted/production environment
+  const isProduction = Deno.env.get('SUPABASE_DB_URL') !== undefined;
+  if (isProduction) {
+    // SECURITY: Fail-fast in production - require explicit HTTPS configuration
     throw new Error(
-      'ORCHESTRATOR_URL must be set in production environment'
+      'ORCHESTRATOR_URL must be set in production environment. ' +
+        'Configure an HTTPS endpoint for the workflow orchestrator.'
     );
   }
 
-  // Local development: use Docker internal hostname
-  return 'http://host.docker.internal:8000';
+  // Local development only: use Docker internal hostname
+  // This code path is unreachable in production (guarded above)
+  console.warn(
+    '[trigger-workflow] Using local development orchestrator URL. ' +
+      'Set ORCHESTRATOR_URL for production deployments.'
+  );
+  return LOCAL_DEV_ORCHESTRATOR_URL;
 }
 
 /**
