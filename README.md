@@ -674,58 +674,42 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## Documentation
 
+**[Full Documentation Index](docs/README.md)** - Complete documentation with 80+ documents organized by category.
 
+### Platform Modules
 
-### Core Documentation
+| Module | Description |
+|--------|-------------|
+| [OmniTrace](docs/platform/OMNITRACE.md) | Workflow observability & replay |
+| [OmniPolicy](docs/platform/OMNIPOLICY.md) | Deterministic policy evaluation |
+| [OmniEval](docs/platform/OMNIEVAL.md) | Security evaluation & CI gate |
+| [OmniPort](docs/platform/OMNIPORT_API_REFERENCE.md) | Ingress engine API |
+| [OmniDash](docs/platform/OMNIDASH.md) | Executive dashboard |
+
+### Architecture & Infrastructure
 
 | Document | Description |
 |----------|-------------|
-| [Technical Architecture](docs/TECH_SPEC_ARCHITECTURE.md) | System design deep-dive |
-| [Production Status](docs/PRODUCTION_STATUS.md) | Current deployment state |
+| [Technical Architecture](docs/architecture/TECH_SPEC_ARCHITECTURE.md) | System design |
+| [Production Status](docs/architecture/PRODUCTION_STATUS.md) | Deployment state |
+| [Deployment Guide](docs/infrastructure/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production setup |
 | [Orchestrator Guide](orchestrator/README.md) | Temporal.io setup |
-| [OmniDash Guide](docs/OMNIDASH.md) | Dashboard documentation |
-| [Launch Readiness](docs/LAUNCH_READINESS.md) | Launch checklist |
 
-### Infrastructure
+### Operations & Security
 
 | Document | Description |
 |----------|-------------|
-| [Architecture Summary](docs/infrastructure/ARCHITECTURE_SUMMARY.md) | Infrastructure overview |
-| [Blockchain Config](docs/infrastructure/BLOCKCHAIN_CONFIG.md) | Web3 configuration |
-| [Deployment Guide](docs/infrastructure/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production deployment |
-| [Disaster Recovery](docs/infrastructure/DISASTER_RECOVERY_PLAN.md) | DR procedures |
-
-### Operations
-
-| Document | Description |
-|----------|-------------|
-| [Operations Runbook](docs/ops/OPS_RUNBOOK.md) | Incident response |
-| [DR Runbook](docs/DR_RUNBOOK.md) | Disaster recovery procedures |
-
-### Security & Compliance
-
-| Document | Description |
-|----------|-------------|
+| [Operations Runbook](docs/ops/OPS_RUNBOOK.md) | Master runbook v2.0 |
 | [Security Advisories](SECURITY_ADVISORIES.md) | Security notices |
-| [SOC2 Readiness](docs/SOC2_READINESS.md) | Compliance documentation |
-| [GDPR Compliance](docs/GDPR_COMPLIANCE.md) | Data protection |
+| [SOC2 Readiness](docs/compliance/SOC2_READINESS.md) | Compliance |
 | [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling |
 
-### Observability & Security Modules
+### Testing
 
 | Document | Description |
 |----------|-------------|
-| [OmniTrace](docs/OMNITRACE.md) | Workflow observability & replay |
-| [OmniPolicy](docs/OMNIPOLICY.md) | Deterministic policy evaluation |
-| [OmniEval](docs/OMNIEVAL.md) | Security evaluation & CI gate |
-| [OmniPort](docs/OMNIPORT_API_REFERENCE.md) | Ingress engine API reference |
-
-### Testing & Simulation
-
-| Document | Description |
-|----------|-------------|
-| [Chaos Simulation](docs/sim/CHAOS_SIMULATION_DELIVERY.md) | Chaos testing framework |
-| [E2E Test Results](docs/E2E_TEST_RESULTS.md) | End-to-end test status |
+| [Chaos Simulation](docs/sim/CHAOS_SIMULATION_DELIVERY.md) | Chaos testing |
+| [E2E Test Results](docs/testing/E2E_TEST_RESULTS.md) | Test status |
 
 ---
 
