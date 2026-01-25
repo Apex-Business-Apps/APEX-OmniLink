@@ -1,7 +1,7 @@
 {
-  "name": "APEX OmniHub",
-  "short_name": "OmniHub",
-  "description": "The universal translator + orchestrator connecting AI, enterprise, and Web3.",
+  "name": "APEX OmniLink",
+  "short_name": "OmniLink",
+  "description": "Your portal to observability, integrations, and operational control.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -78,5 +78,41 @@
   "display_override": [
     "standalone",
     "fullscreen"
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "OmniDash",
+      "short_name": "Dash",
+      "description": "Open OmniDash",
+      "url": "/omnidash",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Integrations",
+      "short_name": "Connect",
+      "description": "Manage integrations",
+      "url": "/integrations",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Agent",
+      "short_name": "Agent",
+      "description": "Voice agent",
+      "url": "/agent",
+      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/integrations",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

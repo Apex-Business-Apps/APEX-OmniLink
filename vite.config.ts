@@ -71,8 +71,8 @@ export default defineConfig(({ mode }) => ({
     assetsInlineLimit: 4096,
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Source maps: hidden for production (uploaded to error tracking), none otherwise
-    sourcemap: mode === 'production' ? 'hidden' : mode !== 'production',
+    // Source maps: disabled for production (proprietary protection), enabled for dev
+    sourcemap: mode === 'production' ? false : true,
     // Report compressed size in build output
     reportCompressedSize: true,
     // CSS minification

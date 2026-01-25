@@ -9,6 +9,7 @@ import { DashboardLayout } from "./components/DashboardLayout";
 import { ConsentBanner } from "./components/ConsentBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PaidAccessRoute } from "./components/PaidAccessRoute";
+import { MobileOnlyGate } from "./components/MobileOnlyGate";
 import { useOfflineSupport } from "./hooks/useOfflineSupport";
 import { useEffect, lazy, Suspense } from 'react';
 import { initializeMonitoring } from './lib/monitoring';
@@ -51,6 +52,9 @@ const OmniDashEvents = lazy(() => import("./pages/OmniDash/Events"));
 const OmniDashEntities = lazy(() => import("./pages/OmniDash/Entities"));
 const OmniDashRuns = lazy(() => import("./pages/OmniDash/Runs"));
 const OmniDashApprovals = lazy(() => import("./pages/OmniDash/Approvals"));
+const Translation = lazy(() => import("./pages/Translation"));
+const Agent = lazy(() => import("./pages/Agent"));
+const Settings = lazy(() => import("./pages/Settings"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -172,17 +176,30 @@ const App = () => (
             <Web3Provider>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                {/* Public routes (no mobile gate) */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Auth />} />
                 <Route path="/privacy" element={<Privacy />} />
-                <Route path="/dashboard" element={<PaidAccessRoute><DashboardLayout><Dashboard /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/links" element={<PaidAccessRoute><DashboardLayout><Links /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/files" element={<PaidAccessRoute><DashboardLayout><Files /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/automations" element={<PaidAccessRoute><DashboardLayout><Automations /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/integrations" element={<PaidAccessRoute><DashboardLayout><Integrations /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/apex" element={<PaidAccessRoute><DashboardLayout><ApexAssistant /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/todos" element={<PaidAccessRoute><DashboardLayout><Todos /></DashboardLayout></PaidAccessRoute>} />
+                <Route path="/health" element={<Health />} />
+
+                {/* OmniLink mobile routes (with mobile gate) */}
+                <Route path="/translation" element={<MobileOnlyGate><PaidAccessRoute><Translation /></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/agent" element={<MobileOnlyGate><PaidAccessRoute><Agent /></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/settings" element={<MobileOnlyGate><PaidAccessRoute><Settings /></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/omnitrace" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><OmniDashRuns /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+
+                {/* Legacy routes (with mobile gate) */}
+                <Route path="/dashboard" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Dashboard /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/links" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Links /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/files" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Files /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/automations" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Automations /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/integrations" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Integrations /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/apex" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><ApexAssistant /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/todos" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Todos /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+                <Route path="/diagnostics" element={<MobileOnlyGate><PaidAccessRoute><DashboardLayout><Diagnostics /></DashboardLayout></PaidAccessRoute></MobileOnlyGate>} />
+
+                {/* App routes (no mobile gate for now) */}
                 <Route path="/apps/tradeline247" element={<TradeLine247 />} />
                 <Route path="/apps/autorepai" element={<AutoRepAi />} />
                 <Route path="/apps/keepsafe" element={<KeepSafe />} />
@@ -192,10 +209,10 @@ const App = () => (
                 <Route path="/apps/jubeelove" element={<JubeeLove />} />
                 <Route path="/apps/built-canadian" element={<BuiltCanadian />} />
                 <Route path="/tech-specs" element={<TechSpecs />} />
-                <Route path="/diagnostics" element={<PaidAccessRoute><DashboardLayout><Diagnostics /></DashboardLayout></PaidAccessRoute>} />
-                <Route path="/health" element={<Health />} />
+
+                {/* OmniDash (with mobile gate if enabled) */}
               {OMNIDASH_FLAG && (
-                <Route path="/omnidash" element={<DashboardLayout><OmniDashLayout /></DashboardLayout>}>
+                <Route path="/omnidash" element={<MobileOnlyGate><DashboardLayout><OmniDashLayout /></DashboardLayout></MobileOnlyGate>}>
                   <Route index element={<OmniDashToday />} />
                   <Route path="pipeline" element={<OmniDashPipeline />} />
                   <Route path="kpis" element={<OmniDashKpis />} />
@@ -207,6 +224,7 @@ const App = () => (
                   <Route path="approvals" element={<OmniDashApprovals />} />
                 </Route>
               )}
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

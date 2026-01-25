@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "next-themes";
 import App from "./App.tsx";
 import "./index.css";
 import { createDebugLogger } from "./lib/debug-logger";
@@ -29,7 +30,11 @@ const root = createRoot(rootElement);
 log('Before render');
 // #endregion
 
-root.render(<App />);
+root.render(
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <App />
+  </ThemeProvider>
+);
 
 // #region agent log
 log('App render complete');

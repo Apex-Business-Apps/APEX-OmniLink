@@ -4,9 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchOmniTraceRuns, fetchOmniTraceRunDetail } from '@/omnidash/omnilink-api';
 import type { OmniTraceRun, OmniTraceRunDetailResponse } from '@/omnidash/types';
+import { Download, Play, Pause, Shield, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   running: 'secondary',
@@ -36,6 +39,9 @@ function formatPayload(data: Record<string, unknown> | null, maxLength: number =
 }
 
 function RunDetailPanel({ workflowId }: { workflowId: string }) {
+  const [replayIndex, setReplayIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const detailQuery = useQuery({
     queryKey: ['omnitrace-run-detail', workflowId],
     queryFn: () => fetchOmniTraceRunDetail(workflowId),
@@ -55,19 +61,188 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
 
   const detail = detailQuery.data as OmniTraceRunDetailResponse;
 
+  // Filter policy events for dedicated view
+  const policyEvents = detail.events.filter((e) => e.kind === 'policy');
+
+  // Download replay bundle as JSON
+  const handleDownloadBundle = () => {
+    const bundle = JSON.stringify(detail.replay_bundle, null, 2);
+    const blob = new Blob([bundle], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `replay-${workflowId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Replay bundle downloaded');
+  };
+
+  // Auto-play replay (time-travel through events)
+  const toggleReplay = () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+      let idx = replayIndex;
+      const interval = setInterval(() => {
+        idx++;
+        if (idx >= detail.events.length) {
+          setIsPlaying(false);
+          clearInterval(interval);
+        } else {
+          setReplayIndex(idx);
+        }
+      }, 500); // 500ms per event
+    }
+  };
+
+  const currentEvent = detail.events[replayIndex];
+
   return (
     <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+      {/* Truncation Warning */}
+      {detail.replay_bundle.events_truncated && (
+        <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm">
+          <AlertTriangle className="w-4 h-4 mt-0.5 text-yellow-600 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-yellow-900 dark:text-yellow-200">Events Truncated</p>
+            <p className="text-xs text-yellow-800 dark:text-yellow-300">
+              Some events were truncated. Full replay bundle available via API.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Replay Controls */}
+      {detail.events.length > 0 && (
+        <div className="space-y-3 p-4 bg-background rounded-lg border">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">Replay Timeline</h4>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleReplay}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause className="w-4 h-4 mr-1" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-1" />
+                    Play
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadBundle}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Export
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Slider
+              value={[replayIndex]}
+              onValueChange={(val) => setReplayIndex(val[0])}
+              max={detail.events.length - 1}
+              step={1}
+              className="w-full"
+              disabled={isPlaying}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Event {replayIndex + 1} of {detail.events.length}</span>
+              <span>{currentEvent?.name}</span>
+            </div>
+          </div>
+
+          {/* Current Event Detail */}
+          {currentEvent && (
+            <div className="p-3 bg-muted/50 rounded border">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    EVENT_KIND_COLORS[currentEvent.kind] ?? EVENT_KIND_COLORS.system
+                  }`}
+                >
+                  {currentEvent.kind}
+                </span>
+                <span className="font-mono text-sm">{currentEvent.name}</span>
+                {currentEvent.latency_ms !== null && (
+                  <Badge variant="outline" className="text-xs">
+                    {currentEvent.latency_ms}ms
+                  </Badge>
+                )}
+              </div>
+              {currentEvent.metadata && Object.keys(currentEvent.metadata).length > 0 && (
+                <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
+                  {JSON.stringify(currentEvent.metadata, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Policy Decisions (OmniPolicy) */}
+      {policyEvents.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-primary" />
+            <h4 className="font-medium">Policy Decisions ({policyEvents.length})</h4>
+          </div>
+          <div className="space-y-2">
+            {policyEvents.map((event) => {
+              const decision = event.metadata?.decision as string | undefined;
+              const reason = event.metadata?.reason as string | undefined;
+              return (
+                <div
+                  key={event.id}
+                  className={`p-3 rounded-lg border ${
+                    decision === 'deny'
+                      ? 'bg-destructive/10 border-destructive/20'
+                      : 'bg-primary/10 border-primary/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge variant={decision === 'deny' ? 'destructive' : 'default'}>
+                      {decision || 'unknown'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : 'N/A'}
+                    </span>
+                  </div>
+                  {reason && (
+                    <p className="text-sm text-muted-foreground">{reason}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Events Timeline */}
       <div>
-        <h4 className="font-medium mb-2">Events ({detail.events.length})</h4>
+        <h4 className="font-medium mb-2">All Events ({detail.events.length})</h4>
         {detail.events.length === 0 ? (
           <p className="text-sm text-muted-foreground">No events recorded</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {detail.events.map((event) => (
+            {detail.events.map((event, idx) => (
               <div
                 key={event.id}
-                className="flex items-start gap-2 text-sm border-l-2 border-muted-foreground/20 pl-3"
+                className={`flex items-start gap-2 text-sm border-l-2 pl-3 transition-all ${
+                  idx === replayIndex
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted-foreground/20'
+                }`}
               >
                 <span
                   className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -84,18 +259,13 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
             ))}
           </div>
         )}
-        {detail.replay_bundle.events_truncated && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Events truncated. Full list available via API.
-          </p>
-        )}
       </div>
 
       {/* Replay Bundle */}
       <Collapsible>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm">
-            View Replay Bundle
+            View Raw Replay Bundle
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>

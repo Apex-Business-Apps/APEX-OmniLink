@@ -260,6 +260,13 @@ function CapabilityShowcase() {
       icon: <IconManMode size={28} />,
       href: '#man-mode',
     },
+    {
+      id: 'maestro',
+      title: 'M.A.E.S.T.R.O.',
+      description: 'Multi-Agent Execution, Simulation, Testing, Reliability & Operations',
+      icon: <IconAutomation size={28} />,
+      href: '#maestro',
+    },
   ];
 
   return (
