@@ -55,6 +55,10 @@
     "hardhat:mint": "hardhat run scripts/hardhat/mint.ts"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.0.1",
+    "@capacitor/core": "^8.0.1",
+    "@capacitor/device": "^8.0.0",
+    "@capacitor/push-notifications": "^8.0.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -117,6 +121,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/ios": "^8.0.1",
     "@eslint/js": "^9.32.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
