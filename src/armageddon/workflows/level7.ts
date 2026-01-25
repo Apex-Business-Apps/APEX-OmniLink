@@ -16,9 +16,8 @@ import {
     defineSignal,
     defineQuery,
     setHandler,
-    workflowInfo,
 } from '@temporalio/workflow';
-import type { Level7Config, BatteryResult, ArmageddonLevel7Result } from '../types';
+import type { Level7Config, ArmageddonLevel7Result } from '../types';
 import { ESCAPE_THRESHOLD } from '../types';
 import type * as activities from '../activities/level7';
 
