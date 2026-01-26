@@ -10,8 +10,8 @@
 
 import { Worker, NativeConnection, Runtime } from '@temporalio/worker';
 import * as level7Activities from './armageddon/activities/level7';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 // Task queue for Armageddon Level 7 tests
 export const ARMAGEDDON_TASK_QUEUE = 'armageddon-level7-queue';
@@ -51,14 +51,14 @@ export async function createArmageddonWorker(): Promise<Worker> {
 // Auto-run if executed directly
 const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] === __filename) {
-    (async () => {
+    try {
         console.log('Starting Armageddon Level 7 Worker...');
         const worker = await createArmageddonWorker();
         await worker.run();
-    })().catch((err) => {
+    } catch (err) {
         console.error('Worker failed to start:', err);
         process.exit(1);
-    });
+    }
 }
 
 // Export types for external consumption

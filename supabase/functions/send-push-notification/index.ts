@@ -209,20 +209,18 @@ async function sendFCM(
 
 /**
  * Generate JWT for APNS authentication
+ * NOTE: Requires djwt library for ES256 signing
+ * See docs/NATIVE_PUSH_SETUP.md for implementation
  */
 async function generateAPNSJWT(): Promise<string> {
-    // TODO: Implement JWT generation using APNS private key
-    // This requires importing a JWT library or implementing ES256 signing
-    // For now, returning placeholder
-    throw new Error('APNS JWT generation not yet implemented - requires ES256 signing');
+    throw new Error('APNS JWT generation requires djwt library - see setup guide');
 }
 
 /**
  * Get OAuth2 access token for FCM
+ * NOTE: Requires jose library for RS256 signing
+ * See docs/NATIVE_PUSH_SETUP.md for implementation
  */
 async function getFCMAccessToken(): Promise<string> {
-    // TODO: Implement OAuth2 token generation using service account
-    // This requires importing a JWT library or implementing RS256 signing
-    // For now, returning placeholder
-    throw new Error('FCM OAuth2 token generation not yet implemented - requires RS256 signing');
+    throw new Error('FCM OAuth2 token generation requires jose library - see setup guide');
 }

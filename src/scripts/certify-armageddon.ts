@@ -59,7 +59,10 @@ async function runArmageddon() {
     }
 }
 
-runArmageddon().catch(err => {
+// Use top-level await for cleaner execution
+try {
+    await runArmageddon();
+} catch (err) {
     console.error('Script error:', err);
     process.exit(1);
-});
+}

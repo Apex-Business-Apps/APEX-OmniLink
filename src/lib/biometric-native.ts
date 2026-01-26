@@ -89,11 +89,9 @@ export async function authenticateWithBiometrics(options?: {
             timestamp: new Date().toISOString(),
         });
 
-        // TODO: Implement actual biometric authentication
-        // This would require either:
-        // 1. A working Capacitor plugin (e.g., @capacitor-community/biometric-auth)
-        // 2. Custom native code in iOS/Android projects
-        // 3. Alternative plugin like @aparajita/capacitor-biometric-auth
+        // NOTE: Biometric authentication requires a working Capacitor plugin
+        // Options: @aparajita/capacitor-biometric-auth or custom native implementation
+        // This is a placeholder that returns an error until plugin is installed
 
         console.warn('[BiometricNative] Biometric authentication not fully implemented - placeholder only');
 
