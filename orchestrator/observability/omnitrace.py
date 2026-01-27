@@ -174,27 +174,41 @@ def redact_value(key: str, value: Any, depth: int = 0) -> Any:
     """
     key_lower = key.lower()
 
-    # Drop sensitive keys entirely
-    if any(drop in key_lower for drop in REDACTION_DROPLIST):
+    if _should_drop_key(key_lower):
         return None
 
-    # Allow known safe keys
     if key_lower in REDACTION_ALLOWLIST:
         return value
 
-    # For nested structures, recursively redact
-    if depth < 3:  # Limit recursion depth
-        if isinstance(value, dict):
-            return redact_dict(value, depth + 1)
-        if isinstance(value, list) and len(value) <= 10:
-            return [redact_value(f"{key}[{i}]", v, depth + 1) for i, v in enumerate(value)]
+    if depth < 3:
+        recursive_result = _redact_recursive(key, value, depth)
+        if recursive_result is not NotImplemented:
+            return recursive_result
 
-    # For other values, return type indicator with hash
+    return _redact_primitive(value)
+
+
+def _should_drop_key(key_lower: str) -> bool:
+    """Check if key should be dropped entirely."""
+    return any(drop in key_lower for drop in REDACTION_DROPLIST)
+
+
+def _redact_recursive(key: str, value: Any, depth: int) -> Any:
+    """Handle recursive redaction for collections."""
+    if isinstance(value, dict):
+        return redact_dict(value, depth + 1)
+    if isinstance(value, list) and len(value) <= 10:
+        return [redact_value(f"{key}[{i}]", v, depth + 1) for i, v in enumerate(value)]
+    return NotImplemented
+
+
+def _redact_primitive(value: Any) -> Any:
+    """Handle primitive value redaction."""
     if value is None:
         return None
     if isinstance(value, bool):
         return value
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, (int, float)):
         # Safe to include small numbers
         if -1000000 <= value <= 1000000:
             return value

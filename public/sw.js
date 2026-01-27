@@ -16,7 +16,8 @@ const STATIC_ASSETS = [
 ];
 
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
+// Install event - cache static assets
+globalThis.addEventListener('install', (event) => {
   console.log('[SW] Installing OmniLink PWA service worker v4');
   event.waitUntil(
     caches.open(CACHE_STATIC).then((cache) => {
@@ -24,17 +25,16 @@ self.addEventListener('install', (event) => {
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('[SW] Failed to cache some static assets:', err);
         // Don't fail install if some assets fail
-        return Promise.resolve();
       });
     }).then(() => {
       console.log('[SW] Install complete, skipping waiting');
-      return self.skipWaiting();
+      return globalThis.skipWaiting();
     })
   );
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+globalThis.addEventListener('activate', (event) => {
   console.log('[SW] Activating OmniLink PWA service worker v4');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -48,13 +48,14 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => {
       console.log('[SW] Activation complete');
-      return self.clients.claim();
+      return globalThis.clients.claim();
     })
   );
 });
 
 // Fetch event - network-first with cache fallback for resilience
-self.addEventListener('fetch', (event) => {
+globalThis.addEventListener('fetch', (event) => {
+  // ... existing fetch logic ...
   const { request } = event;
   const url = new URL(request.url);
 
@@ -65,7 +66,7 @@ self.addEventListener('fetch', (event) => {
 
   // Skip Supabase auth/realtime requests (must go to network)
   if (url.hostname.includes('supabase.co') &&
-      (url.pathname.includes('/auth/') || url.pathname.includes('/realtime/'))) {
+    (url.pathname.includes('/auth/') || url.pathname.includes('/realtime/'))) {
     return;
   }
 
@@ -131,15 +132,15 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Message event - handle client messages
-self.addEventListener('message', (event) => {
+globalThis.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     console.log('[SW] Received SKIP_WAITING message');
-    self.skipWaiting();
+    globalThis.skipWaiting();
   }
 });
 
 // Push notification event - show notification when received
-self.addEventListener('push', (event) => {
+globalThis.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
 
   if (!event.data) {
@@ -169,12 +170,12 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(notification.title || 'OmniLink', options)
+    globalThis.registration.showNotification(notification.title || 'OmniLink', options)
   );
 });
 
 // Notification click event - handle user click on notification
-self.addEventListener('notificationclick', (event) => {
+globalThis.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event.action);
 
   event.notification.close();
@@ -219,7 +220,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // Background sync event - sync offline data when connection returns
-self.addEventListener('sync', (event) => {
+globalThis.addEventListener('sync', (event) => {
   console.log('[SW] Background sync triggered:', event.tag);
 
   if (event.tag === 'omnilink-sync') {
@@ -245,7 +246,7 @@ self.addEventListener('sync', (event) => {
 });
 
 // Periodic background sync (requires permission)
-self.addEventListener('periodicsync', (event) => {
+globalThis.addEventListener('periodicsync', (event) => {
   console.log('[SW] Periodic sync triggered:', event.tag);
 
   if (event.tag === 'omnilink-periodic-sync') {

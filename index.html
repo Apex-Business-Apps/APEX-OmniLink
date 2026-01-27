@@ -55,30 +55,7 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Service Worker Registration -->
-  <!-- DISABLED: Production Hardening Phase 2 (C5) -->
-  <!-- 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        try {
-          const existingRegistration = await navigator.serviceWorker.getRegistration();
-          const hasExpectedWorker = existingRegistration?.active?.scriptURL?.endsWith('/sw.js');
 
-          if (!existingRegistration || !hasExpectedWorker) {
-            await navigator.serviceWorker.register('/sw.js');
-            console.log('✅ Service Worker registered');
-          } else {
-            await existingRegistration.update();
-            console.log('✅ Service Worker already registered');
-          }
-        } catch (err) {
-          console.log('❌ Service Worker registration failed:', err);
-        }
-      });
-    }
-  </script>
-  -->
 </body>
 
 </html>
