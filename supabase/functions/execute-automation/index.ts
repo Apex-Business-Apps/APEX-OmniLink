@@ -15,7 +15,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createSupabaseClient } from '../_shared/auth.ts';
+import { createSupabaseClient, authenticateUser } from '../_shared/auth.ts';
 import { handleCors, corsJsonResponse } from '../_shared/cors.ts';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -179,7 +179,7 @@ async function executeCreateRecord(
   if (!isAllowedTable(table)) {
     throw new Error(
       `Invalid or unauthorized table: ${table}. ` +
-        `Allowed tables: ${ALLOWED_TABLES.join(', ')}`
+      `Allowed tables: ${ALLOWED_TABLES.join(', ')}`
     );
   }
 
@@ -311,6 +311,17 @@ serve(async (req) => {
 
   try {
     const supabase = createSupabaseClient();
+
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    const { success, user, error: authError } = await authenticateUser(authHeader, supabase);
+
+    if (!success || !user) {
+      return corsJsonResponse(
+        { error: 'unauthorized', message: authError || 'Authentication failed' },
+        401
+      );
+    }
 
     const body = await req.json();
     const { automationId } = body;

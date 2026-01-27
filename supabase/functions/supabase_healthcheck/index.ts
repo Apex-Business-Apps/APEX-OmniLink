@@ -41,7 +41,38 @@ function generateRequestId(): string {
   return `hc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-Deno.serve(async (req) => {
+async function checkOrchestratorConnection(requestId: string, orchestratorUrl?: string): Promise<{ status: 'healthy' | 'degraded' | 'unconfigured'; warning?: string }> {
+  if (!orchestratorUrl) {
+    console.warn('⚠️ ORCHESTRATOR_URL not configured - skipping orchestrator health check');
+    return { status: 'unconfigured', warning: 'ORCHESTRATOR_URL environment variable not set' };
+  }
+
+  try {
+    const orchestratorResponse = await fetch(`${orchestratorUrl}/health`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (!orchestratorResponse.ok) {
+      throw new Error(`Orchestrator returned ${orchestratorResponse.status}`);
+    }
+
+    const orchestratorHealth = await orchestratorResponse.json();
+    if (orchestratorHealth.status !== 'ok') {
+      throw new Error('Orchestrator health check failed');
+    }
+    console.log(`[${requestId}] ✅ Orchestrator health check passed`);
+    return { status: 'healthy' };
+
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown orchestrator error';
+    console.warn(`[${requestId}] ⚠️ Orchestrator health check failed (non-blocking): ${errorMsg}`);
+    return { status: 'degraded', warning: errorMsg };
+  }
+}
+
+Deno.serve(async (req: Request) => {
   const requestId = generateRequestId();
   const startTime = Date.now();
   const corsHeaders = buildCorsHeaders(req.headers.get('origin'));
@@ -115,43 +146,7 @@ Deno.serve(async (req) => {
     }
 
     // Test 2: Orchestrator health - check Python service endpoint (NON-BLOCKING)
-    // FIX: Made resilient to orchestrator downtime to unblock deployments
-    const orchestratorUrl = Deno.env.get('ORCHESTRATOR_URL');
-    let orchestratorStatus: 'healthy' | 'degraded' | 'unconfigured' = 'unconfigured';
-    let orchestratorWarning: string | undefined;
-
-    if (!orchestratorUrl) {
-      console.warn('⚠️ ORCHESTRATOR_URL not configured - skipping orchestrator health check');
-      orchestratorStatus = 'unconfigured';
-      orchestratorWarning = 'ORCHESTRATOR_URL environment variable not set';
-    } else {
-      try {
-        const orchestratorResponse = await fetch(`${orchestratorUrl}/health`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          // Short timeout to avoid hanging
-          signal: AbortSignal.timeout(5000)
-        });
-
-        if (!orchestratorResponse.ok) {
-          throw new Error(`Orchestrator returned ${orchestratorResponse.status}`);
-        }
-
-        const orchestratorHealth = await orchestratorResponse.json();
-        if (orchestratorHealth.status !== 'ok') {
-          throw new Error('Orchestrator health check failed');
-        }
-        orchestratorStatus = 'healthy';
-        console.log(`[${requestId}] ✅ Orchestrator health check passed`);
-
-      } catch (error) {
-        // NON-BLOCKING: Log warning but allow deployment to proceed
-        const errorMsg = error instanceof Error ? error.message : 'Unknown orchestrator error';
-        console.warn(`[${requestId}] ⚠️ Orchestrator health check failed (non-blocking): ${errorMsg}`);
-        orchestratorStatus = 'degraded';
-        orchestratorWarning = errorMsg;
-      }
-    }
+    const { status: orchestratorStatus, warning: orchestratorWarning } = await checkOrchestratorConnection(requestId, Deno.env.get('ORCHESTRATOR_URL'));
 
     // Database test passed, orchestrator is non-blocking - Add security headers
     const duration = Date.now() - startTime;

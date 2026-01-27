@@ -27,5 +27,4 @@ $$;
 grant execute on function public.claim_admin_role() to authenticated;
 
 comment on function public.claim_admin_role() is 
-'Dynamic admin role assignment based on app_metadata.is_admin claim. 
-No hardcoded emails or UUIDs in the schema.';
+'Dynamic admin role assignment based on app_metadata.is_admin claim. No hardcoded emails or UUIDs in the schema.';
