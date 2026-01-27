@@ -36,6 +36,11 @@ export default defineConfig({
     },
   ],
 
-  // Don't start a server - we expect it to be running already
-  // (started by CI or manually)
+  // Start preview server before running tests
+  webServer: {
+    command: 'npm run build && npm run preview',
+    url: 'http://localhost:4173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000, // 2 minutes for build + preview startup
+  },
 });
