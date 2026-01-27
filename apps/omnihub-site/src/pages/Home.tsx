@@ -27,7 +27,7 @@ function Hero() {
       </div>
       <div className="container hero__grid">
         <div className="hero__content">
-          <p className="hero__eyebrow">{siteConfig.hero.eyebrow}</p>
+          {/* eyebrow removed */}
           <h1 className="heading-hero hero__title">{siteConfig.hero.title}</h1>
           <p className="hero__tagline">{siteConfig.hero.tagline}</p>
           <p className="hero__proof">{siteConfig.stamp.tagline}</p>
@@ -265,6 +265,13 @@ function CapabilityShowcase() {
       title: 'M.A.E.S.T.R.O.',
       description:
         'Routes intent safely, escalates high-risk actions to MAN Mode, and produces audit-grade execution receipts.',
+      icon: <IconAutomation size={28} />,
+      href: '#orchestrator',
+    },
+    {
+      id: 'maestro',
+      title: 'Maestro',
+      description: 'Turns intent into monitored, reversible workflows.',
       icon: <IconAutomation size={28} />,
       href: '#orchestrator',
     },

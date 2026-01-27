@@ -16,19 +16,26 @@ export function CTAGroup({
   link,
   centered = false,
 }: CTAGroupProps) {
+  // Safeguard: Ensure we don't render empty blocks or buttons without labels
+  const hasPrimary = primary && primary.label && primary.href;
+  const hasSecondary = secondary && secondary.label && secondary.href;
+  const hasLink = link && link.label && link.href;
+
+  if (!hasPrimary && !hasSecondary && !hasLink) return null;
+
   return (
     <div className={`cta-group ${centered ? 'cta-group--center' : ''}`}>
-      {primary && (
+      {hasPrimary && (
         <a href={primary.href} className="btn btn--primary btn--lg">
           {primary.label}
         </a>
       )}
-      {secondary && (
+      {hasSecondary && (
         <a href={secondary.href} className="btn btn--secondary btn--lg">
           {secondary.label}
         </a>
       )}
-      {link && (
+      {hasLink && (
         <a href={link.href} className="btn btn--ghost">
           {link.label} &rarr;
         </a>

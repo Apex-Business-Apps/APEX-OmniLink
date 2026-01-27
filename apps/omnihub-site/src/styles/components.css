@@ -31,9 +31,9 @@
 
 /* === TYPOGRAPHY === */
 .heading-hero {
-  font-size: var(--font-size-hero);
+  font-size: clamp(3rem, 5vw, 4.5rem);
   font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
+  line-height: 0.95;
   letter-spacing: var(--letter-spacing-tight);
 }
 
@@ -1288,11 +1288,17 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
+  color: rgba(255, 255, 255, 0.95);
+  transition: all var(--transition-fast);
+}
+
+.fortress__item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .fortress__bullet {
@@ -1301,6 +1307,7 @@
   height: 8px;
   background: var(--color-accent);
   border-radius: 2px;
+  opacity: 0.9;
 }
 
 /* === MAN MODE SECTION === */
@@ -1387,27 +1394,19 @@
 
 /* === CAPABILITY SHOWCASE === */
 .capability-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-6);
   max-width: 1100px;
   margin: 0 auto;
-  justify-content: center;
-  justify-items: center;
-}
-
-@media (min-width: 1024px) {
-  /* Keep three columns on wide screens and center an orphaned last item */
-  .capability-grid {
-    grid-template-columns: repeat(3, minmax(260px, 320px));
-  }
-
-  .capability-grid > :last-child:nth-child(3n + 1) {
-    grid-column: 2;
-  }
 }
 
 .capability-card {
+  flex: 1 1 300px;
+  max-width: 360px;
+  min-width: 260px;
+  /* ... rest of styles ... */
   text-decoration: none;
   background: var(--color-surface-elevated);
   border: var(--border-width) solid var(--color-border);
