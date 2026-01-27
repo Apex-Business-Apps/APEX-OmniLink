@@ -1320,11 +1320,13 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: rgba(255, 255, 255, 0.08);
+  /* Combined: Glass overlay on Navy base (Fixes SonarQube & Contrast) */
+  background-color: #0b1120;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-sm);
-  color: #ffffff;
+  color: var(--color-white);
   transition: all var(--transition-fast);
 }
 

@@ -1,0 +1,4 @@
+-- SECURITY REMEDIATION
+-- This migration previously contained hardcoded credentials.
+-- It has been redacted to zero-trust standards.
+-- The original logic is no longer active.
