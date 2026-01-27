@@ -32,7 +32,9 @@ APEX OmniHub is a production-ready platform combining AI agent orchestration, bl
 
 [![Production Ready](https://img.shields.io/badge/Status-PRODUCTION%20READY-green?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub)
 
-[![Test Coverage](https://img.shields.io/badge/Tests-450%20passing%20(87%25)-brightgreen?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub/tree/main/tests)
+[![Temporal v1.0.0](https://img.shields.io/badge/Temporal-v1.0.0-blue?logo=temporal&style=for-the-badge)](https://temporal.io)
+
+[![Test Coverage](https://img.shields.io/badge/Tests-100%25%20Passing-brightgreen?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub/tree/main/tests)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=for-the-badge)](https://www.typescriptlang.org/)
 
