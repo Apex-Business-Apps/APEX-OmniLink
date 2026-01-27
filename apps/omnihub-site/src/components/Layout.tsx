@@ -34,9 +34,8 @@ function ThemeToggle() {
     <>
       <div className="theme-toggle-segmented" aria-label="Theme selection">
         <label
-          className={`theme-toggle-segmented__option ${
-            isLight ? 'theme-toggle-segmented__option--active' : ''
-          }`}
+          className={`theme-toggle-segmented__option ${isLight ? 'theme-toggle-segmented__option--active' : ''
+            }`}
         >
           <input
             className="theme-toggle-segmented__input"
@@ -49,9 +48,8 @@ function ThemeToggle() {
           WHITE FORTRESS
         </label>
         <label
-          className={`theme-toggle-segmented__option ${
-            isDark ? 'theme-toggle-segmented__option--active' : ''
-          }`}
+          className={`theme-toggle-segmented__option ${isDark ? 'theme-toggle-segmented__option--active' : ''
+            }`}
         >
           <input
             className="theme-toggle-segmented__input"
@@ -132,13 +130,12 @@ function Nav() {
               src="/apex-omnihub-wordmark.svg"
               alt="APEX OmniHub"
               className="nav__logo-wordmark"
-              width="320"
-              height="20"
+              width="165"
+              height="24"
               style={{
-                maxHeight: 24,
-                maxWidth: 'min(42vw, 360px)',
-                height: 'auto',
+                height: '24px',
                 width: 'auto',
+                aspectRatio: '1012.5 / 147'
               }}
             />
           </a>
@@ -179,7 +176,23 @@ function Nav() {
             </button>
 
             {menuOpen && (
-              <div className="nav__mobile-menu" role="dialog" aria-label="Mobile navigation">
+              <dialog
+                open
+                className="nav__mobile-menu"
+                aria-label="Mobile navigation"
+                style={{
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                  width: '100%',
+                  height: '100%',
+                  background: 'transparent',
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  zIndex: 100
+                }}
+              >
                 <ul className="nav__mobile-links">
                   {siteConfig.nav.links.map((link) => (
                     <li key={link.href}>
@@ -193,7 +206,7 @@ function Nav() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </dialog>
             )}
           </div>
         </div>

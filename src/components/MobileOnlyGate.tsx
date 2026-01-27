@@ -3,9 +3,9 @@ import { useCapabilities } from '@/hooks/useCapabilities';
 import { useSearchParams } from 'react-router-dom';
 import { Smartphone, Monitor } from 'lucide-react';
 
-interface MobileOnlyGateProps {
+type MobileOnlyGateProps = Readonly<{
   children: ReactNode;
-}
+}>;
 
 const TABLET_BREAKPOINT = 1024; // >= 1024px is desktop
 const FEATURE_FLAG = import.meta.env.VITE_OMNILINK_MOBILE_ONLY !== 'false';
