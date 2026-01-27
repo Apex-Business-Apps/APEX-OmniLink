@@ -16,19 +16,19 @@ services:
   temporal:
     image: temporalio/auto-setup:1.24.2
     ports:
-      - "7233:7233"  # gRPC
-      - "8233:8233"  # Web UI
+      - "7233:7233" # gRPC
+      - "8233:8233" # Web UI
     environment:
       - DB=postgresql
       - DB_PORT=5432
-      - POSTGRES_USER=${TEMPORAL_DB_USER:?Error: TEMPORAL_DB_USER is required}
-      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:?Error: TEMPORAL_DB_PASSWORD is required}
+      - POSTGRES_USER=${TEMPORAL_DB_USER:-temporal}
+      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:-temporal123}
       - POSTGRES_SEEDS=postgres
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      test: [ "CMD", "tctl", "--address", "temporal:7233", "cluster", "health" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -38,15 +38,15 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${TEMPORAL_DB_USER:?Error: TEMPORAL_DB_USER is required}
-      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:?Error: TEMPORAL_DB_PASSWORD is required}
+      POSTGRES_USER: "${TEMPORAL_DB_USER:-temporal}"
+      POSTGRES_PASSWORD: "${TEMPORAL_DB_PASSWORD:-temporal123}"
       POSTGRES_DB: temporal
     ports:
       - "5433:5432"
     volumes:
       - temporal_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal} -d temporal"]
+      test: [ "CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal} -d temporal" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,7 +60,7 @@ services:
     environment:
       - REDIS_ARGS=--loadmodule /opt/redis-stack/lib/redisearch.so --loadmodule /opt/redis-stack/lib/redisjson.so --loadmodule /opt/redis-stack/lib/redisbloom.so
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -79,13 +79,13 @@ services:
       # Redis
       - REDIS_URL=redis://redis:6379
 
-      # Supabase (required)
-      - SUPABASE_URL=${SUPABASE_URL:?Error: SUPABASE_URL is required}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?Error: SUPABASE_SERVICE_ROLE_KEY is required}
-      - SUPABASE_DB_URL=${SUPABASE_DB_URL:?Error: SUPABASE_DB_URL is required}
+      # Supabase (required, with fallback for local dev)
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL:-}
 
-      # LLM (required)
-      - OPENAI_API_KEY=${OPENAI_API_KEY:?Error: OPENAI_API_KEY is required}
+      # LLM (optional for local dev)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DEFAULT_LLM_MODEL=gpt-4-turbo-preview
 
@@ -100,7 +100,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: [ "CMD", "python", "-c", "import sys; sys.exit(0)" ]
       interval: 30s
       timeout: 10s
       retries: 3
