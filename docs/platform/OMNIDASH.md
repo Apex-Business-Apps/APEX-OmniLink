@@ -36,3 +36,20 @@
 ## Rollback
 - Set `OMNIDASH_ENABLED=0` and redeploy.
 
+## 📊 Capabilities Snapshot (v1.0)
+Based on `src/pages/OmniDash/Today.tsx` and database schema.
+
+### Core Metrics Tracked
+- **System Health**: Real-time uptime and error rate monitoring.
+- **Revenue**: MRR, churn, and LTV calculations.
+- **Pipeline**: Deal flow velocity and conversion rates.
+- **Ops**: Incident tracking and rapid response controls.
+
+### Visual Proof
+> *[Placeholder for Dashboard Screenshot - Execute `npm run dev` to generate]*
+
+### Integration Points
+- **Data Access**: `src/omnidash/api.ts` (Typed API Layer)
+- **Security**: Row Level Security (RLS) enabled on all widgets.
+- **Edge Functions**: Secure invocation via `supabase/functions/execute-automation`.
+

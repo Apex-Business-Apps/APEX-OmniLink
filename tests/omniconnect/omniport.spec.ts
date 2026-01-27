@@ -165,51 +165,67 @@ describe('OmniPort - The Proprietary Ingress Engine', () => {
   });
 
   // ===========================================================================
+  // HELPERS
+  // ===========================================================================
+
+  const runPerformanceTest = async (input: TextSource | VoiceSource | WebhookSource) => {
+    const userId = input.userId!;
+    mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
+
+    const startTime = performance.now();
+    const result = await omniPort.ingest(input);
+    const endTime = performance.now();
+
+    expect(result.status).toBe('accepted');
+    if (result.latencyMs) {
+      expect(result.latencyMs).toBeDefined();
+    }
+    expect(endTime - startTime).toBeLessThan(50);
+  };
+
+  const verifyRiskLane = async (
+    input: TextSource | VoiceSource,
+    expectedLane: 'RED' | 'GREEN',
+    expectedIntents: string[] = [],
+    requiresApproval: boolean = false
+  ) => {
+    const userId = input.userId!;
+    mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
+
+    const result = await omniPort.ingest(input);
+
+    expect(result.riskLane).toBe(expectedLane);
+
+    if (expectedLane === 'GREEN') {
+      expect(result.status).toBe('accepted');
+    }
+
+    const deliveredEvents = mockDeliverBatch.mock.calls[0][0];
+    expect(deliveredEvents[0].metadata.requires_man_approval).toBe(requiresApproval);
+
+    if (expectedIntents.length > 0) {
+      expectedIntents.forEach(intent => {
+        expect(deliveredEvents[0].metadata.detected_intents).toContain(intent);
+      });
+    } else if (expectedLane === 'GREEN') {
+      expect(deliveredEvents[0].metadata.detected_intents).toHaveLength(0);
+    }
+  };
+
+  // ===========================================================================
   // TEST 1: THE SPEED RUN
   // ===========================================================================
   describe('Test: The Speed Run - Performance', () => {
     it('should complete e2e ingestion in under 50ms', async () => {
-      // Setup: Register a trusted device
-      const userId = createTextInput().userId;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const input = createTextInput();
-
-      const startTime = performance.now();
-      const result = await omniPort.ingest(input);
-      const endTime = performance.now();
-
-      const duration = endTime - startTime;
-
-      expect(result.status).toBe('accepted');
-      expect(result.latencyMs).toBeDefined();
-      expect(duration).toBeLessThan(50);
+      await runPerformanceTest(createTextInput());
     });
 
     it('should process voice input within performance threshold', async () => {
-      const input = createVoiceInput();
-      const userId = input.userId!;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const startTime = performance.now();
-      const result = await omniPort.ingest(input);
-      const endTime = performance.now();
-
-      expect(result.status).toBe('accepted');
-      expect(endTime - startTime).toBeLessThan(50);
+      await runPerformanceTest(createVoiceInput());
     });
 
     it('should process webhook input within performance threshold', async () => {
-      const input = createWebhookInput();
-      const userId = input.userId!;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const startTime = performance.now();
-      const result = await omniPort.ingest(input);
-      const endTime = performance.now();
-
-      expect(result.status).toBe('accepted');
-      expect(endTime - startTime).toBeLessThan(50);
+      await runPerformanceTest(createWebhookInput());
     });
   });
 
@@ -218,87 +234,48 @@ describe('OmniPort - The Proprietary Ingress Engine', () => {
   // ===========================================================================
   describe('Test: The Moat - MAN Mode Governance', () => {
     it('should flag "delete" command with RED risk lane and requires_man_approval', async () => {
-      const input = createTextInput({
-        content: 'Please delete all user data from the system',
-      });
-      const userId = input.userId;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const result = await omniPort.ingest(input);
-
-      expect(result.riskLane).toBe('RED');
-      expect(result.status).toBe('accepted');
-
-      // Verify delivery was called with MAN Mode metadata
-      expect(mockDeliverBatch).toHaveBeenCalledTimes(1);
-      const deliveredEvents = mockDeliverBatch.mock.calls[0][0];
-      expect(deliveredEvents[0].metadata.requires_man_approval).toBe(true);
-      expect(deliveredEvents[0].metadata.detected_intents).toContain('delete');
+      await verifyRiskLane(
+        createTextInput({ content: 'Please delete all user data' }),
+        'RED',
+        ['delete'],
+        true
+      );
     });
 
     it('should flag "transfer" command with RED risk lane and requires_man_approval', async () => {
-      const input = createTextInput({
-        content: 'I want to transfer $5000 to account xyz',
-      });
-      const userId = input.userId;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const result = await omniPort.ingest(input);
-
-      expect(result.riskLane).toBe('RED');
-
-      const deliveredEvents = mockDeliverBatch.mock.calls[0][0];
-      expect(deliveredEvents[0].metadata.requires_man_approval).toBe(true);
-      expect(deliveredEvents[0].metadata.detected_intents).toContain('transfer');
+      await verifyRiskLane(
+        createTextInput({ content: 'I want to transfer $5000' }),
+        'RED',
+        ['transfer'],
+        true
+      );
     });
 
     it('should flag "grant_access" command with RED risk lane and requires_man_approval', async () => {
-      const input = createTextInput({
-        content: 'Please grant_access to the admin panel for new user',
-      });
-      const userId = input.userId;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const result = await omniPort.ingest(input);
-
-      expect(result.riskLane).toBe('RED');
-
-      const deliveredEvents = mockDeliverBatch.mock.calls[0][0];
-      expect(deliveredEvents[0].metadata.requires_man_approval).toBe(true);
-      expect(deliveredEvents[0].metadata.detected_intents).toContain('grant_access');
+      await verifyRiskLane(
+        createTextInput({ content: 'Please grant_access to admin' }),
+        'RED',
+        ['grant_access'],
+        true
+      );
     });
 
     it('should flag multiple high-risk intents in voice transcription', async () => {
-      const input = createVoiceInput({
-        transcript: 'delete all records and transfer funds to external account',
-      });
-      const userId = input.userId!;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const result = await omniPort.ingest(input);
-
-      expect(result.riskLane).toBe('RED');
-
-      const deliveredEvents = mockDeliverBatch.mock.calls[0][0];
-      expect(deliveredEvents[0].metadata.requires_man_approval).toBe(true);
-      expect(deliveredEvents[0].metadata.detected_intents).toContain('delete');
-      expect(deliveredEvents[0].metadata.detected_intents).toContain('transfer');
+      await verifyRiskLane(
+        createVoiceInput({ transcript: 'delete all records and transfer funds' }),
+        'RED',
+        ['delete', 'transfer'],
+        true
+      );
     });
 
     it('should allow normal commands with GREEN risk lane', async () => {
-      const input = createTextInput({
-        content: 'Show me the dashboard metrics',
-      });
-      const userId = input.userId;
-      mockDeviceRegistry.set(userId, { deviceId: userId, status: 'trusted' });
-
-      const result = await omniPort.ingest(input);
-
-      expect(result.riskLane).toBe('GREEN');
-
-      const deliveredEvents = mockDeliverBatch.mock.calls[0][0];
-      expect(deliveredEvents[0].metadata.requires_man_approval).toBe(false);
-      expect(deliveredEvents[0].metadata.detected_intents).toHaveLength(0);
+      await verifyRiskLane(
+        createTextInput({ content: 'Show me the dashboard metrics' }),
+        'GREEN',
+        [],
+        false
+      );
     });
   });
 
@@ -504,10 +481,10 @@ describe('OmniPort - The Proprietary Ingress Engine', () => {
     beforeEach(() => {
       // Register trusted device for all input types
       ['550e8400-e29b-41d4-a716-446655440000',
-       '550e8400-e29b-41d4-a716-446655440001',
-       '550e8400-e29b-41d4-a716-446655440002'].forEach(id => {
-        mockDeviceRegistry.set(id, { deviceId: id, status: 'trusted' });
-      });
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440002'].forEach(id => {
+          mockDeviceRegistry.set(id, { deviceId: id, status: 'trusted' });
+        });
     });
 
     it('should process TextSource input correctly', async () => {
