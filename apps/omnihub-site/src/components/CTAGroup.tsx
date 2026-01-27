@@ -17,9 +17,9 @@ export function CTAGroup({
   centered = false,
 }: CTAGroupProps) {
   // Safeguard: Ensure we don't render empty blocks or buttons without labels
-  const hasPrimary = primary && primary.label && primary.href;
-  const hasSecondary = secondary && secondary.label && secondary.href;
-  const hasLink = link && link.label && link.href;
+  const hasPrimary = primary?.label && primary?.href;
+  const hasSecondary = secondary?.label && secondary?.href;
+  const hasLink = link?.label && link?.href;
 
   if (!hasPrimary && !hasSecondary && !hasLink) return null;
 

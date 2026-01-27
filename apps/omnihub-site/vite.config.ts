@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apex-badge.svg', 'apex-header-logo.png'],
+      includeAssets: ['icon.png'],
       manifest: {
         name: 'APEX OmniHub',
         short_name: 'OmniHub',
@@ -25,13 +25,7 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: 'apex-badge.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: 'apex-header-logo.png',
+            src: 'icon.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'

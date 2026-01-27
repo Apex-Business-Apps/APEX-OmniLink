@@ -260,13 +260,13 @@ function CapabilityShowcase() {
       icon: <IconManMode size={28} />,
       href: '#man-mode',
     },
+
     {
-      id: 'maestro',
-      title: 'M.A.E.S.T.R.O.',
-      description:
-        'Routes intent safely, escalates high-risk actions to MAN Mode, and produces audit-grade execution receipts.',
-      icon: <IconAutomation size={28} />,
-      href: '#orchestrator',
+      id: 'omniport',
+      title: 'OmniPort',
+      description: 'Single ingress/egress gateway for simplified security and total observability.',
+      icon: <IconIntegrations size={28} />,
+      href: '#tri-force',
     },
     {
       id: 'maestro',

@@ -1416,8 +1416,6 @@
   border-radius: var(--border-radius-lg);
   padding: var(--space-8);
   transition: all var(--transition-normal);
-  display: flex;
-  flex-direction: column;
   align-items: center;
   gap: var(--space-4);
   text-align: center;
@@ -1506,4 +1504,55 @@
 
 .mb-8 {
   margin-bottom: var(--space-8);
+}
+
+/* === SECTIONS === */
+.section {
+  padding: var(--section-padding) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.section--default {
+  background-color: var(--color-background);
+}
+
+.section--surface {
+  background-color: var(--color-surface);
+}
+
+.section--navy {
+  background-color: var(--color-navy);
+  color: var(--color-white);
+}
+
+.section--navy .heading-2 {
+  color: var(--color-white);
+}
+
+.section--navy .text-secondary {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Fix button contrast in navy sections */
+.section--navy .btn--secondary {
+  color: var(--color-white);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.section--navy .btn--secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-white);
+}
+
+/* Ensure primary buttons pop on navy */
+.section--navy .btn--primary {
+  background-color: var(--color-white);
+  color: var(--color-navy);
+  border-color: var(--color-white);
+}
+
+.section--navy .btn--primary:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.9);
 }
