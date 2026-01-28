@@ -21,8 +21,8 @@ services:
     environment:
       - DB=postgresql
       - DB_PORT=5432
-      - POSTGRES_USER=${TEMPORAL_DB_USER:-temporal}
-      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:-temporal123}
+      - POSTGRES_USER=${TEMPORAL_DB_USER:?TEMPORAL_DB_USER required}
+      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:?TEMPORAL_DB_PASSWORD required}
       - POSTGRES_SEEDS=postgres
     depends_on:
       postgres:
@@ -33,24 +33,40 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   # PostgreSQL (Temporal backend)
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: "${TEMPORAL_DB_USER:-temporal}"
-      POSTGRES_PASSWORD: "${TEMPORAL_DB_PASSWORD:-temporal123}"
+      POSTGRES_USER: "${TEMPORAL_DB_USER:?TEMPORAL_DB_USER required}"
+      POSTGRES_PASSWORD: "${TEMPORAL_DB_PASSWORD:?TEMPORAL_DB_PASSWORD required}"
       POSTGRES_DB: temporal
     ports:
       - "5433:5432"
     volumes:
       - temporal_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal} -d temporal" ]
+      test: [ "CMD-SHELL", "pg_isready -U $TEMPORAL_DB_USER -d temporal" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # Redis Stack (with vector search)
   redis:
@@ -66,6 +82,14 @@ services:
       retries: 5
     volumes:
       - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # APEX Orchestrator Worker
   orchestrator:
@@ -79,15 +103,18 @@ services:
       # Redis
       - REDIS_URL=redis://redis:6379
 
-      # Supabase (required, with fallback for local dev)
-      - SUPABASE_URL=${SUPABASE_URL:-}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
-      - SUPABASE_DB_URL=${SUPABASE_DB_URL:-}
+      # Supabase (required)
+      - SUPABASE_URL=${SUPABASE_URL:?SUPABASE_URL required}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY required}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL:?SUPABASE_DB_URL required}
 
       # LLM (optional for local dev)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DEFAULT_LLM_MODEL=gpt-4-turbo-preview
+
+      # CORS
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://apexomnihub.icu}
 
       # App
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -104,7 +131,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
 
 volumes:
   temporal_data:
   redis_data:
+

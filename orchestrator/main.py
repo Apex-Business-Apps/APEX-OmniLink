@@ -51,8 +51,36 @@ from activities.tools import (
 from config import settings
 from workflows.agent_saga import AgentWorkflow
 
+# CORS Configuration
+from fastapi.middleware.cors import CORSMiddleware
+
+# Rate Limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # FastAPI app for HTTP API
 app = FastAPI(title="APEX Orchestrator API", version="1.0.0")
+
+# Attach rate limiter to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS Middleware - Configure allowed origins from environment
+CORS_ORIGINS = os.environ.get(
+    "CORS_ALLOWED_ORIGINS", "https://apexomnihub.icu,https://www.apexomnihub.icu"
+).split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 
 class GoalRequest(BaseModel):
