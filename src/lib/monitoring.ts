@@ -177,8 +177,10 @@ export function initializeMonitoring(): void {
   // #endregion
   
   try {
-    // Initialize OmniSentry (self-healing, always-on, non-intrusive)
-    initializeOmniSentry();
+    // Initialize OmniSentry (opt-in via env var, always-on once enabled)
+    if (import.meta.env.VITE_OMNI_SENTRY_ENABLED === 'true') {
+      initializeOmniSentry();
+    }
     
     void ensureSentry();
 
