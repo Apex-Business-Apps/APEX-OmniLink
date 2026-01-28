@@ -23,7 +23,11 @@ import os
 import sys
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from temporalio.client import Client
 from temporalio.worker import Worker
 from uvicorn import Config, Server
@@ -50,14 +54,6 @@ from activities.tools import (
 )
 from config import settings
 from workflows.agent_saga import AgentWorkflow
-
-# CORS Configuration
-from fastapi.middleware.cors import CORSMiddleware
-
-# Rate Limiting
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
