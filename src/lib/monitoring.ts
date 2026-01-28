@@ -177,8 +177,16 @@ export function initializeMonitoring(): void {
   // #endregion
   
   try {
-    // Initialize OmniSentry (opt-in via env var, always-on once enabled)
-    if (import.meta.env.VITE_OMNI_SENTRY_ENABLED === 'true') {
+    // Initialize OmniSentry if enabled via UI toggle (localStorage)
+    const omniSentryEnabled = (() => {
+      try {
+        return localStorage.getItem('omni_sentry_enabled') === 'true';
+      } catch {
+        return false;
+      }
+    })();
+    
+    if (omniSentryEnabled) {
       initializeOmniSentry();
     }
     
