@@ -46,6 +46,7 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   }
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const available = await (globalThis as any).PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
     return available;
   } catch (error) {

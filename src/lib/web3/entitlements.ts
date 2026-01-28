@@ -15,7 +15,7 @@
  * Date: 2026-01-01
  */
 
-import { createClient as createViemClient, http, type Address, type PublicClient } from 'viem';
+import { createPublicClient, http, type Address, type PublicClient, type Chain } from 'viem';
 import { mainnet, polygon, optimism, arbitrum } from 'viem/chains';
 import { supabase } from '@/integrations/supabase/client';
 import { logError, logAnalyticsEvent } from '@/lib/monitoring';
@@ -82,7 +82,7 @@ const ERC721_ABI = [
  */
 function getChainConfig(chainId: number): ChainConfig | null {
   // Map chain IDs to environment variables
-  const chainConfigMap: Record<number, { envKey: string; name: string; chain: unknown }> = {
+  const chainConfigMap: Record<number, { envKey: string; name: string; chain: Chain }> = {
     1: { envKey: 'VITE_ETHEREUM_RPC_URL', name: 'Ethereum', chain: mainnet },
     137: { envKey: 'VITE_POLYGON_RPC_URL', name: 'Polygon', chain: polygon },
     10: { envKey: 'VITE_OPTIMISM_RPC_URL', name: 'Optimism', chain: optimism },
@@ -111,8 +111,8 @@ function getChainConfig(chainId: number): ChainConfig | null {
 /**
  * Create viem public client for chain
  */
-function createPublicClient(chainConfig: ChainConfig): PublicClient {
-  const chainMap: Record<number, unknown> = {
+function createPublicClientForChain(chainConfig: ChainConfig): PublicClient {
+  const chainMap: Record<number, Chain> = {
     1: mainnet,
     137: polygon,
     10: optimism,
@@ -121,12 +121,12 @@ function createPublicClient(chainConfig: ChainConfig): PublicClient {
 
   const chain = chainMap[chainConfig.chainId];
 
-  return createViemClient({
+  return createPublicClient({
     chain,
     transport: http(chainConfig.rpcUrl, {
       timeout: chainConfig.timeout,
     }),
-  });
+  }) as PublicClient;
 }
 
 /**
@@ -186,6 +186,7 @@ async function checkCache(
       ...(tokenId !== undefined && { tokenId: tokenId.toString() }),
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.from('chain_entitlements_cache' as any) as any)
       .select('*')
       .eq('wallet_address', walletAddress.toLowerCase())
@@ -230,6 +231,7 @@ async function updateCache(
       ...(tokenId !== undefined && { tokenId: tokenId.toString() }),
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('chain_entitlements_cache' as any) as any).upsert(
       {
         wallet_address: walletAddress.toLowerCase(),
@@ -258,6 +260,7 @@ async function checkAllowlist(
   entitlementKey: string
 ): Promise<{ granted: boolean; metadata?: unknown }> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.from('entitlements' as any) as any)
       .select('*')
       .eq('subject_type', 'wallet')
@@ -333,7 +336,7 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
       return {
         hasEntitlement: cacheResult.hasEntitlement,
         source: 'cache',
-        metadata: cacheResult.data,
+        metadata: cacheResult.data as Record<string, unknown>,
         cacheHit: true,
       };
     }
@@ -351,7 +354,7 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
       return {
         hasEntitlement: true,
         source: 'allowlist',
-        metadata: allowlistResult.metadata,
+        metadata: allowlistResult.metadata as Record<string, unknown>,
         cacheHit: false,
       };
     }
@@ -361,9 +364,11 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
     if (isCircuitBreakerOpen(circuitKey)) {
       // Fail closed - deny access if circuit is open
       await logError(new Error('Circuit breaker open for chain'), {
-        chainId,
-        wallet: walletAddress,
-        entitlement: entitlementKey,
+        metadata: {
+          chainId,
+          wallet: walletAddress,
+          entitlement: entitlementKey,
+        }
       });
 
       return {
@@ -378,8 +383,10 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
     const chainConfig = getChainConfig(chainId);
     if (!chainConfig) {
       await logError(new Error('Chain not configured'), {
-        chainId,
-        wallet: walletAddress,
+        metadata: {
+          chainId,
+          wallet: walletAddress,
+        }
       });
 
       return {
@@ -392,7 +399,7 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
 
     // Step 5: Check on-chain
     try {
-      const client = createPublicClient(chainConfig);
+      const client = createPublicClientForChain(chainConfig);
       const balance = await checkNFTBalanceOnChain(client, contractAddress, walletAddress);
 
       // Update cache
@@ -419,10 +426,12 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
       recordCircuitBreakerFailure(circuitKey);
 
       await logError(error as Error, {
-        chainId,
-        wallet: walletAddress,
-        contract: contractAddress,
         action: 'nft_balance_check',
+        metadata: {
+          chainId,
+          wallet: walletAddress,
+          contract: contractAddress,
+        }
       });
 
       // Fail closed - deny access on RPC failure
@@ -435,9 +444,11 @@ export async function checkEntitlement(params: EntitlementCheck): Promise<Entitl
     }
   } catch (error) {
     await logError(error as Error, {
-      wallet: walletAddress,
-      entitlement: entitlementKey,
       action: 'entitlement_check',
+      metadata: {
+        wallet: walletAddress,
+        entitlement: entitlementKey,
+      }
     });
 
     // Fail closed on unexpected errors
@@ -468,6 +479,7 @@ export async function grantEntitlement(
   metadata?: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from('entitlements' as any) as any).upsert(
       {
         subject_type: subjectType,

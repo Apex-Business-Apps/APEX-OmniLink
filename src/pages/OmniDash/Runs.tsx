@@ -47,44 +47,15 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
     queryFn: () => fetchOmniTraceRunDetail(workflowId),
   });
 
-  if (detailQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground p-4">Loading events...</div>;
-  }
-
-  if (detailQuery.error) {
-    return (
-      <div className="text-sm text-destructive p-4">
-        Failed to load: {(detailQuery.error as Error).message}
-      </div>
-    );
-  }
-
-  const detail = detailQuery.data as OmniTraceRunDetailResponse;
-
-  // Filter policy events for dedicated view
-  const policyEvents = detail.events.filter((e) => e.kind === 'policy');
-
-  // Download replay bundle as JSON
-  const handleDownloadBundle = () => {
-    const bundle = JSON.stringify(detail.replay_bundle, null, 2);
-    const blob = new Blob([bundle], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `replay-${workflowId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Replay bundle downloaded');
-  };
-
   // Auto-play replay (time-travel through events)
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
+    const eventsLength = detailQuery.data?.events.length || 0;
 
-    if (isPlaying) {
+    if (isPlaying && eventsLength > 0) {
       intervalId = setInterval(() => {
         setReplayIndex((currentIndex) => {
-          if (currentIndex >= detail.events.length - 1) {
+          if (currentIndex >= eventsLength - 1) {
             setIsPlaying(false);
             return currentIndex;
           }
@@ -96,11 +67,23 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isPlaying, detail.events.length]);
+  }, [isPlaying, detailQuery.data?.events.length]);
 
   const toggleReplay = () => {
     setIsPlaying(!isPlaying);
   };
+
+  if (detailQuery.isLoading) {
+    return <div className="text-sm text-muted-foreground p-4">Loading events...</div>;
+  }
+
+  if (detailQuery.error) {
+    return (
+      <div className="text-sm text-destructive p-4">
+        Failed to load: {(detailQuery.error as Error).message}
+      </div>
+    );
+  }
 
   const currentEvent = detail.events[replayIndex];
 
