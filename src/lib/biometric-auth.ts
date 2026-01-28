@@ -32,7 +32,9 @@ export interface BiometricAuthOptions {
 export function isBiometricAuthSupported(): boolean {
   return (
     typeof globalThis !== 'undefined' &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).PublicKeyCredential !== undefined &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     typeof (globalThis as any).PublicKeyCredential === 'function'
   );
 }

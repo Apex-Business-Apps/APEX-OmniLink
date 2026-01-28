@@ -7,9 +7,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchOmniTraceRuns, fetchOmniTraceRunDetail } from '@/omnidash/omnilink-api';
-import type { OmniTraceRun, OmniTraceRunDetailResponse } from '@/omnidash/types';
+import type { OmniTraceRun } from '@/omnidash/types';
 import { Download, Play, Pause, Shield, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
 
 const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   running: 'secondary',
