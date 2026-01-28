@@ -9,6 +9,9 @@
  * - Zero-Maintenance: Autonomous operation
  */
 
+/* eslint-disable no-console */
+// Console statements are intentional for monitoring system diagnostics
+
 // ============================================================================
 // TYPES
 // ============================================================================
