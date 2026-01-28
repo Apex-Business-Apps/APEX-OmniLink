@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -78,22 +78,28 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
   };
 
   // Auto-play replay (time-travel through events)
-  const toggleReplay = () => {
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
     if (isPlaying) {
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      let idx = replayIndex;
-      const interval = setInterval(() => {
-        idx++;
-        if (idx >= detail.events.length) {
-          setIsPlaying(false);
-          clearInterval(interval);
-        } else {
-          setReplayIndex(idx);
-        }
-      }, 500); // 500ms per event
+      intervalId = setInterval(() => {
+        setReplayIndex((currentIndex) => {
+          if (currentIndex >= detail.events.length - 1) {
+            setIsPlaying(false);
+            return currentIndex;
+          }
+          return currentIndex + 1;
+        });
+      }, 500);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPlaying, detail.events.length]);
+
+  const toggleReplay = () => {
+    setIsPlaying(!isPlaying);
   };
 
   const currentEvent = detail.events[replayIndex];
@@ -167,9 +173,8 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
             <div className="p-3 bg-muted/50 rounded border">
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    EVENT_KIND_COLORS[currentEvent.kind] ?? EVENT_KIND_COLORS.system
-                  }`}
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${EVENT_KIND_COLORS[currentEvent.kind] ?? EVENT_KIND_COLORS.system
+                    }`}
                 >
                   {currentEvent.kind}
                 </span>
@@ -180,9 +185,9 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
                   </Badge>
                 )}
               </div>
-              {currentEvent.metadata && Object.keys(currentEvent.metadata).length > 0 && (
+              {currentEvent.data_redacted && Object.keys(currentEvent.data_redacted).length > 0 && (
                 <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
-                  {JSON.stringify(currentEvent.metadata, null, 2)}
+                  {JSON.stringify(currentEvent.data_redacted, null, 2)}
                 </pre>
               )}
             </div>
@@ -199,25 +204,30 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
           </div>
           <div className="space-y-2">
             {policyEvents.map((event) => {
-              const decision = event.metadata?.decision as string | undefined;
-              const reason = event.metadata?.reason as string | undefined;
+              const decision = (event.data_redacted?.decision as string) || undefined;
+              const reason = (event.data_redacted?.reason as string) || undefined;
               return (
                 <div
                   key={event.id}
-                  className={`p-3 rounded-lg border ${
-                    decision === 'deny'
-                      ? 'bg-destructive/10 border-destructive/20'
-                      : 'bg-primary/10 border-primary/20'
-                  }`}
+                  className={`p-3 rounded-lg border ${decision === 'deny'
+                    ? 'bg-destructive/10 border-destructive/20'
+                    : 'bg-primary/10 border-primary/20'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <Badge variant={decision === 'deny' ? 'destructive' : 'default'}>
                       {decision || 'unknown'}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : 'N/A'}
-                    </span>
+                    <div className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                      {new Date(event.created_at).toLocaleTimeString()}
+                    </div>
                   </div>
+                  {event.data_redacted && Object.keys(event.data_redacted).length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1 font-mono">
+                      {JSON.stringify(event.data_redacted).slice(0, 100)}
+                      {Object.keys(event.data_redacted).length > 2 && '...'}
+                    </div>
+                  )}
                   {reason && (
                     <p className="text-sm text-muted-foreground">{reason}</p>
                   )}
@@ -238,16 +248,14 @@ function RunDetailPanel({ workflowId }: { workflowId: string }) {
             {detail.events.map((event, idx) => (
               <div
                 key={event.id}
-                className={`flex items-start gap-2 text-sm border-l-2 pl-3 transition-all ${
-                  idx === replayIndex
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/20'
-                }`}
+                className={`flex items-start gap-2 text-sm border-l-2 pl-3 transition-all ${idx === replayIndex
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/20'
+                  }`}
               >
                 <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    EVENT_KIND_COLORS[event.kind] ?? EVENT_KIND_COLORS.system
-                  }`}
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${EVENT_KIND_COLORS[event.kind] ?? EVENT_KIND_COLORS.system
+                    }`}
                 >
                   {event.kind}
                 </span>

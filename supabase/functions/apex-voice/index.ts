@@ -10,7 +10,7 @@ const LOG_TAG = "APEX Voice [Pipeline]";
 
 const sanitizeForLog = (value: unknown): unknown => {
   if (typeof value === "string") {
-    return value.replace(/[\r\n]+/g, " ").trim();
+    return value.replaceAll(/[\r\n]+/g, " ").trim();
   }
   if (Array.isArray(value)) {
     return value.map(sanitizeForLog);

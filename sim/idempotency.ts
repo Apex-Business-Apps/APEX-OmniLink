@@ -63,8 +63,8 @@ export interface IdempotencyStats {
 // ============================================================================
 
 class IdempotencyStore {
-  private receipts: Map<string, IdempotencyReceipt> = new Map();
-  private stats = {
+  private readonly receipts: Map<string, IdempotencyReceipt> = new Map();
+  private readonly stats = {
     hits: 0,
     misses: 0,
   };
@@ -220,9 +220,7 @@ class IdempotencyStore {
 let storeInstance: IdempotencyStore | null = null;
 
 function getStore(): IdempotencyStore {
-  if (!storeInstance) {
-    storeInstance = new IdempotencyStore();
-  }
+  storeInstance ??= new IdempotencyStore();
   return storeInstance;
 }
 

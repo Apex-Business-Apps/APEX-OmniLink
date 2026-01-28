@@ -47,7 +47,7 @@ import { TranslatedEvent } from '../translation/translator';
 function computeHash(data: string): string {
   let hash = 2166136261; // FNV offset basis
   for (let i = 0; i < data.length; i++) {
-    hash ^= data.charCodeAt(i);
+    hash ^= data.codePointAt(i) || 0;
     hash = Math.imul(hash, 16777619); // FNV prime
   }
   // Convert to unsigned 32-bit and then to hex

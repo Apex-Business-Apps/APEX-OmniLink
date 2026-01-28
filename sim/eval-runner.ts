@@ -18,8 +18,8 @@
  *   - must_not_include hits == 0
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { evaluatePrompt, type PromptEvaluation } from '../src/security/promptDefense';
 
 // ============================================================================

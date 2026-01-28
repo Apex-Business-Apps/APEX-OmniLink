@@ -47,7 +47,7 @@ export interface CanonicalOmniPortIntent {
 }
 
 function sanitizeText(text: string): string {
-  return text.trim().replace(/\s+/g, ' ');
+  return text.trim().replaceAll(/\s+/g, ' ');
 }
 
 function safeTraceId(preferred?: string): string {

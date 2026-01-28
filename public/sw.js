@@ -74,26 +74,24 @@ globalThis.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Only cache successful responses
-        if (!response || response.status !== 200 || response.type === 'error') {
-          return response;
+        // Cache successful responses
+        if (response && response.status === 200 && response.type !== 'error') {
+          // Clone response before caching
+          const responseToCache = response.clone();
+
+          // Determine cache bucket
+          let cacheName = CACHE_DYNAMIC;
+          if (url.hostname.includes('supabase.co')) {
+            cacheName = CACHE_API;
+          } else if (STATIC_ASSETS.includes(url.pathname)) {
+            cacheName = CACHE_STATIC;
+          }
+
+          // Cache in background (don't block response)
+          caches.open(cacheName).then((cache) => {
+            cache.put(request, responseToCache);
+          });
         }
-
-        // Clone response before caching
-        const responseToCache = response.clone();
-
-        // Determine cache bucket
-        let cacheName = CACHE_DYNAMIC;
-        if (url.hostname.includes('supabase.co')) {
-          cacheName = CACHE_API;
-        } else if (STATIC_ASSETS.includes(url.pathname)) {
-          cacheName = CACHE_STATIC;
-        }
-
-        // Cache in background (don't block response)
-        caches.open(cacheName).then((cache) => {
-          cache.put(request, responseToCache);
-        });
 
         return response;
       })
@@ -151,6 +149,7 @@ globalThis.addEventListener('push', (event) => {
   try {
     notification = event.data.json();
   } catch (err) {
+    console.debug('[SW] Not JSON, falling back to text:', err);
     notification = {
       title: 'OmniLink',
       body: event.data.text(),

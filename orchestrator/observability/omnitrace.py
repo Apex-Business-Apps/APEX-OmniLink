@@ -619,7 +619,7 @@ def trace_tool_execution(step_id: str, tool_name: str, attempt: int = 1):
 
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             if self.recorder is None:
-                return False
+                return
 
             latency_ms = int((time.time() - self.start_time) * 1000)
             event_key = f"tool:{step_id}:{tool_name}:{attempt}"
@@ -637,6 +637,6 @@ def trace_tool_execution(step_id: str, tool_name: str, attempt: int = 1):
                     "error": str(exc_val) if exc_val else None,
                 },
             )
-            return False  # Don't suppress exceptions
+            # Implicit return None evaluates to False (propagate exception)
 
     return TraceContext

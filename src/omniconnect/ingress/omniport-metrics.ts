@@ -8,6 +8,9 @@
 
 import { RiskLane, IngestStatus } from '../types/ingress';
 
+const MAX_EVENTS = 10000;
+const WINDOW_MS = 60000; // 1 minute default
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -114,10 +117,10 @@ class MetricsCollector {
   private dlqDepth = 0;
 
   // Sliding window configuration
-  private readonly maxEvents = 10000;
-  private readonly windowMs = 60000; // 1 minute default
+  private readonly maxEvents = MAX_EVENTS;
+  private readonly windowMs = WINDOW_MS;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): MetricsCollector {
     if (!MetricsCollector.instance) {

@@ -33,7 +33,7 @@ export interface NotificationPayload {
  * Request notification permission from user
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  if (!('Notification' in window)) {
+  if (!('Notification' in globalThis)) {
     throw new Error('Notifications not supported in this browser');
   }
 
@@ -51,7 +51,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  * Returns subscription object to send to backend
  */
 export async function subscribeToPushNotifications(vapidPublicKey: string): Promise<PushSubscriptionJSON | null> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in globalThis)) {
     throw new Error('Push notifications not supported');
   }
 
@@ -86,7 +86,7 @@ export async function subscribeToPushNotifications(vapidPublicKey: string): Prom
  * Unsubscribe from push notifications
  */
 export async function unsubscribeFromPushNotifications(): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in globalThis)) {
     return false;
   }
 
@@ -156,17 +156,17 @@ export function setupNotificationClickHandler() {
       // Handle different actions
       switch (action) {
         case 'open-dash':
-          window.location.href = '/omnidash';
+          globalThis.location.href = '/omnidash';
           break;
         case 'open-trace':
-          window.location.href = '/omnitrace';
+          globalThis.location.href = '/omnitrace';
           break;
         case 'open-integrations':
-          window.location.href = '/integrations';
+          globalThis.location.href = '/integrations';
           break;
         default:
           if (data?.url) {
-            window.location.href = data.url;
+            globalThis.location.href = data.url;
           }
       }
     }
@@ -178,11 +178,11 @@ export function setupNotificationClickHandler() {
  */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
+  const base64 = (base64String + padding).replaceAll(/-/g, '+').replaceAll(/_/g, '/');
+  const rawData = atob(base64);
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+    outputArray[i] = rawData.codePointAt(i) || 0;
   }
   return outputArray;
 }
@@ -196,7 +196,7 @@ export async function getPushSubscriptionStatus(): Promise<{
   subscribed: boolean;
   subscription: PushSubscriptionJSON | null;
 }> {
-  const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  const supported = 'Notification' in globalThis && 'serviceWorker' in navigator && 'PushManager' in globalThis;
 
   if (!supported) {
     return {

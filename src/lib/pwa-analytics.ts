@@ -48,13 +48,13 @@ function detectPlatform(): PWAInstallMetrics['platform'] {
  * Get current display mode
  */
 function getDisplayMode(): PWAInstallMetrics['displayMode'] {
-  if (window.matchMedia('(display-mode: standalone)').matches) {
+  if (globalThis.matchMedia('(display-mode: standalone)').matches) {
     return 'standalone';
   }
-  if (window.matchMedia('(display-mode: fullscreen)').matches) {
+  if (globalThis.matchMedia('(display-mode: fullscreen)').matches) {
     return 'fullscreen';
   }
-  if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+  if (globalThis.matchMedia('(display-mode: minimal-ui)').matches) {
     return 'minimal-ui';
   }
   return 'browser';
@@ -64,7 +64,7 @@ function getDisplayMode(): PWAInstallMetrics['displayMode'] {
  * Track PWA installation via beforeinstallprompt event
  */
 export function trackPWAInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', (e) => {
+  globalThis.addEventListener('beforeinstallprompt', (e) => {
     void logAnalyticsEvent('pwa.install.prompt_shown', {
       platform: detectPlatform(),
       timestamp: new Date().toISOString(),
@@ -86,7 +86,7 @@ export function trackPWAInstallPrompt() {
  * Track PWA installation completion
  */
 export function trackPWAInstalled() {
-  window.addEventListener('appinstalled', () => {
+  globalThis.addEventListener('appinstalled', () => {
     const metrics: PWAInstallMetrics = {
       timestamp: new Date().toISOString(),
       platform: detectPlatform(),
@@ -112,7 +112,7 @@ export function trackPWAInstalled() {
  */
 export function trackPWALaunch() {
   const isStandalone = getDisplayMode() === 'standalone';
-  const isPWASource = window.location.search.includes('source=pwa');
+  const isPWASource = globalThis.location.search.includes('source=pwa');
 
   if (isStandalone || isPWASource) {
     void logAnalyticsEvent('pwa.launch', {
@@ -160,7 +160,7 @@ export function trackNetworkStatus() {
   let offlineStart: number | null = null;
   let onlineStart: number = Date.now();
 
-  window.addEventListener('offline', () => {
+  globalThis.addEventListener('offline', () => {
     offlineStart = Date.now();
     void logAnalyticsEvent('pwa.network.offline', {
       timestamp: new Date().toISOString(),
@@ -168,7 +168,7 @@ export function trackNetworkStatus() {
     });
   });
 
-  window.addEventListener('online', () => {
+  globalThis.addEventListener('online', () => {
     if (offlineStart) {
       const offlineDuration = Date.now() - offlineStart;
       void logAnalyticsEvent('pwa.network.online', {
@@ -246,7 +246,7 @@ export function initializePWAAnalytics() {
   };
 
   // Track session end
-  window.addEventListener('beforeunload', () => {
+  globalThis.addEventListener('beforeunload', () => {
     const sessionDuration = Date.now() - sessionStart;
     void logAnalyticsEvent('pwa.session.end', {
       duration: sessionDuration,

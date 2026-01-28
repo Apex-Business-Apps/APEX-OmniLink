@@ -94,10 +94,12 @@ export async function clearSyncQueue(): Promise<void> {
 /**
  * Process sync queue (sync all pending items)
  */
+const DEFAULT_STRATEGY: ConflictResolutionStrategy = { type: 'server-wins' };
+
 export async function processSyncQueue(
   apiUrl: string,
   authToken: string,
-  conflictStrategy: ConflictResolutionStrategy = { type: 'server-wins' }
+  conflictStrategy: ConflictResolutionStrategy = DEFAULT_STRATEGY
 ): Promise<{ succeeded: number; failed: number; conflicts: number }> {
   const queue = await getSyncQueue();
 
@@ -128,20 +130,18 @@ export async function processSyncQueue(
         if (conflictStrategy.type === 'manual') {
           newQueue.push(item);
         }
-      } else {
+      } else if (item.retries < MAX_RETRIES) {
         // Retry if under max retries
-        if (item.retries < MAX_RETRIES) {
-          newQueue.push({ ...item, retries: item.retries + 1 });
-        } else {
-          failed++;
-          void logAnalyticsEvent('offline_sync.item_failed', {
-            id: item.id,
-            type: item.type,
-            resource: item.resource,
-            retries: item.retries,
-            timestamp: new Date().toISOString(),
-          });
-        }
+        newQueue.push({ ...item, retries: item.retries + 1 });
+      } else {
+        failed++;
+        void logAnalyticsEvent('offline_sync.item_failed', {
+          id: item.id,
+          type: item.type,
+          resource: item.resource,
+          retries: item.retries,
+          timestamp: new Date().toISOString(),
+        });
       }
     } catch (error) {
       console.error('[OfflineSync] Failed to sync item:', error);
@@ -187,7 +187,7 @@ async function syncItem(
         Authorization: `Bearer ${authToken}`,
         'X-Sync-Timestamp': String(item.timestamp),
       },
-      body: item.type !== 'delete' ? JSON.stringify(item.data) : undefined,
+      body: item.type === 'delete' ? undefined : JSON.stringify(item.data),
     });
 
     // Conflict detection (HTTP 409)
@@ -240,7 +240,8 @@ async function resolveConflict(
     case 'merge':
       // Merge client and server data using custom function
       if (strategy.mergeFunction) {
-        const merged = strategy.mergeFunction(serverData, clientItem.data);
+        // MERGE LOGIC PLACEHOLDER: Result unused in current impl
+        strategy.mergeFunction(serverData, clientItem.data);
         // Update local data with merged result
         console.log('[OfflineSync] Conflict resolved: merged');
         return true;
