@@ -1,7 +1,5 @@
 # APEX OmniHub
 
- 
-
 ```
 
  ██████╗ ███╗   ███╗███╗   ██╗██╗██╗     ██╗███╗   ██╗██╗  ██╗
@@ -20,15 +18,9 @@
 
 ```
 
- 
-
 **Enterprise-Grade AI Orchestration with Web3 Integration**
 
- 
-
 APEX OmniHub is a production-ready platform combining AI agent orchestration, blockchain-native authentication, and enterprise security into a unified operations dashboard. Built on battle-tested infrastructure patterns used by Fortune 500 companies.
-
- 
 
 [![Production Ready](https://img.shields.io/badge/Status-PRODUCTION%20READY-green?style=for-the-badge)](https://github.com/apexbusiness-systems/APEX-OmniHub)
 
@@ -42,15 +34,9 @@ APEX OmniHub is a production-ready platform combining AI agent orchestration, bl
 
 [![Web3](https://img.shields.io/badge/Web3-Enabled-purple?style=for-the-badge)](https://ethereum.org/)
 
- 
-
 ---
 
- 
-
 ## Architecture Overview
-
- 
 
 ```
 
@@ -112,23 +98,13 @@ APEX OmniHub is a production-ready platform combining AI agent orchestration, bl
 
 ```
 
- 
-
 ---
-
- 
 
 ## Core Capabilities
 
- 
-
 ### Tri-Force AI Agent Architecture
 
- 
-
 A three-tier security model that separates concerns and prevents AI hallucinations from reaching production:
-
- 
 
 | Layer | Function | Implementation |
 
@@ -140,15 +116,9 @@ A three-tier security model that separates concerns and prevents AI hallucinatio
 
 | **Executor** | Tool execution | Audit trails, timeout protection, fail-safe responses |
 
- 
-
 ### Temporal.io Workflow Orchestration
 
- 
-
 Production-grade workflow orchestration with enterprise reliability patterns:
-
- 
 
 - **Event Sourcing**: Complete audit trail with deterministic replay capability
 
@@ -164,16 +134,25 @@ Enterprise observability with privacy-first design:
 
 - **OmniTrace**: Zero-impact workflow telemetry with privacy redaction
 - **OmniPolicy**: Cached policy evaluation with deterministic decisions
+- **OmniSentry**: Self-healing client-side monitoring with circuit breaker
 - **Audit Integration**: Every decision logged with context hashing
 - **Sampling Control**: Configurable sampling rates for cost control
 
+### OmniSentry - Self-Healing Monitoring
+
+Enterprise-grade client-side monitoring with zero-maintenance operation:
+
+| Feature                 | Description                                         |
+| ----------------------- | --------------------------------------------------- |
+| **Circuit Breaker**     | Prevents cascade failures (10 errors/min threshold) |
+| **Self-Healing**        | Exponential backoff retry with jitter               |
+| **Self-Diagnosing**     | Periodic health checks with memory monitoring       |
+| **Error Deduplication** | Fingerprint-based deduplication (60s window)        |
+| **UI Toggle**           | Enable/disable via intuitive dropdown menu          |
+
 ### Web3 Integration
 
- 
-
 Blockchain-native authentication and access control:
-
- 
 
 - **Wallet Support**: MetaMask, WalletConnect, Coinbase Wallet
 
@@ -183,15 +162,9 @@ Blockchain-native authentication and access control:
 
 - **SIWE**: Sign-In with Ethereum for cryptographic authentication
 
- 
-
 ### OmniDash Executive Dashboard
 
- 
-
 Purpose-built interface for operations management:
-
- 
 
 - **Icon Navigation**: Minimal O/P/K/! icons with tooltip intelligence
 
@@ -201,19 +174,11 @@ Purpose-built interface for operations management:
 
 - **Role-Based Access**: Admin and founder permission tiers
 
- 
-
 ---
-
- 
 
 ## Quick Start
 
- 
-
 ### Prerequisites
-
- 
 
 - Node.js 18+ and npm
 
@@ -223,11 +188,7 @@ Purpose-built interface for operations management:
 
 - Supabase account
 
- 
-
 ### Installation
-
- 
 
 ```bash
 
@@ -237,13 +198,13 @@ git clone https://github.com/apexbusiness-systems/APEX-OmniHub.git
 
 cd APEX-OmniHub
 
- 
+
 
 # Install frontend dependencies
 
 npm install
 
- 
+
 
 # Configure environment
 
@@ -251,7 +212,7 @@ cp .env.example .env.local
 
 # Edit .env.local with your credentials
 
- 
+
 
 # Start development server
 
@@ -259,11 +220,7 @@ npm run dev
 
 ```
 
- 
-
 ### Environment Configuration
-
- 
 
 ```bash
 
@@ -280,7 +237,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
 
 VITE_SITE_URL=https://apexomnihub.icu
 
- 
+
 
 # Optional - Feature Flags
 
@@ -288,13 +245,13 @@ VITE_OMNIDASH_ENABLED=1
 
 VITE_WEB3_NETWORK=polygon-mainnet
 
- 
+
 
 # Optional - Web3
 
 VITE_ALCHEMY_API_KEY=your-alchemy-key
 
- 
+
 
 # Optional - Access Control
 
@@ -302,17 +259,13 @@ VITE_OMNIDASH_ADMIN_EMAILS=admin@company.com
 
 ```
 
- 
-
 ### Orchestrator Setup
-
- 
 
 ```bash
 
 cd orchestrator
 
- 
+
 
 # Create virtual environment
 
@@ -320,19 +273,19 @@ python -m venv .venv
 
 source .venv/bin/activate
 
- 
+
 
 # Install dependencies
 
 pip install -e ".[dev]"
 
- 
+
 
 # Start local infrastructure
 
 docker compose up -d
 
- 
+
 
 # Run worker
 
@@ -340,15 +293,9 @@ python -m orchestrator.worker
 
 ```
 
- 
-
 ---
 
- 
-
 ## Technology Stack
-
- 
 
 ### Frontend
 
@@ -368,8 +315,6 @@ python -m orchestrator.worker
 
 | viem/wagmi | 2.x | Web3 integration |
 
- 
-
 ### Backend
 
 | Technology | Version | Purpose |
@@ -383,8 +328,6 @@ python -m orchestrator.worker
 | pgvector | 0.5+ | AI embeddings |
 
 | Deno | Latest | Edge Functions runtime |
-
- 
 
 ### Orchestration
 
@@ -400,8 +343,6 @@ python -m orchestrator.worker
 
 | LiteLLM | Latest | LLM abstraction |
 
- 
-
 ### Infrastructure
 
 | Technology | Purpose |
@@ -416,15 +357,9 @@ python -m orchestrator.worker
 
 | Cloudflare | CDN, WAF, DDoS protection |
 
- 
-
 ---
 
- 
-
 ## Project Structure
-
- 
 
 ```
 
@@ -472,19 +407,11 @@ APEX-OmniHub/
 
 ```
 
- 
-
 ---
-
- 
 
 ## Security
 
- 
-
 ### Defense in Depth
-
- 
 
 | Layer | Protection |
 
@@ -500,11 +427,7 @@ APEX-OmniHub/
 
 | **RLS Policies** | Row-level security on all database tables |
 
- 
-
 ### Compliance Readiness
-
- 
 
 - **SOC 2**: Audit trails, access controls, encryption
 
@@ -512,15 +435,9 @@ APEX-OmniHub/
 
 - **Disaster Recovery**: Documented runbooks, backup verification
 
- 
-
 ---
 
- 
-
 ## Performance
-
- 
 
 | Metric | Value |
 
@@ -540,15 +457,9 @@ APEX-OmniHub/
 
 | ESLint Violations | 0 |
 
- 
-
 ---
 
- 
-
 ## Testing
-
- 
 
 ```bash
 
@@ -556,31 +467,31 @@ APEX-OmniHub/
 
 npm test
 
- 
+
 
 # Type checking
 
 npm run typecheck
 
- 
+
 
 # Linting
 
 npm run lint
 
- 
+
 
 # Deterministic security eval
 
 npm run eval:ci
 
- 
+
 
 # E2E tests
 
 npm run test:e2e
 
- 
+
 
 # Python orchestrator tests
 
@@ -588,11 +499,7 @@ cd orchestrator && pytest
 
 ```
 
- 
-
 ### Test Coverage
-
-
 
 - **517 tests total** (87.0% pass rate, 450 passing)
 
@@ -610,19 +517,11 @@ cd orchestrator && pytest
 
 - Chaos simulation and recovery tests
 
- 
-
 ---
-
- 
 
 ## Deployment
 
- 
-
 ### Vercel (Recommended)
-
- 
 
 ```bash
 
@@ -632,15 +531,9 @@ vercel --prod
 
 ```
 
- 
-
 Configure environment variables in Vercel dashboard.
 
- 
-
 ### Docker
-
- 
 
 ```bash
 
@@ -648,11 +541,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ```
 
- 
-
 ### CI/CD Pipelines
-
- 
 
 | Workflow | Trigger | Purpose |
 
@@ -668,11 +557,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 | chaos-simulation-ci | Scheduled | Resilience testing |
 
- 
-
 ---
-
- 
 
 ## Documentation
 
@@ -680,46 +565,42 @@ docker compose -f docker-compose.prod.yml up -d
 
 ### Platform Modules
 
-| Module | Description |
-|--------|-------------|
-| [OmniTrace](docs/platform/OMNITRACE.md) | Workflow observability & replay |
-| [OmniPolicy](docs/platform/OMNIPOLICY.md) | Deterministic policy evaluation |
-| [OmniEval](docs/platform/OMNIEVAL.md) | Security evaluation & CI gate |
-| [OmniPort](docs/platform/OMNIPORT_API_REFERENCE.md) | Ingress engine API |
-| [OmniDash](docs/platform/OMNIDASH.md) | Executive dashboard |
+| Module                                              | Description                     |
+| --------------------------------------------------- | ------------------------------- |
+| [OmniTrace](docs/platform/OMNITRACE.md)             | Workflow observability & replay |
+| [OmniPolicy](docs/platform/OMNIPOLICY.md)           | Deterministic policy evaluation |
+| [OmniEval](docs/platform/OMNIEVAL.md)               | Security evaluation & CI gate   |
+| [OmniPort](docs/platform/OMNIPORT_API_REFERENCE.md) | Ingress engine API              |
+| [OmniDash](docs/platform/OMNIDASH.md)               | Executive dashboard             |
 
 ### Architecture & Infrastructure
 
-| Document | Description |
-|----------|-------------|
-| [Technical Architecture](docs/architecture/TECH_SPEC_ARCHITECTURE.md) | System design |
-| [Production Status](docs/architecture/PRODUCTION_STATUS.md) | Deployment state |
-| [Deployment Guide](docs/infrastructure/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production setup |
-| [Orchestrator Guide](orchestrator/README.md) | Temporal.io setup |
+| Document                                                               | Description       |
+| ---------------------------------------------------------------------- | ----------------- |
+| [Technical Architecture](docs/architecture/TECH_SPEC_ARCHITECTURE.md)  | System design     |
+| [Production Status](docs/architecture/PRODUCTION_STATUS.md)            | Deployment state  |
+| [Deployment Guide](docs/infrastructure/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production setup  |
+| [Orchestrator Guide](orchestrator/README.md)                           | Temporal.io setup |
 
 ### Operations & Security
 
-| Document | Description |
-|----------|-------------|
-| [Operations Runbook](docs/ops/OPS_RUNBOOK.md) | Master runbook v2.0 |
-| [Security Advisories](SECURITY_ADVISORIES.md) | Security notices |
-| [SOC2 Readiness](docs/compliance/SOC2_READINESS.md) | Compliance |
-| [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling |
+| Document                                                     | Description         |
+| ------------------------------------------------------------ | ------------------- |
+| [Operations Runbook](docs/ops/OPS_RUNBOOK.md)                | Master runbook v2.0 |
+| [Security Advisories](SECURITY_ADVISORIES.md)                | Security notices    |
+| [SOC2 Readiness](docs/compliance/SOC2_READINESS.md)          | Compliance          |
+| [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling    |
 
 ### Testing
 
-| Document | Description |
-|----------|-------------|
+| Document                                                  | Description   |
+| --------------------------------------------------------- | ------------- |
 | [Chaos Simulation](docs/sim/CHAOS_SIMULATION_DELIVERY.md) | Chaos testing |
-| [E2E Test Results](docs/testing/E2E_TEST_RESULTS.md) | Test status |
+| [E2E Test Results](docs/testing/E2E_TEST_RESULTS.md)      | Test status   |
 
 ---
 
- 
-
 ## Contributing
-
- 
 
 1. Fork the repository
 
@@ -731,11 +612,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 5. Submit a pull request
 
- 
-
 ### Standards
-
- 
 
 - TypeScript strict mode
 
@@ -745,22 +622,12 @@ docker compose -f docker-compose.prod.yml up -d
 
 - Documentation for public APIs
 
- 
-
 ---
-
- 
 
 ## License
 
- 
-
 Proprietary - APEX Business Systems
 
- 
-
 ---
-
- 
 
 **APEX OmniHub** - Enterprise AI orchestration, built for scale, secured for production.
