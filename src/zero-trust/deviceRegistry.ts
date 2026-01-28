@@ -3,13 +3,7 @@ import { logAnalyticsEvent, logError } from '@/lib/monitoring';
 import { persistentGet, persistentSet } from '@/libs/persistence';
 import { supabase } from '@/integrations/supabase/client';
 
-// Device info interface (migrated from Lovable types)
-interface DeviceInfo {
-  device_info: Record<string, unknown>;
-  last_seen: string;
-  device_id: string;
-  user_id: string;
-}
+
 
 export type DeviceStatus = 'trusted' | 'suspect' | 'blocked';
 
@@ -17,7 +11,7 @@ export interface DeviceRecord {
   deviceId: string;
   userId: string;
   lastSeen: string;
-  deviceInfo: Record<string, unknown>;
+  deviceInfo: Record<string, unknown>; // Local logical structure
   status?: DeviceStatus;
 }
 
@@ -85,18 +79,6 @@ function upsertQueueEntry(record: DeviceRecord, queue: QueuedUpsert[]): QueuedUp
   return queue;
 }
 
-function _toDeviceInfo(record: DeviceRecord): DeviceInfo {
-  return {
-    device_id: record.deviceId,
-    user_id: record.userId,
-    device_info: {
-      ...record.deviceInfo,
-      status: record.status,
-    },
-    last_seen: record.lastSeen,
-  };
-}
-
 function mergeByLastSeen(local: DeviceRecord[], remote: DeviceRecord[]): DeviceRecord[] {
   const merged = new Map<string, DeviceRecord>();
   [...local, ...remote].forEach((rec) => {
@@ -122,7 +104,7 @@ async function fetchRemoteRegistry(userId: string): Promise<DeviceRecord[]> {
       .from('device_registry')
       .select('*')
       .eq('user_id', userId)
-      .order('last_seen', { ascending: false });
+      .order('last_seen_at', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to fetch device registry: ${error.message}`);
@@ -131,8 +113,8 @@ async function fetchRemoteRegistry(userId: string): Promise<DeviceRecord[]> {
     return (data || []).map((d) => ({
       deviceId: d.device_id,
       userId: d.user_id,
-      lastSeen: d.last_seen,
-      deviceInfo: d.device_info as Record<string, unknown>,
+      lastSeen: d.last_seen_at,
+      deviceInfo: d.device_fingerprint ? JSON.parse(d.device_fingerprint) : {},
       status: d.status as DeviceStatus,
     }));
   } catch (error) {
@@ -174,9 +156,9 @@ async function flushUpserts(force = false) {
         .upsert({
           user_id: item.record.userId,
           device_id: item.record.deviceId,
-          device_info: item.record.deviceInfo,
+          device_fingerprint: JSON.stringify(item.record.deviceInfo),
           status: item.record.status || 'suspect',
-          last_seen: item.record.lastSeen,
+          last_seen_at: item.record.lastSeen,
         }, {
           onConflict: 'user_id,device_id',
         });

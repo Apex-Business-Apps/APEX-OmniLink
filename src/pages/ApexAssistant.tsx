@@ -212,22 +212,6 @@ const ApexAssistant = () => {
   const { events, isConnected } = useOmniStream(sessionId);
 
   /**
-   * Process agent events into displayable content.
-   * Prefixed with _ as it's prepared for future streaming UI integration.
-   */
-  const _processedEvents = useMemo(() => {
-    return events
-      .filter((e) => e.type === 'completion')
-      .map((e) => ({
-        id: e.id,
-        content:
-          typeof e.payload.response === 'string'
-            ? e.payload.response
-            : JSON.stringify(e.payload),
-      }));
-  }, [events]);
-
-  /**
    * Handle voice transcript from VoiceInterface.
    */
   const handleVoiceTranscript = useCallback(
@@ -368,7 +352,7 @@ const ApexAssistant = () => {
       if (insertError) throw insertError;
 
       // Try trigger-workflow, fallback to omnilink-agent
-      await invokeWorkflow(trimmedQuery, idempotencyKey);
+      await invokeWorkflow(trimmedQuery, idempotencyKey, traceId);
 
       // Subscribe to updates
       subscribeToRunUpdates(traceId, idempotencyKey);
@@ -382,7 +366,8 @@ const ApexAssistant = () => {
    */
   const invokeWorkflow = async (
     trimmedQuery: string,
-    idempotencyKey: string
+    idempotencyKey: string,
+    traceId: string
   ) => {
     let workflowError: Error | null = null;
 
@@ -395,6 +380,7 @@ const ApexAssistant = () => {
             history: buildHistory(),
             session_id: sessionId,
             idempotency_key: idempotencyKey,
+            trace_id: traceId,
           },
         }
       );
@@ -583,9 +569,8 @@ const ApexAssistant = () => {
     return (
       <span
         key={event.id}
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${
-          typeColors[event.type] ?? 'bg-gray-100 text-gray-800'
-        }`}
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${typeColors[event.type] ?? 'bg-gray-100 text-gray-800'
+          }`}
       >
         {event.type.replace('_', ' ')}
       </span>

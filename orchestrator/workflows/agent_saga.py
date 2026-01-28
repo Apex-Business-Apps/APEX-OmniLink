@@ -507,12 +507,15 @@ class AgentWorkflow:
     async def _omnitrace_record_run_start(self, input_data: dict[str, Any]) -> None:
         """Record workflow run start via OmniTrace (best-effort)."""
         try:
+            # Use trace_id from context (passed from frontend) or fallback to workflow_id
+            trace_id = self.workflow_context.get("trace_id", workflow.info().workflow_id)
+
             result = await workflow.execute_activity(
                 "omnitrace_record_run_start",
                 args=[
                     {
                         "workflow_id": workflow.info().workflow_id,
-                        "trace_id": workflow.info().workflow_id,  # Use workflow_id as trace_id
+                        "trace_id": trace_id,
                         "user_id": self.user_id,
                         "input_data": input_data,
                         "status": "running",
@@ -532,12 +535,15 @@ class AgentWorkflow:
         if not self._omnitrace_enabled:
             return
         try:
+            # Use trace_id from context (passed from frontend) or fallback to workflow_id
+            trace_id = self.workflow_context.get("trace_id", workflow.info().workflow_id)
+
             await workflow.execute_activity(
                 "omnitrace_record_run_complete",
                 args=[
                     {
                         "workflow_id": workflow.info().workflow_id,
-                        "trace_id": workflow.info().workflow_id,
+                        "trace_id": trace_id,
                         "output_data": output_data,
                         "status": status,
                     }
@@ -560,12 +566,15 @@ class AgentWorkflow:
         if not self._omnitrace_enabled:
             return
         try:
+            # Use trace_id from context (passed from frontend) or fallback to workflow_id
+            trace_id = self.workflow_context.get("trace_id", workflow.info().workflow_id)
+
             await workflow.execute_activity(
                 "omnitrace_record_event",
                 args=[
                     {
                         "workflow_id": workflow.info().workflow_id,
-                        "trace_id": workflow.info().workflow_id,
+                        "trace_id": trace_id,
                         "event_key": event_key,
                         "kind": kind,
                         "name": name,

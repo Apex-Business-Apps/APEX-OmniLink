@@ -186,8 +186,7 @@ async function checkCache(
       ...(tokenId !== undefined && { tokenId: tokenId.toString() }),
     };
 
-    const { data, error } = await supabase
-      .from('chain_entitlements_cache')
+    const { data, error } = await (supabase.from('chain_entitlements_cache' as any) as any)
       .select('*')
       .eq('wallet_address', walletAddress.toLowerCase())
       .eq('chain_id', chainId)
@@ -231,7 +230,7 @@ async function updateCache(
       ...(tokenId !== undefined && { tokenId: tokenId.toString() }),
     };
 
-    await supabase.from('chain_entitlements_cache').upsert(
+    await (supabase.from('chain_entitlements_cache' as any) as any).upsert(
       {
         wallet_address: walletAddress.toLowerCase(),
         chain_id: chainId,
@@ -259,8 +258,7 @@ async function checkAllowlist(
   entitlementKey: string
 ): Promise<{ granted: boolean; metadata?: unknown }> {
   try {
-    const { data, error } = await supabase
-      .from('entitlements')
+    const { data, error } = await (supabase.from('entitlements' as any) as any)
       .select('*')
       .eq('subject_type', 'wallet')
       .eq('subject_id', walletAddress.toLowerCase())
@@ -470,7 +468,7 @@ export async function grantEntitlement(
   metadata?: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.from('entitlements').upsert(
+    const { error } = await (supabase.from('entitlements' as any) as any).upsert(
       {
         subject_type: subjectType,
         subject_id: subjectId.toLowerCase(),

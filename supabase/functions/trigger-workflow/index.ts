@@ -19,8 +19,9 @@ import { authenticateUser } from '../_shared/auth.ts';
 interface WorkflowRequestPayload {
   query: string;
   history?: Array<{ role: 'user' | 'assistant'; content: string }>;
-  session_id: string;
+  session_id: string; // Thread ID
   idempotency_key: string;
+  trace_id: string; // Run ID
 }
 
 /** Workflow response structure */
@@ -65,7 +66,7 @@ function resolveOrchestratorUrl(): string {
     // SECURITY: Fail-fast in production - require explicit HTTPS configuration
     throw new Error(
       'ORCHESTRATOR_URL must be set in production environment. ' +
-        'Configure an HTTPS endpoint for the workflow orchestrator.'
+      'Configure an HTTPS endpoint for the workflow orchestrator.'
     );
   }
 
@@ -73,7 +74,7 @@ function resolveOrchestratorUrl(): string {
   // This code path is unreachable in production (guarded above)
   console.warn(
     '[trigger-workflow] Using local development orchestrator URL. ' +
-      'Set ORCHESTRATOR_URL for production deployments.'
+    'Set ORCHESTRATOR_URL for production deployments.'
   );
   return LOCAL_DEV_ORCHESTRATOR_URL;
 }
@@ -84,9 +85,10 @@ function resolveOrchestratorUrl(): string {
  */
 async function computeRequestHash(
   query: string,
-  sessionId: string
+  sessionId: string,
+  traceId: string
 ): Promise<string> {
-  const data = `${query}|${sessionId}`;
+  const data = `${query}|${sessionId}|${traceId}`;
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
 
@@ -152,13 +154,19 @@ function validatePayload(
   const hasValidQuery = isNonEmptyString(payload.query);
   const hasValidSessionId = isNonEmptyString(payload.session_id);
   const hasValidIdempotencyKey = isNonEmptyString(payload.idempotency_key);
+  const hasValidTraceId = isNonEmptyString(payload.trace_id);
 
-  if (!hasValidQuery || !hasValidSessionId || !hasValidIdempotencyKey) {
+  if (!hasValidQuery || !hasValidSessionId || !hasValidIdempotencyKey || !hasValidTraceId) {
     return false;
   }
 
   // Validate UUID format for idempotency_key
   if (!isValidUuid(payload.idempotency_key as string)) {
+    return false;
+  }
+
+  // Validate UUID format for trace_id
+  if (!isValidUuid(payload.trace_id as string)) {
     return false;
   }
 
@@ -195,7 +203,7 @@ serve(
             error: 'invalid_payload',
             message:
               'Required: query (string), session_id (string), ' +
-              'idempotency_key (UUID)',
+              'trace_id (UUID), idempotency_key (UUID)',
           },
           400,
           ctx.corsHeaders
@@ -208,15 +216,17 @@ serve(
         // Compute cryptographic seal
         const requestHash = await computeRequestHash(
           payload.query,
-          payload.session_id
+          payload.session_id,
+          payload.trace_id
         );
 
         // Resolve orchestrator URL
         const orchestratorUrl = resolveOrchestratorUrl();
 
         // Forward to orchestrator with idempotency headers
+        // FIXED: Call canonical /api/v1/goals endpoint with GoalRequest schema
         const orchestratorResponse = await fetch(
-          `${orchestratorUrl}/workflow/trigger`,
+          `${orchestratorUrl}/api/v1/goals`,
           {
             method: 'POST',
             headers: {
@@ -227,10 +237,9 @@ serve(
               'X-Session-Id': payload.session_id,
             },
             body: JSON.stringify({
-              query: payload.query,
-              history: payload.history ?? [],
-              session_id: payload.session_id,
               user_id: authResult.user.id,
+              user_intent: payload.query,
+              trace_id: payload.trace_id,
             }),
           }
         );
@@ -271,7 +280,7 @@ serve(
 
         const response: WorkflowResponse = {
           workflow_id:
-            orchestratorData.workflow_id ?? payload.idempotency_key,
+            orchestratorData.workflowId ?? payload.trace_id,
           status: 'queued',
           request_hash: requestHash,
         };

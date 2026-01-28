@@ -84,7 +84,7 @@ async def create_goal(request: GoalRequest):
         # C3: Start workflow via function reference for type safety
         handle = await client.start_workflow(
             AgentWorkflow.run,
-            args=[request.user_intent, request.user_id, {}],
+            args=[request.user_intent, request.user_id, {"trace_id": request.trace_id}],
             id=workflow_id,
             task_queue=os.getenv("TEMPORAL_TASK_QUEUE", "apex-orchestrator"),
         )
