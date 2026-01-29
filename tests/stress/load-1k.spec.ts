@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { randomInt } from 'crypto';
+import { randomInt } from 'node:crypto';
 
 /**
  * 1K USER LOAD TEST
