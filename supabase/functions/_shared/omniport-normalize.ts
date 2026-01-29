@@ -52,10 +52,17 @@ function sanitizeText(text: string): string {
 
 function safeTraceId(preferred?: string): string {
   if (preferred) return preferred;
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+  if (typeof crypto !== 'undefined') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    // Fallback if randomUUID is not available but crypto is (unlikely in modern Deno/Browsers)
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
-  return `trace_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  // This path should theoretically never be reached in Supabase Deno runtime
+  throw new Error('Cryptographically secure random number generator not available');
 }
 
 /**
