@@ -591,6 +591,15 @@ docker compose -f docker-compose.prod.yml up -d
 | [SOC2 Readiness](docs/compliance/SOC2_READINESS.md)          | Compliance          |
 | [Secrets Management](docs/security/SECRETS_MANAGER_SETUP.md) | Secrets handling    |
 
+### Legal & Compliance
+
+| Document                                       | Description          |
+| ---------------------------------------------- | -------------------- |
+| [Privacy Policy](docs/PRIVACY_POLICY.md)       | Data handling policy |
+| [Terms of Service](docs/TERMS_OF_SERVICE.md)   | User agreement       |
+| [Incident Response](docs/INCIDENT_RESPONSE.md) | Security incidents   |
+| [GDPR Workflows](docs/GDPR_WORKFLOWS.md)       | Data rights          |
+
 ### Testing
 
 | Document                                                  | Description   |
