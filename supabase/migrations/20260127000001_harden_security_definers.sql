@@ -10,30 +10,14 @@ BEGIN;
 REVOKE ALL ON FUNCTION public.claim_admin_role() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.claim_admin_role() TO authenticated; -- Required for user self-promotion check
 
-REVOKE ALL ON FUNCTION public.enable_emergency_lockdown() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.enable_emergency_lockdown() TO service_role;
-
-REVOKE ALL ON FUNCTION public.lift_emergency_lockdown() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.lift_emergency_lockdown() TO service_role;
-
 -- 2. MAN Mode & Governance
-REVOKE ALL ON FUNCTION public.create_man_task(jsonb, text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.create_man_task(jsonb, text, text, int) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.create_man_task(jsonb, text, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.create_man_task(jsonb, text, text, int) TO service_role;
-
-REVOKE ALL ON FUNCTION public.resolve_man_task(uuid, text, text, jsonb, uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.resolve_man_task(uuid, text, text, jsonb, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.resolve_man_task(uuid, text, text, jsonb, uuid) TO authenticated; -- Approvers are users
+-- Functions not yet implemented as SQL functions (logic in Edge Functions or app layer)
 
 -- 3. Audit Logging
-REVOKE ALL ON FUNCTION public.create_audit_log(text, text, text, jsonb, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.create_audit_log(text, text, text, jsonb, text) TO service_role;
+-- Functions not yet implemented or handle internal inserts
 
 -- 4. Device Registry
-REVOKE ALL ON FUNCTION public.register_device(text, text, jsonb) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.register_device(text, text, jsonb) TO service_role;
-GRANT EXECUTE ON FUNCTION public.register_device(text, text, jsonb) TO authenticated; -- Users register devices
+-- Functions not yet implemented
 
 -- 5. Data Access
 -- Revoke any generic helper functions if they exist here

@@ -2,7 +2,7 @@ import { encodeBase64Url } from 'https://deno.land/std@0.177.0/encoding/base64ur
 import { buildCorsHeaders, corsErrorResponse, handlePreflight, isOriginAllowed } from '../_shared/cors.ts';
 import { allowAdapter, allowWorkflow, enforceEnvAllowlist, enforcePermission, type OmniLinkScopes } from '../_shared/omnilinkScopes.ts';
 import { createAnonClient, createServiceClient } from '../_shared/supabaseClient.ts';
-import { normalizeOmniPortIntent, type OmniPortInput } from '../../src/integrations/omniport/normalize.ts';
+import { normalizeOmniPortIntent, type OmniPortInput } from '../_shared/omniport-normalize.ts';
 
 const OMNILINK_ENABLED = (Deno.env.get('OMNILINK_ENABLED') ?? '').toLowerCase() === 'true';
 const MAX_SINGLE_PAYLOAD_BYTES = 256 * 1024;
