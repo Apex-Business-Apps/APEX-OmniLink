@@ -1,41 +1,35 @@
-export type OmniPortChannel = 'voice' | 'text' | 'api';
+// Re-defined for Edge environment to avoid direct dependency on src/
+export type SOmniPortChannel = 'voice' | 'text' | 'api';
 
-export type OmniPortVoiceInput = {
+interface BaseInput {
+  userId?: string;
+  intentType?: string;
+  requiresApproval?: boolean;
+  notify?: boolean;
+  traceId?: string;
+}
+
+export interface SOmniPortVoiceInput extends BaseInput {
   channel: 'voice';
   transcript: string;
   language?: string;
-  userId?: string;
-  intentType?: string;
-  requiresApproval?: boolean;
-  notify?: boolean;
-  traceId?: string;
-};
+}
 
-export type OmniPortTextInput = {
+export interface SOmniPortTextInput extends BaseInput {
   channel: 'text';
   message: string;
   locale?: string;
-  userId?: string;
-  intentType?: string;
-  requiresApproval?: boolean;
-  notify?: boolean;
-  traceId?: string;
-};
+}
 
-export type OmniPortApiInput = {
+export interface SOmniPortApiInput extends BaseInput {
   channel: 'api';
   payload: Record<string, unknown>;
-  userId?: string;
-  intentType?: string;
-  requiresApproval?: boolean;
-  notify?: boolean;
-  traceId?: string;
-};
+}
 
-export type OmniPortInput = OmniPortVoiceInput | OmniPortTextInput | OmniPortApiInput;
+export type SOmniPortInput = SOmniPortVoiceInput | SOmniPortTextInput | SOmniPortApiInput;
 
 export interface CanonicalOmniPortIntent {
-  channel: OmniPortChannel;
+  channel: SOmniPortChannel;
   type: string;
   payload: Record<string, unknown>;
   traceId: string;
@@ -43,41 +37,38 @@ export interface CanonicalOmniPortIntent {
   userId?: string;
   requiresApproval: boolean;
   notify: boolean;
-  raw: OmniPortInput;
+  raw: SOmniPortInput;
 }
 
-function sanitizeText(text: string): string {
-  return text.trim().replaceAll(/\s+/g, ' ');
-}
+const cleanText = (str: string): string => str.trim().replace(/\s+/g, ' ');
 
-function safeTraceId(preferred?: string): string {
-  if (preferred) return preferred;
-  if (typeof crypto !== 'undefined') {
-    if (typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-    // Fallback if randomUUID is not available but crypto is (unlikely in modern Deno/Browsers)
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+function generateTraceId(existing?: string): string {
+  if (existing) return existing;
+  
+  // Deno/Edge environment usually has crypto
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
   }
-  // This path should theoretically never be reached in Supabase Deno runtime
-  throw new Error('Cryptographically secure random number generator not available');
+  
+  // Fallback for unlikely environments
+  const buf = new Uint8Array(16);
+  (globalThis.crypto || window.crypto).getRandomValues(buf);
+  return [...buf].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
- * Normalize heterogeneous OmniPort inputs (voice/text/API) into a canonical envelope
- * that downstream orchestrators and dashboards can rely on.
+ * Normalize heterogeneous OmniPort inputs (voice/text/API) into a canonical envelope.
+ * Edge-optimized implementation.
  */
-export function normalizeOmniPortIntent(input: OmniPortInput): CanonicalOmniPortIntent {
-  const traceId = safeTraceId(input.traceId);
-  const createdAt = new Date().toISOString();
-  // Standardize boolean flags
+export function normalizeOmniPortIntent(input: SOmniPortInput): CanonicalOmniPortIntent {
+  const traceId = generateTraceId(input.traceId);
+  const now = new Date().toISOString();
+  
   const meta = {
-    requiresApproval: Boolean(input.requiresApproval),
-    notify: Boolean(input.notify),
+    requiresApproval: !!input.requiresApproval,
+    notify: !!input.notify,
     userId: input.userId,
-    createdAt,
+    createdAt: now,
     traceId
   };
 
@@ -87,7 +78,7 @@ export function normalizeOmniPortIntent(input: OmniPortInput): CanonicalOmniPort
         channel: 'voice',
         type: input.intentType ?? 'voice.intent',
         payload: {
-          message: sanitizeText(input.transcript),
+          message: cleanText(input.transcript),
           modality: 'voice',
           language: input.language ?? 'en',
         },
@@ -100,7 +91,7 @@ export function normalizeOmniPortIntent(input: OmniPortInput): CanonicalOmniPort
         channel: 'text',
         type: input.intentType ?? 'text.intent',
         payload: {
-          message: sanitizeText(input.message),
+          message: cleanText(input.message),
           modality: 'text',
           locale: input.locale ?? 'en',
         },
@@ -110,8 +101,7 @@ export function normalizeOmniPortIntent(input: OmniPortInput): CanonicalOmniPort
 
     case 'api':
     default: {
-      // Default to API if unknown channel, though type system restricts this
-      const apiInput = input as OmniPortApiInput; // narrowed by flow or cast
+      const apiInput = input as SOmniPortApiInput;
       return {
         channel: 'api',
         type: (apiInput.payload?.type as string) ?? (apiInput.intentType ?? 'api.intent'),
