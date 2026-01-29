@@ -40,7 +40,7 @@ export interface CanonicalOmniPortIntent {
   raw: SOmniPortInput;
 }
 
-const cleanText = (str: string): string => str.trim().replace(/\s+/g, ' ');
+const cleanText = (str: string): string => str.trim().replaceAll(/\s+/g, ' ');
 
 function generateTraceId(existing?: string): string {
   if (existing) return existing;
@@ -52,7 +52,7 @@ function generateTraceId(existing?: string): string {
   
   // Fallback for unlikely environments
   const buf = new Uint8Array(16);
-  (globalThis.crypto || window.crypto).getRandomValues(buf);
+  globalThis.crypto.getRandomValues(buf);
   return [...buf].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
