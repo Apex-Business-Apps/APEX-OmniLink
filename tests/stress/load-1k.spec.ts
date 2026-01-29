@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { randomInt } from 'crypto';
 
 /**
  * 1K USER LOAD TEST
@@ -45,11 +46,12 @@ describe('Launch Readiness - 1K Concurrent Users', () => {
         const broadcast = async (message: string) => {
             const promises = clients.map(client => {
                 return new Promise<void>(resolve => {
-                    // Random network jitter 0-50ms
+                    // Simulate network jitter with a CSPRNG to avoid weak PRNG usage (S2245)
+                    const jitterMs = randomInt(0, 51); // upper bound exclusive
                     setTimeout(() => {
                         client.receive(message);
                         resolve();
-                    }, Math.random() * 50);
+                    }, jitterMs);
                 });
             });
             await Promise.all(promises);
