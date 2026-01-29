@@ -72,60 +72,53 @@ function safeTraceId(preferred?: string): string {
 export function normalizeOmniPortIntent(input: OmniPortInput): CanonicalOmniPortIntent {
   const traceId = safeTraceId(input.traceId);
   const createdAt = new Date().toISOString();
-  const requiresApproval = Boolean(input.requiresApproval);
-  const notify = Boolean(input.notify);
-
-  if (input.channel === 'voice') {
-    const normalized = sanitizeText(input.transcript);
-    return {
-      channel: 'voice',
-      type: input.intentType ?? 'voice.intent',
-      payload: {
-        message: normalized,
-        modality: 'voice',
-        language: input.language ?? 'en',
-      },
-      traceId,
-      createdAt,
-      userId: input.userId,
-      requiresApproval,
-      notify,
-      raw: input,
-    };
-  }
-
-  if (input.channel === 'text') {
-    const normalized = sanitizeText(input.message);
-    return {
-      channel: 'text',
-      type: input.intentType ?? 'text.intent',
-      payload: {
-        message: normalized,
-        modality: 'text',
-        locale: input.locale ?? 'en',
-      },
-      traceId,
-      createdAt,
-      userId: input.userId,
-      requiresApproval,
-      notify,
-      raw: input,
-    };
-  }
-
-  const payloadType =
-    (input.payload.type as string | undefined) ??
-    (input.intentType ?? 'api.intent');
-
-  return {
-    channel: 'api',
-    type: payloadType,
-    payload: { ...input.payload },
-    traceId,
-    createdAt,
+  // Standardize boolean flags
+  const meta = {
+    requiresApproval: Boolean(input.requiresApproval),
+    notify: Boolean(input.notify),
     userId: input.userId,
-    requiresApproval,
-    notify,
-    raw: input,
+    createdAt,
+    traceId
   };
+
+  switch (input.channel) {
+    case 'voice':
+      return {
+        channel: 'voice',
+        type: input.intentType ?? 'voice.intent',
+        payload: {
+          message: sanitizeText(input.transcript),
+          modality: 'voice',
+          language: input.language ?? 'en',
+        },
+        raw: input,
+        ...meta
+      };
+
+    case 'text':
+      return {
+        channel: 'text',
+        type: input.intentType ?? 'text.intent',
+        payload: {
+          message: sanitizeText(input.message),
+          modality: 'text',
+          locale: input.locale ?? 'en',
+        },
+        raw: input,
+        ...meta
+      };
+
+    case 'api':
+    default: {
+      // Default to API if unknown channel, though type system restricts this
+      const apiInput = input as OmniPortApiInput; // narrowed by flow or cast
+      return {
+        channel: 'api',
+        type: (apiInput.payload?.type as string) ?? (apiInput.intentType ?? 'api.intent'),
+        payload: { ...apiInput.payload },
+        raw: input,
+        ...meta
+      };
+    }
+  }
 }
