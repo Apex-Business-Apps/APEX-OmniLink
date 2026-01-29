@@ -2,7 +2,7 @@ import { encodeBase64Url } from 'https://deno.land/std@0.177.0/encoding/base64ur
 import { buildCorsHeaders, corsErrorResponse, handlePreflight, isOriginAllowed } from '../_shared/cors.ts';
 import { allowAdapter, allowWorkflow, enforceEnvAllowlist, enforcePermission, type OmniLinkScopes } from '../_shared/omnilinkScopes.ts';
 import { createAnonClient, createServiceClient } from '../_shared/supabaseClient.ts';
-import { normalizeOmniPortIntent, type OmniPortInput } from '../_shared/omniport-normalize.ts';
+import { normalizeOmniPortIntent, type SOmniPortInput } from '../_shared/omniport-normalize.ts';
 
 const OMNILINK_ENABLED = (Deno.env.get('OMNILINK_ENABLED') ?? '').toLowerCase() === 'true';
 const MAX_SINGLE_PAYLOAD_BYTES = 256 * 1024;
@@ -330,7 +330,7 @@ async function processRequestItem(
   return { status: data.status, record_id: data.record_id, index, retry_after_seconds: data.retry_after_seconds };
 }
 
-function omniPortEnvelope(input: OmniPortInput): Record<string, unknown> {
+function omniPortEnvelope(input: SOmniPortInput): Record<string, unknown> {
   const canonical = normalizeOmniPortIntent(input);
   const source = `omniport/${canonical.channel}`;
   const base = {
@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
     const results = [];
 
     const normalizedItems = isOmniPort
-      ? items.map((item) => omniPortEnvelope(item as OmniPortInput))
+      ? items.map((item) => omniPortEnvelope(item as SOmniPortInput))
       : items;
 
     for (const [index, item] of normalizedItems.entries()) {
