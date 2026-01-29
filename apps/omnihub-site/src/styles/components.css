@@ -178,7 +178,7 @@
 
 .btn--primary {
   background-color: var(--color-navy);
-  color: var(--color-white);
+  color: #ffffff; /* FORCE WHITE TEXT FOR CONTRAST */
   border-color: var(--color-navy);
 }
 
@@ -463,7 +463,7 @@
 }
 
 .nav__logo-wordmark {
-  height: calc(64px * 0.95);
+  height: calc(64px * 1.1);
   width: auto;
   display: block;
   filter: drop-shadow(0 0 12px rgba(196, 87, 28, 0.6)) drop-shadow(0 0 24px rgba(196, 87, 28, 0.4));
