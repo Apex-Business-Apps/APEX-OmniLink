@@ -31,40 +31,36 @@ function ThemeToggle() {
   };
 
   return (
-    <>
-      <div className="theme-toggle-segmented" aria-label="Theme selection">
-        <label
-          className={`theme-toggle-segmented__option ${isLight ? 'theme-toggle-segmented__option--active' : ''
-            }`}
-        >
-          <input
-            className="theme-toggle-segmented__input"
-            type="radio"
-            name="theme"
-            value="light"
-            checked={isLight}
-            onChange={() => setTheme(false)}
-          />
-          WHITE FORTRESS
-        </label>
-        <label
-          className={`theme-toggle-segmented__option ${isDark ? 'theme-toggle-segmented__option--active' : ''
-            }`}
-        >
-          <input
-            className="theme-toggle-segmented__input"
-            type="radio"
-            name="theme"
-            value="dark"
-            checked={isDark}
-            onChange={() => setTheme(true)}
-          />
-          NIGHT WATCH
-        </label>
-      </div>
-
-
-    </>
+    <div className="theme-toggle-segmented" aria-label="Theme selection">
+      <label
+        className={`theme-toggle-segmented__option ${isLight ? 'theme-toggle-segmented__option--active' : ''
+          }`}
+      >
+        <input
+          className="theme-toggle-segmented__input"
+          type="radio"
+          name="theme"
+          value="light"
+          checked={isLight}
+          onChange={() => setTheme(false)}
+        />
+        WHITE FORTRESS
+      </label>
+      <label
+        className={`theme-toggle-segmented__option ${isDark ? 'theme-toggle-segmented__option--active' : ''
+          }`}
+      >
+        <input
+          className="theme-toggle-segmented__input"
+          type="radio"
+          name="theme"
+          value="dark"
+          checked={isDark}
+          onChange={() => setTheme(true)}
+        />
+        NIGHT WATCH
+      </label>
+    </div>
   );
 }
 
