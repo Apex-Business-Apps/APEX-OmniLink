@@ -58,29 +58,44 @@ const Index = () => {
       {/* Hero Section */}
       <section className="px-4 py-16 md:py-20 lg:py-24 pt-20 md:pt-24 lg:pt-28">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center" data-testid="hero">
 
             {/* Left Column - Content */}
             <div className="max-w-[560px] space-y-6 lg:space-y-8">
               {/* H1 */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-[hsl(var(--navy))]">
+              <h1 
+                className="text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-[hsl(var(--navy))]"
+                data-testid="hero-headline"
+              >
                 APEX OmniHub
               </h1>
 
-              {/* Support Copy */}
-              <p className="text-lg text-muted-foreground">
+              {/* Subhead */}
+              <p 
+                className="mt-5 text-lg md:text-xl text-slate-600 leading-relaxed max-w-xl"
+                data-testid="hero-subhead"
+              >
                 Unified tools for work and life.
               </p>
 
-              {/* CTA */}
-              <div className="pt-2">
+              {/* Proof Chips (Stubbed for visuals) */}
+              <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium text-slate-500">
+                 {/*  Add actual proof points here if provided, keeping layout ready */}
+              </div>
+
+              {/* CTA Row */}
+              <div className="pt-2 flex items-center gap-3">
                 <Button
                   size="lg"
                   onClick={scrollToApps}
-                  className="w-full md:w-auto bg-[hsl(var(--navy))] hover:bg-[hsl(var(--navy-600))] text-white px-8"
+                  data-testid="hero-cta-primary"
+                  className="h-11 px-6 rounded-xl font-semibold bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 transition-all"
                 >
                   Explore Apps
                 </Button>
+                
+                {/* Secondary CTA (Placeholder/Optional) */}
+                 {/* <Button variant="ghost" ...>Watch Demo</Button> */}
               </div>
             </div>
 

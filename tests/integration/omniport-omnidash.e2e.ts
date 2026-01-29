@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeOmniPortIntent } from '@/integrations/omniport/normalize';
+import { normalizeOmniPortIntent } from '../../supabase/functions/_shared/omniport-normalize';
 
 const baseUrl = process.env.OMNI_PORT_BASE_URL ?? process.env.VITE_SUPABASE_URL;
 const serviceKey = process.env.OMNI_PORT_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;

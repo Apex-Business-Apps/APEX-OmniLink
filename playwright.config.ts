@@ -24,9 +24,9 @@ export default defineConfig({
   },
 
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:4174',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    screenshot: 'on', // Force screenshot on (for debugging/verification if needed) or keep as failure
   },
 
   projects: [
@@ -37,10 +37,10 @@ export default defineConfig({
   ],
 
   // Start preview server before running tests
-  webServer: {
-    command: 'npm run build && npm run preview -- --port 4174',
-    url: 'http://localhost:4174',
-    reuseExistingServer: true,
-    timeout: 120_000, // 2 minutes for build + preview startup
-  },
+  // webServer: {
+  //   command: 'npm run build && npm run preview -- --port 4174',
+  //   url: 'http://localhost:4174',
+  //   reuseExistingServer: true,
+  //   timeout: 120_000, // 2 minutes for build + preview startup
+  // },
 });
